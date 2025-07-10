@@ -8,9 +8,14 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions: {}
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
 jobs:
-  call-entry-ci:
-    uses: ./.github/workflows/ci.yml
+  call-compile-test:
+    uses: ./.github/workflows/compile-and-test.yml
     with:
       distribution-channel: 'test'
+      app-version: '0.0.1'
