@@ -11,7 +11,7 @@ concurrency:
 permissions: {}
 jobs:
   call-entry-ci:
-    uses: ./.github/workflows/ci.yml@main
+    uses: ./.github/workflows/ci.yml
     with:
       distribution-channel: 'test'
   build:
