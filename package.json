@@ -1,5 +1,5 @@
 {
-  "name": "@mfukushim/avatar-shell",
+  "name": "avatar-shell",
   "description": "Avatar/Visually-based MCP client",
   "version": "0.0.1",
   "license": "Apache-2.0",
