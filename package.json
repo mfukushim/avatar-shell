@@ -29,13 +29,13 @@
   },
   "devDependencies": {
     "@npmcli/map-workspaces": "4.0.2",
-    "@playwright/test": "1.53.2",
-    "@types/node": "24.0.10",
-    "create-vite": "7.0.1",
-    "electron": "37.2.0",
+    "@playwright/test": "1.54.1",
+    "@types/node": "24.1.0",
+    "create-vite": "7.0.3",
+    "electron": "37.2.4",
     "electron-builder": "26.0.12",
     "glob": "11.0.3",
-    "playwright": "^1.53.1"
+    "playwright": "^1.54.1"
   },
   "dependencies": {
     "@app/main": "*"
