@@ -1,0 +1,21 @@
+name: Check
+on:
+  workflow_dispatch: null
+  pull_request:
+    branches:
+      - dev_release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  call-compile-test:
+    uses: ./.github/workflows/compile-and-test.yml
+    with:
+      distribution-channel: 'test'
+      app-version: '0.0.1'
