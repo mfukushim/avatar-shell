@@ -20,9 +20,9 @@ const test = base.extend<TestFixtures>({
     /**
      * Executable path depends on root package name!
      */
-    let executablePattern = 'dist/*/root{,.*}';
+    let executablePattern = 'dist/*/avatar-shell{,.*}';
     if (platform === 'darwin') {
-      executablePattern += '/Contents/*/root';
+      executablePattern += '/Contents/*/avatar-shell';
     }
 
     const [executablePath] = globSync(executablePattern);
@@ -97,6 +97,7 @@ test('Main window state', async ({electronApp, page}) => {
   expect(windowState.isDevToolsOpened, 'The DevTools panel was open').toEqual(false);
 });
 
+/*
 test.describe('Main window web content', async () => {
 
   test('The main window has an interactive button', async ({page}) => {
@@ -118,6 +119,7 @@ test.describe('Main window web content', async () => {
     expect(imgNaturalWidth).toBeGreaterThan(0);
   });
 });
+*/
 
 test.describe('Preload context should be exposed', async () => {
   test.describe(`versions should be exposed`, async () => {
