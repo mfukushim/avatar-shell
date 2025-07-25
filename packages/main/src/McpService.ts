@@ -19,6 +19,7 @@ import short from 'short-uuid';
 import {BrowserWindow, dialog} from 'electron';
 import {GeneratorProvider} from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
+import electronLog from 'electron-log';
 
 
 export interface ToolCallParam {
@@ -38,6 +39,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }>());
 
     function updateSysConfig(sys: SysConfig) {
+      electronLog.log('updateSysConfig')
       return reset(sys).pipe(Effect.catchAll(cause => {
         dialog.showErrorBox('MCP 初期化エラー', String(`${cause.message}`));
         return Effect.void;
@@ -45,11 +47,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }
 
     function reset(sysConfig: SysConfig) {
-      // console.log('McpService init:');
-      // //  TODO あまりよくない
-      // if (clientInfoList) {
-      //   return Effect.void;
-      // }
+      electronLog.log('McpService init:');
       //  mcp定義からtransportを作って、clientを作って、初期プラグイン等をロードする
       //  avatar-sightが使う組み込みサーバーもここで定義する
       return Effect.gen(function* () {
@@ -62,6 +60,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
                 version: '1.0.0',
               },
             );
+            console.log('after client');
             const transport = new StdioClientTransport(a1[1] as McpServerDef);
             yield* Effect.tryPromise({
               try: () => client.connect(transport),
@@ -97,7 +96,9 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }
 
     function initial() {
+      electronLog.log('mcp initial')
       return Effect.gen(function* () {
+        electronLog.log('mcp initial in')
         const sysConfig = yield* ConfigService.getSysConfigPub();
         yield* sysConfig.pipe(SubscriptionRef.get, Effect.andThen(a => updateSysConfig(a)));
         yield* Effect.forkDaemon(sysConfig.changes.pipe(Stream.runForEach(a => {

@@ -16,14 +16,15 @@ import {BuildInMcpServiceLive} from './BuildInMcpService.js';
 import {MediaServiceLive} from './MediaService.js';
 import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {SocketServiceLive} from './SocketService.js';
-import {AlertReply, AlertTask, AsMessage, MutableSysConfig} from '../../common/Def.js';
-import short from 'short-uuid';
+import {AlertReply, AsMessage, MutableSysConfig} from '../../common/Def.js';
+import electronLog from 'electron-log';
 
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive, MediaServiceLive,AvatarServiceLive,SocketServiceLive);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
 
 export function showAlertIfFatal(detectPos: string) {
   return (e:any) => {
+    electronLog.log('in showAlertIfFatal:',e);
     if (dialog) {
       dialog.showErrorBox(
         'Error',
@@ -31,7 +32,7 @@ export function showAlertIfFatal(detectPos: string) {
       );
     }
     console.log(e);
-    return Effect.succeed(e); //  ���A�͂�����
+    return Effect.succeed(e);
   };
 }
 
@@ -73,10 +74,10 @@ export async function initApp(initConfig: AppInitConfig) {
 }
 
 ipcMain.handle('request-window-close', async (event,avatarId:string) => {
-  // console.log('request-window-close');
+  electronLog.log('request-window-close',avatarId,event.sender);
   await AvatarService.deleteAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('request-window-close')),aiRuntime.runPromise);
   const win = BrowserWindow.fromWebContents(event.sender);
-  // console.log('win:',win);
+  electronLog.log('win:',win);
   if (win) win.close();
 });
 
@@ -117,7 +118,7 @@ ipcMain.handle('setNames', async (_,id:string, setting:{userName?:string,avatarN
 ipcMain.handle('setAvatarConfig', async (_, id, data) => await ConfigService.updateAvatarConfig(id, data).pipe(Effect.catchAll(showAlertIfFatal('setAvatarConfig')), aiRuntime.runPromise));
 ipcMain.handle('copyAvatarConfig', async (_, templateId) => await ConfigService.copyAvatarConfig(templateId).pipe(Effect.catchAll(showAlertIfFatal('copyAvatarConfig')), aiRuntime.runPromise));
 ipcMain.handle('deleteAvatarConfig', async (_, templateId) => {
-  //  ���ݓ����Ă���template�̃C���X�^���X�����݂��邩���`�F�b�N
+  //
   return await Effect.gen(function* () {
     const list = yield *AvatarService.getCurrentAvatarList()
     if (list.some(a => a.templateId === templateId)) {
@@ -140,7 +141,7 @@ ipcMain.handle('updateMutableSetting', async (_, data:MutableSysConfig) => await
 ipcMain.handle('readDocList', async (_, avatarId: string) => await DocService.readDocList(avatarId).pipe(Effect.catchAll(showAlertIfFatal('readDocList')), aiRuntime.runPromise));
 ipcMain.handle('readDocument', async (_,templateId:string, fileName: string) => {
   return await DocService.readDocument(templateId, fileName).pipe(
-    Effect.andThen(a => a.flatMap(b => b.mes)), //  �����_�[���Ŏ擾����ꍇ��AsMessage�����ɂ���
+    Effect.andThen(a => a.flatMap(b => b.mes)),
     Effect.catchAll(showAlertIfFatal('readDocument')),
     aiRuntime.runPromise,
   );
@@ -177,21 +178,30 @@ ipcMain.handle('getLocale',  (_) => app.getLocale());
 
 
 app.on('ready', async () => {
-  console.log('start app');
-  await McpService.initial().pipe(Effect.catchAll(showAlertIfFatal('MCP init')), aiRuntime.runPromise)
+  electronLog.log('start app');
+  await McpService.initial().pipe(
+    Effect.andThen(a => {
+      console.log('MCP init done');
+      app.emit('second-instance');
+      return Effect.succeed(a);
+    }),
+    Effect.catchAll(showAlertIfFatal('MCP init')),
+    aiRuntime.runPromise)
 });
 
 app.on('browser-window-created', async (_, window) => {
-  // console.log('browser-window-created');
+  electronLog.log('browser-window-created');
   await Effect.gen(function* () {
-    // console.log('browser-window-created inner start:');
+    electronLog.log('browser-window-created inner start:');
     yield *Effect.async<boolean>(resume => {
       window.webContents.on('did-finish-load', () => {
-        console.log('receive did-finish-load')
+        electronLog.log('receive did-finish-load')
         resume(Effect.succeed(true));
       });
     }).pipe(Effect.timeoutOption('10 seconds'))  //  TODO 初期ウィンドウの生成とアプリ全体準備にかかる時間の問題を暫定回避。。
+    electronLog.log('browser-window-created inner end:');
     yield *AvatarService.makeAvatar(window)
+    electronLog.log('browser-window-created end:');
     window.show()
     window.focus()
   }).pipe(Effect.catchAll(showAlertIfFatal('browser-window-created')),aiRuntime.runPromise);

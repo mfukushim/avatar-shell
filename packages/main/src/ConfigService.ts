@@ -1,12 +1,11 @@
 import {Effect, HashMap, Ref, SubscriptionRef} from 'effect';
 import Store from 'electron-store';
-import {AvatarSetting, MainLlmSchema, MutableSysConfig, SysConfig, SysConfigMutable} from '../../common/Def.js';
+import {AvatarSetting, MutableSysConfig, SysConfig, SysConfigMutable} from '../../common/Def.js';
 import {app} from 'electron';
 // import {debugAvatarConfig, debugMutableSetting, debugSysConfig} from '../../../tools/debugConfig.js';
 import {defaultAvatarSetting, defaultMutableSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
 import short from 'short-uuid';
 import path from 'node:path';
-import fs from 'node:fs';
 import {fileURLToPath} from 'url';
 import {dirname} from 'path';
 import {vitestAvatarConfig, vitestSysConfig} from '../../../tools/vitestConfig.js';
@@ -17,8 +16,8 @@ import {PixAiImageGenerator} from './ImageGenarators.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {ClaudeTextGenerator} from './ClaudeGenerator.js';
 import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './LlmGenerator.js';
+//import electronLog from 'electron-log';
 
-// export const defaultAvatarId = defaultAvatarSetting[0].data.templateId;
 
 const debug = process.env.VITE_LOCAL_DEBUG === 'true';
 
@@ -28,10 +27,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..');
 
+//electronLog.log('config start:',debug,isViTest,__filename);
 
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
   effect: Effect.gen(function* () {
+    //electronLog.log('in config');
     const store = app ? new Store(debug ? {} : {
       encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
     }) : undefined;
@@ -39,6 +40,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     let sysData;
     let avatarData;
     let mutableSetting: Ref.Ref<MutableSysConfig>;
+    //electronLog.log('meta',import.meta.env.DEV);
     if (import.meta.env.DEV) {
       sysData = isViTest ? vitestSysConfig : store?.get('sysConfig') as SysConfig || defaultSysSetting;
       avatarData = isViTest ? vitestAvatarConfig :
@@ -61,6 +63,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }, {} as Record<string, AvatarSetting>);
       mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
     }
+    //electronLog.log('meta end',sysData,avatarData);
     //const sysData = isViTest? vitestSysConfig: debug || !store ? testSysConfig : store.get('sysConfig') as SysConfig || defaultSysSetting;
     // const avatarData = isViTest ? vitestAvatarConfig: debug || !store ? testAvatarConfig :
     //   (store.get('avatarConfig') as {
@@ -72,6 +75,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     //   }, {} as Record<string, AvatarSetting>);
 
     const sysConfig: SubscriptionRef.SubscriptionRef<SysConfig> = yield* SubscriptionRef.make(sysData);
+    //electronLog.log('sysConfig ref',sysConfig);
 
     const avatarConfigs: Ref.Ref<HashMap.HashMap<string, SubscriptionRef.SubscriptionRef<AvatarSetting>>>
       = yield* Effect.gen(function* () {
@@ -84,7 +88,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       // if (list.length === 0) {
       //   const one = yield* SubscriptionRef.make<AvatarSetting>({
       //     general: {
-      //       name: defaultAvatarId,  //  default id をnameに仮置き
+      //       name: defaultAvatarId, // default id をnameに仮置き
       //     },
       //     mcp: {},
       //   } as AvatarSetting);
@@ -92,8 +96,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       // }
       return yield* Ref.make(HashMap.make(...list));
     });
+    //electronLog.log('avatarConfigs ref',avatarConfigs);
 
-    // const mutableSetting = yield *Ref.make(debug || !store ? testMutableSetting : store.get('mutableSetting') as MutableSysConfig || defaultMutableSetting)
+    // const mutableSetting = yield *Ref.make(debug || !store ? testMutableSetting: store.get('mutableSetting') as MutableSysConfig || defaultMutableSetting)
 
     function getMutableSetting() {
       return mutableSetting.get;
@@ -209,6 +214,8 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     }
 
     const getVersion = () => {
+      return Effect.succeed(app.getVersion())
+/*
       const packageJsonPath = path.resolve(__pwd, 'package.json');
       return Effect.async<string, Error>((resume) => {
         fs.readFile(packageJsonPath, {encoding: 'utf8'}, (err, data) => {
@@ -216,71 +223,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
           else resume(Effect.succeed(data));
         });
       }).pipe(Effect.andThen(a => JSON.parse(a).version as string));
-    };
-
-/*
-    const genMap = (name: GeneratorProvider, sysConfig: SysConfig, settings?: ContextGeneratorSetting):Effect.Effect<ContextGenerator,Error> => {
-      //  llm系
-      console.log('genMap',name);
-      switch (name) {
-        case        'openAiText':
-          return openAiTextGenerator.make(sysConfig, settings);
-        case          'claudeText':
-          return ClaudeTextGenerator.make(sysConfig, settings);
-        case          'geminiText':
-          return GeminiTextGenerator.make(sysConfig, settings);
-        //  画像生成系
-        case          'pixAi':
-          return PixAiImageGenerator.make(sysConfig, settings);
-        case          'openAiImage':
-          return openAiImageGenerator.make(sysConfig, settings);
-        case          'geminiImage':
-          console.log('geminiImage in',sysConfig,settings);
-          return GeminiImageGenerator.make(sysConfig, settings);
-        //  音声合成系
-        case          'openAiVoice':
-          return openAiVoiceGenerator.make(sysConfig, settings);
-        case          'geminiVoice':
-          return GeminiVoiceGenerator.make(sysConfig, settings);
-      }
-      console.log('no gen');
-      return EmptyTextGenerator.make(settings)
-    //   'openAiText';
-    // :
-    //   openAiTextGenerator,
-    //     'claudeText';
-    // :
-    //   ClaudeTextGenerator,
-    //     'geminiText';
-    // :
-    //   GeminiTextGenerator,
-    //     //  画像生成系
-    //     'pixAi';
-    // :
-    //   PixAiImageGenerator,
-    //     'openAiImage';
-    // :
-    //   openAiImageGenerator,
-    //     'geminiImage';
-    // :
-    //   GeminiImageGenerator,
-    //     //  音声合成系
-    //     'openAiVoice';
-    // :
-    //   openAiVoiceGenerator,
-    //     'geminiVoice';
-    // :
-    //   GeminiVoiceGenerator,
-      // 'openAiVoice',
-      // 'voiceVox',
-      // 'nijiVoice',
-
-      //  ダミージェネレーター
-      // 'emptyText': EmptyTextGenerator,
-      // 'emptyImage': EmptyImageGenerator,
-      // 'emptyVoice': EmptyVoiceGenerator,
-    };
 */
+    };
+
     const genMap:Record<GeneratorProvider, (sysConfig:SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any,Error>> = {
       //  llm系
       'openAiText': (sysConfig,settings) => openAiTextGenerator.make(sysConfig, settings),
@@ -298,9 +243,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       // 'nijiVoice',
 
       //  ダミージェネレーター
-      'emptyText': (sysConfig,settings) => EmptyTextGenerator.make(settings),
-      'emptyImage': (sysConfig,settings) => EmptyImageGenerator.make(settings),
-      'emptyVoice': (sysConfig,settings) => EmptyVoiceGenerator.make(settings),
+      'emptyText': (_,settings) => EmptyTextGenerator.make(settings),
+      'emptyImage': (_,settings) => EmptyImageGenerator.make(settings),
+      'emptyVoice': (_,settings) => EmptyVoiceGenerator.make(settings),
     }
 
 
@@ -311,9 +256,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     }
 
     function makeGenerator(name: GeneratorProvider, sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<ContextGenerator, Error> {
-      // const gen = genMap(name,sysConfig,settings)
-      // console.log('makeGenerator gen',gen);
-      // return gen
       const gen = genMap[name];
       if (gen) {
         return gen(sysConfig, settings);
@@ -321,14 +263,15 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return Effect.fail(new Error('unknown generator'));
     }
 
-    function makeLlmGenerator(name: MainLlmSchema, sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<ContextGenerator, Error> {
-      const gen = genMap[name];
-      if (gen) {
-        return gen(sysConfig, settings);
-      }
-      return genMap['emptyText'](sysConfig, settings);
-    }
+    // function makeLlmGenerator(name: MainLlmSchema, sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<ContextGenerator, Error> {
+    //   const gen = genMap[name];
+    //   if (gen) {
+    //     return gen(sysConfig, settings);
+    //   }
+    //   return genMap['emptyText'](sysConfig, settings);
+    // }
 
+    //electronLog.log('before config end')
     if (app) {
       app.setAboutPanelOptions({
         applicationName: 'Avatar Shell',
@@ -340,6 +283,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       });
     }
 
+    //electronLog.log('config end',app);
 
     return {
       getSysConfig,
@@ -347,7 +291,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       getAvatarConfig,
       getAvatarConfigPub,
       getAvatarConfigList,
-      // getAvatarConfigFullList,
       updateSysConfig,
       updateAvatarConfig,
       copyAvatarConfig,
@@ -358,8 +301,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       updateMutableSetting,
       getGeneratorList,
       makeGenerator,
-      makeLlmGenerator,
-      // updateAvatarConfigEffect,
     };
 
   }),

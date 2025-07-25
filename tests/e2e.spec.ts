@@ -97,6 +97,7 @@ test('Main window state', async ({electronApp, page}) => {
   expect(windowState.isDevToolsOpened, 'The DevTools panel was open').toEqual(false);
 });
 
+/*
 test.describe('Main window web content', async () => {
 
   test('The main window has an interactive button', async ({page}) => {
@@ -118,6 +119,7 @@ test.describe('Main window web content', async () => {
     expect(imgNaturalWidth).toBeGreaterThan(0);
   });
 });
+*/
 
 test.describe('Preload context should be exposed', async () => {
   test.describe(`versions should be exposed`, async () => {

@@ -7,10 +7,12 @@ import {AsMessage, AsOutput} from '../../common/Def.js';
 import {DocService} from './DocService.js';
 import * as os from 'node:os';
 import {defaultAvatarSetting} from '../../common/DefaultSetting.js';
+import electronLog from 'electron-log';
 
 export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell/AvatarService', {
   accessors: true,
   effect: Effect.gen(function* () {
+    electronLog.log('AvatarService start')
     const avatars = yield* Ref.make(HashMap.empty<string, AvatarState>());
     const avatarStartupQueue = yield* Queue.dropping<{templateId: string, name: string}>(10);
 
@@ -58,6 +60,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function getCurrentAvatarList() {
+      electronLog.log('in getCurrentAvatarList:',avatars);
       return avatars.pipe(Ref.get, Effect.andThen(HashMap.entries), Effect.andThen(a => Array.from(a)), Effect.andThen(a => a.map(a => ({
         id: a[0],
         name: a[1].Name,
@@ -104,6 +107,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function makeAvatar(window: BrowserWindow) {
+      // electronLog.log('in makeAvatar',window)
       return Effect.gen(function* () {
         const param = yield* pullAvatarQueue();
         let tempId;
@@ -117,7 +121,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
           tempId = sys?.defaultAvatarId;
           if (!tempId) {
             const configList = yield *getCurrentAvatarList();
-            console.log(configList);
+            electronLog.log(configList);
             if (configList.length === 0) {
               tempId = defaultAvatarSetting[0].data.templateId
             } else {
@@ -129,10 +133,10 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
 
         const userName = os.userInfo().username;
 
-        console.log('userName',userName);
+        // electronLog.log('userName',userName);
         const id = short().generate();
         const avatarState = yield* AvatarState.make(id, tempId, name, window,userName);
-        console.log('makeAvatar after');
+        // electronLog.log('makeAvatar after');
         yield* Ref.update(avatars, a => HashMap.mutate(a, m => HashMap.set(m, id, avatarState)));
         return avatarState;
       });
@@ -154,7 +158,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         // return out
       })
     }
-
+  electronLog.log('AvatarService end')
 
     return {
       makeAvatar,
