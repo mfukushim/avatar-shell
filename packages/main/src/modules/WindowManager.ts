@@ -39,7 +39,7 @@ class WindowManager implements AppModule {
         webviewTag: false, // The webview tag is not recommended. Consider alternatives like an iframe or Electron's BrowserView. @see https://www.electronjs.org/docs/latest/api/webview-tag#warning
         preload: this.#preload.path,
       },
-      width:1800, //  TODO ‰¼ŒÅ’è
+      width:1800, //  TODO
       height:800
     });
     enable(browserWindow.webContents)
