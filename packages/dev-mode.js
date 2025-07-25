@@ -1,5 +1,7 @@
 import {build, createServer} from 'vite';
 import path from 'path';
+import 'dotenv/config';
+
 
 /**
  * This script is designed to run multiple packages of your application in a special development mode.
