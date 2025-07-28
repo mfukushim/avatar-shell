@@ -3,7 +3,7 @@
 
 coming soon
 
-Sorry for changing my address so often.  
+Sorry for changing repository url so often.  
 
 I'm thinking about what to name it.  
 
