@@ -50,7 +50,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       if (isViTest) {
         sysData = vitestSysConfig;
       } else if(debug) {
-        sysData = yield *Effect.tryPromise(signal => {
+        sysData = yield *Effect.tryPromise(() => {
           return import('../../common/debugConfig.js')
         }).pipe(Effect.andThen(a => a.debugSysConfig as SysConfig))
         console.log('sysData:',sysData);
@@ -60,7 +60,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       if (isViTest) {
         avatarData = vitestAvatarConfig;
       } else if(debug) {
-        avatarData = yield *Effect.tryPromise(signal => {
+        avatarData = yield *Effect.tryPromise(() => {
           return import('../../common/debugConfig.js')
         }).pipe(Effect.andThen(a => a.debugAvatarConfig))
         console.log('sysData:',sysData);
@@ -201,7 +201,14 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return Effect.gen(function* () {
         const map = yield* Ref.get(avatarConfigs);
         const b = yield* HashMap.get(map, templateId).pipe(Effect.tap(a1 => Effect.log(a1)), Effect.andThen(a1 => a1.get));
-        const copy = {...structuredClone(b)};  // readonlyをややごまかし
+        const dc = structuredClone(b)
+        const copy:AvatarSettingMutable = {
+          ...dc,
+          general:{
+            ...dc.general,
+            name: dc.general.name+'_cp'
+          }
+        };  // readonlyをややごまかし
         copy.templateId = nextId;
         const c = yield* SubscriptionRef.make(copy);
         return yield* Ref.update(avatarConfigs, map => {

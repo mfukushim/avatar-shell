@@ -22,55 +22,6 @@ const {t} = useI18n();
 const doOpen = async (templateId: string) => {
 
   const config = await getAvatarConfig(templateId);
-/*
-  mcpServers.value = await getMcpServerInfos();
-  console.log('mcpServers', mcpServers);
-  console.log('config', config);
-  generatorList.value =[''].concat(await getGeneratorList())
-  const mcps: Record<string, AvatarMcpSettingMutable> = {};
-  mcpServers.value.forEach(value => {
-    const useTools: Record<string, {enable: boolean, allow: McpEnable}> = {};
-    value.tools.map(tool => {
-      useTools[tool.name] = {
-        enable: true,
-        allow: 'ask',
-        // info: tool,
-      };
-    });
-    // console.log(value);
-    // if (config.mcp[value.id]) {
-    //   Object.entries(config.mcp[value.id]?.useTools).forEach(value2 => {
-    //     useTools[value2[0]] = {
-    //       enable: value2[1].enable,
-    //       allow: value2[1].allow,
-    //       // info: value.tools.find(tool => tool.name === value2[0])!,
-    //     };
-    //   });
-    // }
-    mcps[value.id] = {
-      enable: config.mcp[value.id]?.enable === undefined ? true : config.mcp[value.id]?.enable,
-      notice: value.notice,
-      useTools: {
-        ...useTools,
-        ...config.mcp[value.id]?.useTools,
-      },
-    };
-    // config.mcp[value.id];
-  });
-  let addMcp = deepMerge(mcps,config.mcp as Record<string, AvatarMcpSettingMutable>)
-*/
-  // {
-  //   ...mcps,
-  //   ...config.mcp as Record<string, AvatarMcpSettingMutable>,
-  // }
-  // console.log('mcps', mcps);
-  // console.log('addMcp', addMcp);
-  // Object.entries(addMcp).forEach(value => {
-  //   addMcp[value[0]].useTools = {
-  //     ...mcps[value[0]].useTools,
-  //     ...addMcp[value[0]].useTools
-  //   }
-  // })
   const addMcp = await updateAvatarMcpSetting(templateId)
   editingSettings.value = {
     ...config,
@@ -86,31 +37,6 @@ const doOpen = async (templateId: string) => {
 
   show.value = true;
 };
-/*
-function deepMerge<T extends object, U extends object>(target: T, source: U): T & U {
-  const output = { ...target } as T & U;
-
-  for (const key in source) {
-    const sourceValue = source[key];
-    const targetValue = (target as any)[key];
-
-    if (
-      typeof sourceValue === 'object' &&
-      sourceValue !== null &&
-      !Array.isArray(sourceValue) &&
-      typeof targetValue === 'object' &&
-      targetValue !== null &&
-      !Array.isArray(targetValue)
-    ) {
-      output[key] = deepMerge(targetValue, sourceValue);
-    } else {
-      output[key] = sourceValue as any;
-    }
-  }
-
-  return output;
-}
-*/
 
 defineExpose({
   doOpen,
@@ -230,9 +156,9 @@ onMounted(async () => {
                 style=""
               >
                 <q-tab name="general" icon="face" :label="$t('general')" />
-                <q-tab name="daemon" icon="schedule" label="コンテキストデーモン" />
-                <q-tab name="mcp" icon="extension" label="MCP権限" />
-                <q-tab name="websocket" icon="rss_feed" label="アバター間通信" />
+                <q-tab name="daemon" icon="schedule" :label="$t('contextDaemon')" />
+                <q-tab name="mcp" icon="extension" :label="$t('mcpPermission')" />
+                <q-tab name="websocket" icon="rss_feed" :label="$t('avatarCommunication')"/>
               </q-tabs>
             </template>
 
@@ -246,16 +172,13 @@ onMounted(async () => {
                 transition-next="jump-up"
               >
                 <q-tab-panel name="general">
-                  <div class="text-h8 q-mb-md">一般</div>
+                  <div class="text-h8 q-mb-md">{{ $t('general') }}</div>
                   <q-card>
                     <q-card-section>
-                      <q-input v-model="editingSettings!.general.name" label="アバターひな形名" />
+                      <q-input v-model="editingSettings!.general.name" :label="$t('avatarTemplateName')" />
                       <div class="row">
                         <div class="col-6 q-pa-sm">
-<!--
-                          <q-select v-model="editingSettings!.general.useLlm" :options="MainLlmList" label="メイン言語LLM" />
--->
-                          <q-input type="number" v-model.number="editingSettings!.general.maxGeneratorUseCount" label="アバターごとのジェネレーター使用回数上限" />
+                          <q-input type="number" v-model.number="editingSettings!.general.maxGeneratorUseCount" :label="$t('generatorUsageLimit')" />
                         </div>
                       </div>
                     </q-card-section>
@@ -263,10 +186,10 @@ onMounted(async () => {
                 </q-tab-panel>
 
                 <q-tab-panel name="mcp">
-                  <div class="text-h6 q-mb-md">MCP権限</div>
-                  <div class="text-body2">使用するMCPの設定をします</div>
-                  <div class="text-caption q-ma-sm">注意:
-                    MCPはセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。
+                  <div class="text-h6 q-mb-md">{{$t('mcpPermission')}}</div>
+                  <div class="text-body2">{{$t('setMcpPermissions')}}</div>
+                  <div class="text-caption q-ma-sm">
+                    {{$t('mcpNotice')}}
                   </div>
                   <q-card
                     v-for="(mcp, index) in Object.entries(editingSettings!!.mcp!!)"
@@ -296,83 +219,79 @@ onMounted(async () => {
                   </q-card>
                 </q-tab-panel>
                 <q-tab-panel name="daemon">
-                  <div class="q-ma-md">コンテキストデーモン</div>
+                  <div class="q-ma-md">{{$t('contextDaemonLabel')}}</div>
                   <div>
                     <div class="q-pa-md">
-                      <q-btn icon="add" @click="addScheduler">Add Context daemon</q-btn>
+                      <q-btn icon="add" @click="addScheduler">{{$t('addContextDaemon')}}</q-btn>
                     </div>
                     <div v-for="daemon in editingSchedulers">
                       <q-card>
                         <q-card-section class="row items-center">
                           <q-input bottom-slots class="" v-model="daemon.name">
                             <template v-slot:hint>
-                              Name
+                              {{ $t('name') }}
                             </template>
                           </q-input>
-                          <q-toggle class="" v-model="daemon.isEnabled" label="enable" />
+                          <q-toggle class="" v-model="daemon.isEnabled" :label="$t('enable')" />
                           <q-space/>
-                          <q-btn icon="add" @click="deleteScheduler(daemon)">delete</q-btn>
-
+                          <q-btn icon="add" @click="deleteScheduler(daemon)">{{ $t('delete') }}</q-btn>
                         </q-card-section>
                         <div class="row">
                         <div class="col-4">
                           <div class="q-pa-sm shadow-2 q-ma-md">
-                            条件
+                            {{$t('conditions')}}
                           <q-select class="q-ma-sm" v-model="daemon.trigger.triggerType" options-dense map-options @update:model-value="daemon.trigger.triggerType = $event.value" :options="DaemonTriggerList.map(value => ({value,label:$t(`trigger.${value}`)}))" label="起動条件"/>
                           <div v-if="daemon.trigger.triggerType === 'Startup'">
-                            アバター起動時に実行
+                            {{$t('trigger.Startup')}}
                           </div>
                           <div v-else-if="daemon.trigger.triggerType === 'TalkAfterMin'">
-                            最後の会話から一定時間後
-                            <q-input type="number" v-model.number="daemon.trigger.condition.min" label="分" />
+                            {{$t('trigger.TalkAfterMin')}}
+                            <q-input type="number" v-model.number="daemon.trigger.condition.min" :label="$t('min')" />
                           </div>
                           <div v-else-if="daemon.trigger.triggerType === 'IfContextExists'">
-                            (指定の種別のコンテキスト発生時)
+                            {{$t('trigger.IfContextExists')}}
                             <q-select v-model="daemon.trigger.condition.asClass" :options="AsClassList" label="asClass" />
                             <q-select v-model="daemon.trigger.condition.asRole" :options="AsRoleList" label="asRole" />
                           </div>
                             <div v-else-if="daemon.trigger.triggerType === 'IfSummaryCounterOver'">
-                              (一定数会話が行われた時)
-                              <q-input type="number" v-model.number="daemon.trigger.condition.countMax" label="検出会話数" />
+                              {{$t('trigger.IfSummaryCounterOver')}}
+                              <q-input type="number" v-model.number="daemon.trigger.condition.countMax" :label="$t('convNum')" />
                             </div>
                             <div v-else-if="daemon.trigger.triggerType === 'IfExtTalkCounterOver'">
-                              (一定数の外部会話が入力された時)
-                              <q-input type="number" v-model.number="daemon.trigger.condition.countMax" label="検出会話数" />
+                              {{$t('trigger.IfExtTalkCounterOver')}}
+                              <q-input type="number" v-model.number="daemon.trigger.condition.countMax" :label="$t('convNum')" />
                             </div>
                           <div v-else-if="daemon.trigger.triggerType === 'TimerMin'">
-                            アバター起動後、指定時間後
-                            <q-input type="number" v-model.number="daemon.trigger.condition.min" label="分" />
-                            <q-toggle v-model="daemon.trigger.condition.isRepeatMin" label="繰り返し"/>
+                            {{$t('trigger.TimerMin')}}
+                            <q-input type="number" v-model.number="daemon.trigger.condition.min" :label="$t('min')" />
+                            <q-toggle v-model="daemon.trigger.condition.isRepeatMin" :label="$t('loop')"/>
                           </div>
                           <div v-else-if="daemon.trigger.triggerType === 'DayTimeDirect'">
-                            1日の指定時刻
-                            <q-input type="time" v-model="daemon.trigger.condition.time" label="時刻" />
+                            {{$t('trigger.DayTimeDirect')}}
+                            <q-input type="time" v-model="daemon.trigger.condition.time" :label="$t('time')" />
                           </div>
                           <div v-else-if="daemon.trigger.triggerType === 'DateTimeDirect'">
-                            指定日時
-                            <q-input type="date" v-model="daemon.trigger.condition.date" label="日付" />
-                            <q-input type="time" v-model="daemon.trigger.condition.time" label="時刻" />
+                            {{$t('trigger.DateTimeDirect')}}
+                            <q-input type="date" v-model="daemon.trigger.condition.date" :label="$t('date')" />
+                            <q-input type="time" v-model="daemon.trigger.condition.time" :label="$t('time')" />
                           </div>
                           <div v-else>
                             {{daemon.trigger.triggerType}}
-                            起動条件を選択してください
+                            {{$t('trigger.selectCondition')}}
                           </div>
                           </div>
 
                         </div>
                         <div class="col-8">
                           <div class="q-ma-md q-pa-md shadow-2">
-                            実行
-                            <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense label="Generator名" /><q-toggle v-model="daemon.exec.addDaemonGenToContext" label="結果をコンテキストに追加する"/>
+                            {{$t('execution')}}
+                            <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense :label="$t('generatorName')" /><q-toggle v-model="daemon.exec.addDaemonGenToContext" :label="$t('selectContextLine')"/>
                             <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateGeneratePrompt" label="Generator prompt template" outlined :disable="daemon.exec.generator == 'emptyText'" />
-                            <div>追加コンテキスト</div>
+                            <div>{{$t('outputContextAttr')}}</div>
                             <div class="row">
-                            <q-select v-model="daemon.exec.setting.toClass" :options="AsClassList" options-dense label="output class" class="col-6" />
-                            <q-select v-model="daemon.exec.setting.toRole" :options="AsRoleList" options-dense label="output role" class="col-6" />
+                            <q-select v-model="daemon.exec.setting.toClass" :options="AsClassList" options-dense :label="$t('outputClass')" class="col-6" />
+                            <q-select v-model="daemon.exec.setting.toRole" :options="AsRoleList" options-dense :label="$t('outputRole')" class="col-6" />
                             </div>
-<!--
-                            <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateContextPrompt" label="Context prompt template" outlined />
--->
                           </div>
                         </div>
                         </div>
@@ -382,11 +301,11 @@ onMounted(async () => {
                 </q-tab-panel>
 
                 <q-tab-panel name="websocket">
-                  <div class="text-h6 q-mb-md">AvatarCom</div>
-                  <q-toggle v-model="editingSettings!.general.useSocket" label="use webSocket communication" />
+                  <div class="text-h6 q-mb-md">{{$t('avatarCommunication')}}</div>
+                  <q-toggle v-model="editingSettings!.general.useSocket" :label="$t('useWebSocketCommunication')" />
                   <q-input v-model="editingSettings!.general.remoteServer"
                            :disable="!(editingSettings!.general.useSocket)"
-                           label="remote socket.io server (use localServer if empty,例 http://192.168.1.10:3000 )" />
+                           :label="$t('remoteServerAddress')" />
                 </q-tab-panel>
               </q-tab-panels>
             </template>

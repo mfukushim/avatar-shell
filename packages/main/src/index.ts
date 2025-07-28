@@ -42,7 +42,7 @@ export async function initApp(initConfig: AppInitConfig) {
     .init(disallowMultipleAppInstance())
     .init(terminateAppOnLastWindowClose())
     .init(hardwareAccelerationMode({enable: false}))
-    .init(autoUpdater())
+    // .init(autoUpdater()) //  TODO デプロイの仕組みが通るまで一時オフ
 
     // Install DevTools extension if needed
     // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
