@@ -8,11 +8,13 @@ The avatar template saves settings specific to the avatar. In this tutorial, we 
 
 - Default avatar name for the created screen  
   Temporally
-- Main LLM to be used  
-  gemini
+- Context generator (generative AI engine)  
+  gemini Text  
+  gemini Image  
+  gemini Voice
 - Definition of behavior at startup, behavior after a certain period of time, and behavior during specific conversations (context daemon)  
   Automatically executes basic greetings for tutorials (images, audio)
-- MCP permission settings  
+- MCP settings  
   Off (Not use MCP. Not use built-in MCP either)
 - Avatar communication settings  
 

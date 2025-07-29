@@ -58,3 +58,4 @@ thumbs.db
 /tools/docs/
 /.env
 /.env.test
+/tools/

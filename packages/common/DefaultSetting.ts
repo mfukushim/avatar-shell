@@ -95,7 +95,24 @@ export const tutorialAvatarSetting: AvatarSetting =
           templateGeneratePrompt: '{body}',
           setting: {
             toClass: 'talk',
-            toRole: 'assistant',
+            toRole: 'bot',
+            toContext: 'surface'
+          },
+        },
+      },
+      {
+        id: 'aaab',
+        name: 'StartupTalk',
+        isEnabled: true,
+        trigger: {'triggerType': 'Startup', condition: {}},
+        exec: {
+          generator: 'geminiText',
+          addDaemonGenToContext: true,
+          templateGeneratePrompt: 'Please write a friendly, short, one-line greeting.',
+          setting: {
+            toClass: 'talk',
+            toRole: 'bot',
+            toContext: 'surface'
           },
         },
       },
@@ -116,21 +133,7 @@ export const tutorialAvatarSetting: AvatarSetting =
           setting: {
             toClass: 'daemon',
             toRole: 'bot',
-          },
-        },
-      },
-      {
-        id: 'aaab',
-        name: 'StartupTalk',
-        isEnabled: true,
-        trigger: {'triggerType': 'Startup', condition: {}},
-        exec: {
-          generator: 'geminiText',
-          addDaemonGenToContext: true,
-          templateGeneratePrompt: 'Please write a friendly, short, one-line greeting.',
-          setting: {
-            toClass: 'talk',
-            toRole: 'assistant',
+            toContext: 'outer'
           },
         },
       },
@@ -146,6 +149,7 @@ export const tutorialAvatarSetting: AvatarSetting =
           setting: {
             toClass: 'daemon',
             toRole: 'bot',
+            toContext: 'outer'
           },
         },
       },
@@ -165,7 +169,8 @@ export const tutorialAvatarSetting: AvatarSetting =
           setting: {
             // previousContextSize: 20,
             toClass: 'daemon',
-            toRole: 'assistant',
+            toRole: 'bot',
+            toContext: 'inner'
           },
         },
       },
@@ -186,6 +191,7 @@ export const tutorialAvatarSetting: AvatarSetting =
             previousContextSize: 4,
             toClass: 'daemon',
             toRole: 'bot',
+            toContext: 'outer'
           },
         },
       },
