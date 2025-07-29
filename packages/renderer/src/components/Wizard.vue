@@ -16,7 +16,7 @@ const {t} = useI18n();
 
 const show = ref(true)
 // const carousel = ref(false)
-const slide = ref(1)
+const slide = ref(0)
 
 const geminiApiKey = ref('')
 const error = ref('')
@@ -36,6 +36,8 @@ const pageNum = 5
 
 const next = () => {
   switch (slide.value) {
+    case 0:
+      break
     case 1:
       break
     case 2:
@@ -61,7 +63,7 @@ const exit = () => {
   show.value = false
 }
 const prev = () => {
-  if (slide.value > 1) {
+  if (slide.value > 0) {
     slide.value -= 1
   }
 }
@@ -168,19 +170,25 @@ onBeforeUnmount(() => {
         height="600px"
         class="shadow-1 rounded-borders bg-black"
       >
-      <q-carousel-slide :name="1" class="column no-wrap flex-center">
-        <q-card class="text-white bg-black" style="min-width: 800px">
-          <q-card-section>
-            <div class="text-h3">Avatar Shell</div>
-          </q-card-section>
-
-          <q-card-section class="q-pt-none">
-            <q-markdown :no-blockquote="false">
-              {{tpl[0]}}
-            </q-markdown>
-          </q-card-section>
-        </q-card>
-      </q-carousel-slide>
+        <q-carousel-slide :name="0" class="column no-wrap flex-center">
+          <q-card class="text-white bg-black" style="min-width: 800px">
+            <q-card-section>
+              <div class="text-h3">Avatar Shell</div>
+            </q-card-section>
+            <q-card-section>
+              <div class="text-h6">multifunctional MCP client</div>
+            </q-card-section>
+          </q-card>
+        </q-carousel-slide>
+        <q-carousel-slide :name="1" class="column no-wrap flex-center">
+          <q-card class="text-white bg-black" style="min-width: 800px">
+            <q-card-section class="q-pt-none">
+              <q-markdown :no-blockquote="false">
+                {{tpl[0]}}
+              </q-markdown>
+            </q-card-section>
+          </q-card>
+        </q-carousel-slide>
 
       <q-carousel-slide :name="2" class="column no-wrap flex-center">
         <q-card class="text-white bg-black" style="min-width: 800px">
@@ -253,7 +261,7 @@ onBeforeUnmount(() => {
     </q-carousel>
       <div class="row">
         <q-btn class="col-1 q-ma-lg bg-white" @click="exit">{{ t('wizard.buttons.exit') }}</q-btn>
-        <q-btn class="col-1 q-ma-lg bg-white" v-if="slide>1 && slide !== 5" @click="prev">{{ t('wizard.buttons.prev') }}</q-btn>
+        <q-btn class="col-1 q-ma-lg bg-white" v-if="slide>0 && slide !== 5" @click="prev">{{ t('wizard.buttons.prev') }}</q-btn>
         <q-space/>
         <q-btn class="col-1 q-ma-lg bg-white" @click="next">
           {{ slide == registPage ? t('wizard.buttons.save') :

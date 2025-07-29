@@ -387,8 +387,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           },
         }),
         catch: error => {
-          console.log('gemini tool error:', `${error}`);
-          return new Error(`gemini func call res error:${error}`);
+          console.log('gemini llm error:', `${error}`);
+          return new Error(`gemini llm error:${(error as any)}`);
         },
       }).pipe(
         Effect.timeout('1 minute'),
@@ -444,7 +444,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
         }),
         catch: error => {
           console.log('gemini image error:', `${error}`);
-          return new Error(`gemini func call res error:${error}`);
+          return new Error(`gemini image error:${(error as any)}`);
         },
       }).pipe(
         Effect.timeout('1 minute'),
@@ -458,7 +458,8 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
       //  確定実行結果取得
       const collect = yield* Stream.runCollect(stream);
       return Chunk.toArray(collect);
-    }).pipe(Effect.catchIf(a => a instanceof Error, e => Effect.succeed([])));
+    }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
+  // }).pipe(Effect.catchIf(a => a instanceof Error, e => Effect.succeed([])));
   }
 
   override toAnswerOut(responseOut: GenerateContentResponse[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
@@ -540,7 +541,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
         }),
         catch: error => {
           console.log('gemini voice error:', `${error}`);
-          return new Error(`gemini voice error:${error}`);
+          return new Error(`gemini voice error:${(error as any)}`);
         },
       }).pipe(
         Effect.timeout('1 minute'),

@@ -720,7 +720,14 @@ export class AvatarState {
         }),
         Effect.tap(_ => it.sendRunningMark(message[0].id, false)),
       );
-    });
+    })
+      .pipe(
+      Effect.catchAll(e => {
+        console.log('execGenerator error:', e);
+        this.showAlert(`execGenerator error:${e}`);
+        return Effect.fail(e);
+      }),
+    );
   }
 
   /**

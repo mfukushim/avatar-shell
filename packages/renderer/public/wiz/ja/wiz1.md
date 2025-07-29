@@ -9,5 +9,5 @@ https://akibakokoubou.jp
 本システムは画像や音声の生成をLLM生成テキストと織り込む使い方を想定しています。
 そのためチュートリアルでは画像,音声の生成も一括サポートしているgemini APIを例に説明します。
 
-openAIの画像生成、音声生成、ComfyUI API,VoiceVox APIなどにも対応しているので理解が進んだら他のAPIも使ってみてください。
-LLMの設定には現在、OpenAI,Anthropic,geminiを対応しており、ローカルLLM向けにOllama API,その他のLLM APIも検討中です。
+openAIの会話/画像生成/音声生成、Claude会話も対応しています。  
+LLMの設定には現在、OpenAI,Anthropic,geminiを対応しており、ローカルLLM向けにOllama API,ComfyUI API,VoiceVox APIなどその他のAPIも検討中です。  

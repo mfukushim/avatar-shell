@@ -55,7 +55,10 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
       },
     }).pipe(
       Effect.tap(() => state.clearStreamingText(avatarState)),
-      Effect.catchAll(e => Effect.fail(new Error(`${e}`))),
+      Effect.catchAll(e => {
+        console.log('llm error:', e);
+        return Effect.fail(new Error(`${e}`));
+      }),
       Effect.andThen(() => ansList),
     );
   }
