@@ -52,6 +52,9 @@ Google geminiのAPI keyをGoogleのサイトより取得してください。
 
 準備中
 
+<img width="600" alt="スクリーンショット 2025-07-28 200329" src="https://github.com/user-attachments/assets/59cc4ae5-aa2e-4f72-95be-3a8c77bde911" />
+
+
 ### MCP設定
 
 準備中
@@ -68,3 +71,4 @@ Google geminiのAPI keyをGoogleのサイトより取得してください。
 
 準備中
 
+<img width="600" alt="スクリーンショット 2025-06-15 020826" src="https://github.com/user-attachments/assets/d03dcdcb-5e54-4a99-acb4-ae7b492f6ce6" />
