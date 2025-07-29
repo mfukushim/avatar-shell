@@ -54,3 +54,8 @@ thumbs.db
 # Editor-based Rest Client
 .idea/httpRequests
 /.idea/csv-plugin.xml
+/packages/main/.env.test
+/tools/docs/
+/.env
+/.env.test
+/tools/
