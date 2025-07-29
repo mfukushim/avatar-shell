@@ -50,6 +50,9 @@ const emit = defineEmits<{
 const show = ref(false);
 
 const tab = ref('general');
+const tabDaemon = ref('');
+const tabMcp = ref('');
+
 const splitterModel = ref(15);
 
 const generatorList = ref<string[]>([]);
@@ -101,9 +104,16 @@ const saveAndClose = async () => {
 
 const addScheduler = () => {
   if (editingSchedulers.value) {
+    let count = 1
+    let name = `daemon-${tabDaemon.value.length}`;
+    while (editingSchedulers.value.find(v => v.name === name)) {
+      count++;
+      name = `daemon-${tabDaemon.value.length+count}`;
+    }
+
     editingSchedulers.value.push({
       id: short.generate(),
-      name: 'startup',
+      name: name,
       isEnabled: true,
       trigger: {
         triggerType: 'Startup',
@@ -113,11 +123,11 @@ const addScheduler = () => {
         generator: 'emptyText',
         templateGeneratePrompt: '',
         addDaemonGenToContext: false,
-        // templateContextPrompt: '',
         setting: {
         }
       }
     });
+    tabDaemon.value = name;
   }
 };
 
@@ -136,7 +146,7 @@ onMounted(async () => {
   <q-dialog v-model="show" persistent full-width>
     <q-card style="width: 1000px;min-height: 600px">
       <q-card-section>
-        <div class="text-h6">アバターひな形設定 - {{ editingSettings?.general.name }}</div>
+        <div class="text-h6">{{$t('avatarTemplateEdit')}} - {{ editingSettings?.general.name }}</div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">
@@ -191,32 +201,48 @@ onMounted(async () => {
                   <div class="text-caption q-ma-sm">
                     {{$t('mcpNotice')}}
                   </div>
-                  <q-card
-                    v-for="(mcp, index) in Object.entries(editingSettings!!.mcp!!)"
-                    :key="index"
-                    bordered
-                    class="bg-grey-2 my-card q-mb-md"
+                  <q-tabs
+                    v-model="tabMcp"
+                    inline-label
+                    shrink
+                    stretch
+                    no-caps
+                    class="bg-orange text-white shadow-2"
                   >
-                    <q-card-section>
-                      <div class="text-subtitle2">{{ mcp[0] }}</div>
-                      <q-toggle v-model="mcp[1].enable" label="enable" />
-                      <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
-                    </q-card-section>
-                    <div class="row q-pa-sm">
-                      <div class="col-6 q-my-sm q-pa-sm shadow-1"
-                           v-for="(tool, inputIndex) in Object.entries(mcp[1].useTools)"
-                           :key="inputIndex">
-                        {{ tool[0] }}
-                        <div class="row">
-                          <q-toggle class="col-6" v-model="tool[1].enable" label="enable" />
-                          <q-select class="col-6" v-model="tool[1].allow" :options="McpEnableList" label="Permission" />
-                          <q-tooltip>
-                            {{getMcpInfo(mcp[0],tool[0])?.description}}
-                          </q-tooltip>
+                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]">
+                    </q-tab>
+                  </q-tabs>
+                  <q-separator />
+                  <q-tab-panels v-model="tabMcp" animated>
+                    <q-tab-panel
+                      v-for="(mcp, index) in Object.entries(editingSettings!!.mcp!!)"
+                      :key="index"
+                      :name="mcp[0]"
+                      class="bg-grey-2 my-card q-mb-md"
+                    >
+                      <q-card>
+                      <q-card-section>
+                        <div class="text-subtitle2">{{ mcp[0] }}</div>
+                        <q-toggle v-model="mcp[1].enable" label="enable" />
+                        <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
+                      </q-card-section>
+                      <div class="row q-pa-sm">
+                        <div class="col-6 q-my-sm q-pa-sm shadow-1"
+                             v-for="(tool, inputIndex) in Object.entries(mcp[1].useTools)"
+                             :key="inputIndex">
+                          {{ tool[0] }}
+                          <div class="row">
+                            <q-toggle class="col-6" v-model="tool[1].enable" label="enable" />
+                            <q-select class="col-6" v-model="tool[1].allow" :options="McpEnableList" label="Permission" />
+                            <q-tooltip>
+                              {{getMcpInfo(mcp[0],tool[0])?.description}}
+                            </q-tooltip>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </q-card>
+                      </q-card>
+                    </q-tab-panel>
+                  </q-tab-panels>
                 </q-tab-panel>
                 <q-tab-panel name="daemon">
                   <div class="q-ma-md">{{$t('contextDaemonLabel')}}</div>
@@ -224,7 +250,20 @@ onMounted(async () => {
                     <div class="q-pa-md">
                       <q-btn icon="add" @click="addScheduler">{{$t('addContextDaemon')}}</q-btn>
                     </div>
-                    <div v-for="daemon in editingSchedulers">
+                    <q-tabs
+                      v-model="tabDaemon"
+                      inline-label
+                      shrink
+                      stretch
+                      no-caps
+                      class="bg-orange text-white shadow-2"
+                    >
+                      <q-tab v-for="(daemon) in editingSchedulers" :key="daemon.id" :label="daemon.name" :name="daemon.name">
+                      </q-tab>
+                    </q-tabs>
+                    <q-separator />
+                    <q-tab-panels v-model="tabDaemon" animated>
+                    <q-tab-panel v-for="daemon in editingSchedulers" :key="daemon.id" :name="daemon.name">
                       <q-card>
                         <q-card-section class="row items-center">
                           <q-input bottom-slots class="" v-model="daemon.name">
@@ -296,7 +335,8 @@ onMounted(async () => {
                         </div>
                         </div>
                       </q-card>
-                    </div>
+                    </q-tab-panel>
+                    </q-tab-panels>
                   </div>
                 </q-tab-panel>
 

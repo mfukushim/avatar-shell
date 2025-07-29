@@ -1,7 +1,7 @@
 import {Effect} from 'effect';
 import {McpConfig, McpToolInfo} from '../../common/Def.js';
 
-export const EchoSchedulerId = 'echoScheduler';  //  他のMCPと重ならないユニーク名
+export const EchoSchedulerId = 'echoDaemon';  //  他のMCPと重ならないユニーク名
 
 export const setTaskWhenIdling = {
   def: {
@@ -65,7 +65,7 @@ export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avat
 
     function getDefines() {
 
-      const echoScheduler:McpConfig = {
+      const echoDaemon:McpConfig = {
         id: EchoSchedulerId,
         notice:'注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。',
         client: {
@@ -92,7 +92,7 @@ export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avat
         resources: [],
         buildIn:true,
       };
-      return [echoScheduler];
+      return [echoDaemon];
     }
 
     return {

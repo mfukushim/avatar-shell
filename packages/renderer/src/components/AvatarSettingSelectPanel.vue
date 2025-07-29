@@ -2,7 +2,7 @@
 
 import {onMounted, ref} from 'vue';
 import AvatarSettingPanel from './AvatarSettingPanel.vue';
-import {copyAvatarConfig, deleteAvatarConfig, getAvatarConfigList} from '@app/preload';
+import {copyAvatarConfig, deleteAvatarConfig, getAvatarConfigList, getCurrentAvatarList} from '@app/preload';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -17,16 +17,18 @@ const message = ref('');
 
 const selectAvatar = ref();
 
-const avatarList = ref<{label: string, value: string}[]>([])
+const avatarConfigList = ref<{label: string, value: string}[]>([])
+const avatars = ref<{id: string, name: string, templateId: string}[]>([])
 
 const open = async (templateId?:string) => {
   const list = await getAvatarConfigList()
-  avatarList.value = list.map(e => ({value: e.templateId, label: e.name}))
-  const select = templateId ? avatarList.value.find(e => e.value === templateId) : undefined
-  if (avatarList.value.length > 0) {
-    selectAvatar.value = select || avatarList.value[0]
+  avatars.value = await getCurrentAvatarList()
+  avatarConfigList.value = list.map(e => ({value: e.templateId, label: e.name}))
+  const select = templateId ? avatarConfigList.value.find(e => e.value === templateId) : undefined
+  if (avatarConfigList.value.length > 0) {
+    selectAvatar.value = select || avatarConfigList.value[0]
   }
-  console.log(avatarList.value);
+  console.log(avatarConfigList.value);
   show.value = true;
 };
 
@@ -75,7 +77,7 @@ onMounted(async () => {
         </q-card-section>
 
         <q-card-section class="q-pa-md q-ma-sm">
-          <q-select v-model="selectAvatar" :options="avatarList" :label="t('editAvatarTemplate')">
+          <q-select v-model="selectAvatar" :options="avatarConfigList" :label="t('editAvatarTemplate')">
             <template v-slot:after>
               <q-btn icon="edit" :label="t('edit')" @click="settingOpen" :disable="!selectAvatar"/>
             </template>
@@ -84,7 +86,7 @@ onMounted(async () => {
 
         <q-card-actions align="right" class="q-pa-md q-ma-sm text-primary">
           <q-btn :label="t('copyAndAdd')" @click="copyOpen" icon="add"></q-btn>
-          <q-btn :label="t('delete')" icon="delete" @click="deleteAvatarTemplate" :disable="!selectAvatar || avatarList.length <= 1"></q-btn>
+          <q-btn :label="t('delete')" icon="delete" @click="deleteAvatarTemplate" :disable="!selectAvatar || avatarConfigList.length <= 1 || avatars.find(value => value.templateId === selectAvatar.value) !== undefined"></q-btn>
           <q-space/>
           <q-btn :label="t('close')" @click="show = false"></q-btn>
         </q-card-actions>

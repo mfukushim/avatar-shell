@@ -161,6 +161,8 @@ export default /** @type import('electron-builder').Configuration */
     'node_modules/yauzl/**/*',
   ],
   asarUnpack: [
+    "**/node_modules/sharp/**/*",
+    "**/node_modules/@img/**/*",
     'node_modules/@bufbuild/protobuf/**',
     'node_modules/@effect/cluster/**',
     'node_modules/@effect/experimental/**',

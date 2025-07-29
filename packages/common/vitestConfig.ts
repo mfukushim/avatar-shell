@@ -128,7 +128,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "slack_get_user_profile": {"enable": true, "allow": "ask"}
       }
     },
-    "echoScheduler": {
+    "echoDaemon": {
       "enable": true,
       "notice": "注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。",
       "useTools": {
