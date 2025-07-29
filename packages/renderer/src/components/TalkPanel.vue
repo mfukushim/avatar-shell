@@ -4,7 +4,7 @@ import type { AsMessage} from '../../../common/Def.ts';
 import type {QVirtualScroll} from 'quasar';
 import dayjs from 'dayjs';
 import {getMediaUrl} from '@app/preload';
-import type {AsClass, AsRole} from '../../../common/DefGenerators.ts';
+import type {AsClass, AsContextLines, AsRole} from '../../../common/DefGenerators.ts';
 
 const props = defineProps<{
   timeline: AsMessage[],
@@ -35,7 +35,7 @@ watch(() => props.forceUpdate, async () => {
 })
 
 const updateExt = async () => {
-  data.value = props.timeline.filter(value => isShow(value.asClass,value.asRole));
+  data.value = props.timeline.filter(value => isShow(value.asClass,value.asRole,value.asContext,value?.content?.mimeType));
   await nextTick();
   // console.log('watch num:', data.value.length, tableRef.value);
   tableRef.value?.scrollTo(data.value.length - 1);
@@ -64,36 +64,35 @@ const flag = reactive({
   showAssistant: true,
   showUser: false,
   showOnline: true,
-  showSchedule: false,
+  showDaemon: false,
   showAll: false,
 });
 //        v-if="isShow(item.asRole)"
 
 
-const isShow = (asClass:AsClass,asRole: AsRole) => {
-  // if(flag.showAssistant && (asClass === "talk" || asClass === "system" || asClass === 'daemon') && asRole === 'bot') return true
+const isShow = (asClass:AsClass,asRole: AsRole,asContext:AsContextLines,mimeType?:string) => {
   let showFlag = false;
+  const view = asContext === 'surface' || asContext === 'outer';
   if(flag.showAll) {
     return true;
   }
-  if(asClass === 'daemon' && flag.showSchedule) {
+  //  imageのみ例外的に表示
+  if(asClass === 'daemon' && flag.showDaemon && view || (mimeType?.startsWith('image') && view)) {
     showFlag = true;
   }
   if(asClass === 'com' && flag.showOnline) {
     showFlag = true;
   }
   if (flag.showUser) {
-    if(asClass === 'talk' && asRole === 'human') showFlag = true;
+    if(view && asRole === 'human') showFlag = true;
+    // if(asClass === 'talk' && asRole === 'human') showFlag = true;
     // if(asClass === 'com' && asRole === 'human') showFlag = true;
   }
   if(flag.showAssistant) {
-    if(asClass === 'talk' && asRole === 'bot') showFlag = true;
+    if(view && asRole === 'bot') showFlag = true;
     // if(asClass === 'com' && asRole === 'bot') showFlag = true;
   }
   return showFlag;
-  // if(asClass === 'system' && flag.showShowSystem || (asRole === 'system' && flag.showShowSystem)) {}return true;
-  // if(asClass === 'com' && !flag.showOnline) return false; //  todo ユーザ識別入れるか
-  // return (asClass !== 'system' && (asRole === 'bot' && flag.showAssistant || asRole === 'human' && flag.showUser || asRole === 'tools' && flag.showScedule))
 };
 
 const pickItem = (item: AsMessage) => {
@@ -184,7 +183,7 @@ const imageCache = ref<Record<string,string>>({});
       <q-chip color="teal" text-color="white" dense v-model:selected="flag.showOnline" @click="updateExt">
         Telecom
       </q-chip>
-      <q-chip color="teal" text-color="white" dense v-model:selected="flag.showSchedule" @click="updateExt">
+      <q-chip color="teal" text-color="white" dense v-model:selected="flag.showDaemon" @click="updateExt">
         Daemon
       </q-chip>
       <q-chip color="teal" text-color="white" dense v-model:selected="flag.showAll" @click="updateExt">
