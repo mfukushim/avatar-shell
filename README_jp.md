@@ -6,7 +6,7 @@ Japanese / [English](./README.md)
 
 アバター/メディア指向の高機能MCPクライアントです。
 
-AI APIを使って、会話を行うことが出来ます。
+注意: まだ動作が安定していない部分があります。またデーモン処理付近で大きく仕様を変更する場合があります。
 
 ## 機能
 
@@ -33,10 +33,12 @@ avatar-shell-x.x.x-release.xxxx-win-x64.exe を開く。
 インストーラー形式ですのでそのまま実行してください。
 - mac os  
   avatar-shell-x.x.x-release.xxxx-mac-arm64.dmg を開く。  
-  インストーラー形式ですのでそのまま実行してください。
+  インストーラー形式ですのでそのまま実行してください。  
+Intel Macしか手元にないのでarm Macは未確認
 - Ubuntu Desktop/Raspberry pi Desktop (Desktop UI環境が必須です)  
   sudo apt install ./avatar-shell-x.x.x-release.xxxx-linux-arm64.deb  
-  インストーラー形式ですのでそのまま実行してください。
+  インストーラー形式ですのでそのまま実行してください。  
+ubuntu 22とRaspberry pi 4で確認中
 
 ## Wizard画面
 
@@ -48,18 +50,21 @@ Google geminiのAPI keyをGoogleのサイトより取得してください。
 
 ## 画面解説
 
-
+準備中
 
 ### MCP設定
 
-
+準備中
 
 ### コンテキストジェネレーター
 
+準備中
 
 ### コンテキストデーモン
 
+準備中
 
 ### エコーデーモン
 
+準備中
 
