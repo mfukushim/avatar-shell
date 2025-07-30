@@ -408,6 +408,7 @@ onBeforeUnmount(() => {
                       inline-label
                       shrink
                       stretch
+                      no-caps
                       class="bg-orange text-white shadow-2"
                     >
                       <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id">

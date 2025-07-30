@@ -380,6 +380,15 @@ export class AvatarState {
           case 'IfContextExists':
             //  ここはcontextを追加する だからasClass === 'scheduleは見ない。それを見ると無限ループに入りうる。
             const find = updated.delta.find(value => value.asClass !== 'daemon' && value.asClass === a.config.trigger.condition.asClass && value.asRole === a.config.trigger.condition.asRole);
+            //  TODO triggerで起動する場合、そのtriggerがcurrentになるからコンテキストとして入力するものはtriggerに入る前の状態がprevContextになる。。。ちょっとわかりにくい。。
+/*
+            if (find) {
+              const pos = updated.context.indexOf(find);
+              const prev = pos >= 0 ? updated.context.slice(0,pos-1):updated.context
+              return state.execDaemon(a, prev, find)
+            }
+            return Effect.succeed([]);
+*/
             return find ? state.execDaemon(a, updated.context, find) : Effect.succeed([]);
           case 'IfSummaryCounterOver':
             //  TODO 今は簡略化のため、会話数で決定する
@@ -608,7 +617,9 @@ export class AvatarState {
       this.externalTalkCounter += bags.length;
     }
     return SubscriptionRef.update(this.talkContext, a => {
-      return {context: a.context.concat(bags), delta: bags};
+      //  TODO ここの扱いがちょっとまだ致命的
+      return {context: a.context, delta: bags};
+      // return {context: a.context.concat(bags), delta: bags};
     });
   }
 
@@ -678,7 +689,7 @@ export class AvatarState {
    */
   execGenerator(gen: ContextGenerator, message: AsMessage[], context: AsMessage[] = []) {
     const it = this;
-    console.log('in execGenerator');
+    console.log('in execGenerator:',JSON.stringify(message),JSON.stringify(context));
     return Effect.gen(function* () {
       if (it.checkGeneratorCount()) {
         return [it.overMes];

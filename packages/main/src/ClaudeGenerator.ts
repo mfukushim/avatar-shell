@@ -346,7 +346,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Messages.ContentBlock[], void, ConfigService | McpService> {
     const it = this;
     //  it.prevContextsの末尾がuserの場合、マージする TODO テキストレベルでのマージが必要か?
-    let contents = this.prevContexts
+    let contents = this.prevContexts || []
     if(contents.length > 0 && contents[contents.length - 1].role === 'user') {
       const last = contents[contents.length - 1];
       let lastContent;
@@ -375,10 +375,12 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         role: last.role,
         content: lastContent.concat(curContent),
       }
+    } else {
+      contents.push(inputContext);
     }
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
-      it.prevContexts.push(inputContext);
+      // it.prevContexts.push(inputContext);
       console.log('claude :', JSON.stringify(it.prevContexts));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',
