@@ -67,11 +67,11 @@ export async function addExtTalkContext(bags:AsMessage[]) {
   await ipcRenderer.invoke('addExtTalkContext', avatarId,bags);
 }
 
-function send(channel: string, message: string) {
-  return ipcRenderer.invoke(channel, message);
-}
+// function send(channel: string, message: string) {
+//   return ipcRenderer.invoke(channel, message);
+// }
 
-export {sha256sum, versions, send};
+export {sha256sum, versions};
 
 /**
  * avatar初期化完了を受けたいコンポーネントで登録する
@@ -358,6 +358,10 @@ export async function cancelSchedule(id:string) {
 
 export async function updateAvatarMcpSetting(templateId: string):Promise<AvatarMcpSettingList> {
   return await ipcRenderer.invoke('updateAvatarMcpSetting',templateId);
+}
+
+export async function getGeneratorList() {
+  return await ipcRenderer.invoke('getGeneratorList');
 }
 
 export async function getVersion() {

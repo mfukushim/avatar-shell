@@ -7,7 +7,7 @@ In this system, we will create an avatar template setting for common settings fo
 The avatar template saves settings specific to the avatar. In this tutorial, we will set the following values.
 
 - Default avatar name for the created screen  
-  Temporally
+  Alice
 - Context generator (generative AI engine)  
   gemini Text  
   gemini Image  

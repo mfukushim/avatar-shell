@@ -41,6 +41,8 @@ export const AsContextLines = Schema.Literal(
 
 export type AsContextLines = typeof AsContextLines.Type
 
+export const AsContextLinesList = AsContextLines.literals;
+
 export const ContextTypes = Schema.Literal(
   'text',
   'image'

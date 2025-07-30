@@ -20,6 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select', mes: AsMessage): void
   // (e: 'openMenu'): void
+  (e: 'playVoice', mes: AsMessage): void
 }>()
 
 const text = ref('');
@@ -64,6 +65,7 @@ const flag = reactive({
   showAssistant: true,
   showUser: false,
   showOnline: true,
+  showMedia: false,
   showDaemon: false,
   showAll: false,
 });
@@ -76,8 +78,10 @@ const isShow = (asClass:AsClass,asRole: AsRole,asContext:AsContextLines,mimeType
   if(flag.showAll) {
     return true;
   }
-  //  imageのみ例外的に表示
-  if(asClass === 'daemon' && flag.showDaemon && view || (mimeType?.startsWith('image') && view)) {
+  if(asClass === 'daemon' && flag.showDaemon && view && (!mimeType || mimeType.startsWith('text'))) {
+    showFlag = true;
+  }
+  if(flag.showMedia && view && (mimeType && !mimeType.startsWith('text'))) {
     showFlag = true;
   }
   if(asClass === 'com' && flag.showOnline) {
@@ -89,7 +93,7 @@ const isShow = (asClass:AsClass,asRole: AsRole,asContext:AsContextLines,mimeType
     // if(asClass === 'com' && asRole === 'human') showFlag = true;
   }
   if(flag.showAssistant) {
-    if(view && asRole === 'bot') showFlag = true;
+    if(view && asRole === 'bot' && asClass !== 'daemon' && asClass !== 'system' ) showFlag = true;
     // if(asClass === 'com' && asRole === 'bot') showFlag = true;
   }
   return showFlag;
@@ -99,6 +103,11 @@ const pickItem = (item: AsMessage) => {
   //  何か処理あるか
   console.log('pickItem', item);
   emit('select', item);
+}
+
+const playSound = (item: AsMessage) => {
+  console.log('playsound', item);
+  emit('playVoice', item);
 }
 
 const getItemType = (item: AsMessage) => {
@@ -133,20 +142,21 @@ const imageCache = ref<Record<string,string>>({});
       v-slot="{ item }"
       class="q-pa-md"
     >
-      <div :class="showInfo ? 'shadow-2 q-ma-sm q-pa-sm':''" @click="pickItem(item)">
+      <div :class="showInfo ? 'shadow-2 q-ma-sm q-pa-sm':''" >
 <!--
         <q-card @click="pickItem(item)" :bordered="showInfo">
 -->
         <div class="row" v-if="showInfo">
           <q-chip dense >{{item.content.from}}</q-chip>
           <q-chip dense >{{getItemType(item)}}</q-chip>
-          <div >{{item.asClass}}/{{item.asRole}}</div>
+          <div >{{item.asClass}}/{{item.asRole}}/{{item.asContext}}</div>
           <div >{{item.content.toolName}}</div>
           <q-space/>
           <div class="text-caption">{{dayjs(item.tick).format('YYYY-MM-DD HH:mm:ss')}}</div>
         </div>
         <q-markdown :no-blockquote="false" v-if="item.content.text" :src="item.content.text" />
-        <q-img v-if="getItemType(item) == 'image'"  :src="imageCache[item.id]"/>
+        <q-img v-if="getItemType(item) == 'image'"  :src="imageCache[item.id]" @click="pickItem(item)"/>
+        <q-icon v-if="getItemType(item) == 'audio'" size="32px" name="play_circle" @click="playSound(item)"/>
         <div v-if="getItemType(item) == 'toolCall'">{{JSON.stringify(item.content.toolData)}}</div>
 <!--
         </q-card>
@@ -181,7 +191,10 @@ const imageCache = ref<Record<string,string>>({});
         {{userName}}
       </q-chip>
       <q-chip color="teal" text-color="white" dense v-model:selected="flag.showOnline" @click="updateExt">
-        Telecom
+        Com
+      </q-chip>
+      <q-chip color="teal" text-color="white" dense v-model:selected="flag.showMedia" @click="updateExt">
+        Media
       </q-chip>
       <q-chip color="teal" text-color="white" dense v-model:selected="flag.showDaemon" @click="updateExt">
         Daemon
