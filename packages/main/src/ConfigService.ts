@@ -10,9 +10,9 @@ import {
 import {app} from 'electron';
 import {defaultAvatarSetting, defaultMutableSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
 import short from 'short-uuid';
-// import path from 'node:path';
-// import {fileURLToPath} from 'url';
-// import {dirname} from 'path';
+import path from 'node:path';
+import {fileURLToPath} from 'url';
+import {dirname} from 'path';
 import {vitestAvatarConfig, vitestSysConfig} from '../../common/vitestConfig.js';
 import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
 import {openAiImageGenerator, openAiTextGenerator, openAiVoiceGenerator} from './OpenAiGenerator.js';
@@ -21,18 +21,22 @@ import {PixAiImageGenerator} from './ImageGenarators.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {ClaudeTextGenerator} from './ClaudeGenerator.js';
 import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './LlmGenerator.js';
+import {FileSystem} from '@effect/platform';
+import {NodeFileSystem} from '@effect/platform-node';
 //import electronLog from 'electron-log';
 
 
-const debug = process.env.VITE_LOCAL_DEBUG === 'true';
+const debug = process.env.VITE_LOCAL_DEBUG === '1';
+const debugWrite = process.env.VITE_LOCAL_DEBUG === '2';
 
 const isViTest = process.env.VITEST === 'true';
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
-// export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..');
 
 //electronLog.log('config start:',debug,isViTest,__filename);
+const debugPath = app ? path.join(app.getPath('userData'),'docs'):`${__pwd}/tools/docs`
 
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
@@ -85,6 +89,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }, {} as Record<string, AvatarSetting>);
       mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
     }
+    const fs = yield* FileSystem.FileSystem
     //electronLog.log('meta end',sysData,avatarData);
     //const sysData = isViTest? vitestSysConfig: debug || !store ? testSysConfig : store.get('sysConfig') as SysConfig || defaultSysSetting;
     // const avatarData = isViTest ? vitestAvatarConfig: debug || !store ? testAvatarConfig :
@@ -167,8 +172,11 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return SubscriptionRef.updateAndGet(sysConfig, f).pipe(Effect.tap(a => {
         // console.log('ConfigService updateSysConfig:', a);
         if (store) {
-          console.log('save sys:', a);
+          // console.log('save sys:', a);
           store.set('sysConfig', a);
+        }
+        if (debugWrite) {
+          return fs.writeFileString(path.join(debugPath,'debugSys.json'),JSON.stringify(a,null,2))
         }
       }));
     }
@@ -176,13 +184,25 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     function updateAvatarConfig(templateId: string,f:(c:AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
       return Ref.get(avatarConfigs).pipe(
         Effect.andThen(HashMap.get(templateId)),
-        Effect.andThen(SubscriptionRef.update(f)),
+        Effect.andThen(SubscriptionRef.updateAndGet(f)),
+        Effect.tap(a => {
+          if (debugWrite) {
+            return fs.writeFileString(path.join(debugPath,`debugAvatar_${templateId}.json`),JSON.stringify(a,null,2))
+          }
+        }),
+        Effect.andThen(saveAvatarConfigs())
       )
     }
     function updateAvatarConfigEffect(templateId: string,f:(c:AvatarSetting) =>Effect.Effect<AvatarSetting | AvatarSettingMutable,Error,any>) {
       return Ref.get(avatarConfigs).pipe(
         Effect.andThen(HashMap.get(templateId)),
-        Effect.andThen(SubscriptionRef.updateEffect(f)),
+        Effect.andThen(SubscriptionRef.updateAndGetEffect(f)),
+        Effect.tap(a => {
+          if (debugWrite) {
+            return fs.writeFileString(path.join(debugPath,`debugAvatar_${templateId}.json`),JSON.stringify(a,null,2))
+          }
+        }),
+        Effect.andThen(saveAvatarConfigs())
       )
     }
 
@@ -211,9 +231,10 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
         };  // readonlyをややごまかし
         copy.templateId = nextId;
         const c = yield* SubscriptionRef.make(copy);
-        return yield* Ref.update(avatarConfigs, map => {
+        yield* Ref.update(avatarConfigs, map => {
           return HashMap.mutate(map, a => HashMap.set(a, nextId, c));
         });
+        yield *saveAvatarConfigs()
       }).pipe(
         Effect.andThen(() => nextId as string));
     }
@@ -348,6 +369,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     };
 
   }),
+  dependencies:[NodeFileSystem.layer]
 }) {
 }
 

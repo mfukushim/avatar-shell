@@ -43,6 +43,11 @@ const doOpen = async () => {
   //  websocket
   websocketPort.value = edit.value.websocket.serverPort ? edit.value.websocket.serverPort.toString() : undefined;
 
+  const key = Object.keys(config.mcpServers)
+  if(key.length > 0) {
+    tabMcp.value = key[0];
+  }
+  tabSelect.value = 'general';
   version.value = await getVersion();
   //  TODO
   // defaultAvatar.value =list.find(value => value.id === config.defaultAvatar.id)
@@ -52,6 +57,7 @@ const doOpen = async () => {
 
 const saveAndClose = async () => {
   saving.value = true;
+  errorMes.value = ''
   try {
     //  書式以外のバリデーション
     //  一般 デフォルトアバターが選ばれていること 選ばれていなければ最初を強制選択
@@ -129,24 +135,27 @@ const saveAndClose = async () => {
     //  mcp
     //    mcp idが重複しないこと、設定記述があればjson書式であること、一部設定値があれば両方の値があること、すべて空欄なら展開しないこと
     //  mcp設定バリデート/設定
+    console.log('mcpConfig:', mcpConfig.value);
     const idList = mcpConfig.value.map(v => v.id);
+    console.log('idList:', idList);
     const idSet = new Set(idList);
     if (idSet.size !== idList.length) {
       errorMes.value = 'mcp id is not unique';
       return;
     }
     const mcpOut: Record<string, McpServerDef> = {};
-    mcpConfig.value.forEach(mcp => {
+    for (const mcp of mcpConfig.value) {
       if (mcp.id && mcp.id.length > 0 && mcp.body && mcp.body.length > 0) {
         try {
           mcpOut[mcp.id] = JSON.parse(mcp.body);
         } catch (e) {
-          errorMes.value = 'mcp setting is not valid';
+          console.log('json parse error:', e);
+          errorMes.value = `mcp "${mcp.id}" setting is not valid`;
           return;
         }
       }
-    });
-    // console.log('mcp:', mcpOut);
+    }
+    console.log('mcp:', mcpOut);
     edit.value.mcpServers = mcpOut;
     //  websocket
 
@@ -399,6 +408,7 @@ onBeforeUnmount(() => {
                       inline-label
                       shrink
                       stretch
+                      no-caps
                       class="bg-orange text-white shadow-2"
                     >
                       <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id">
@@ -416,6 +426,8 @@ onBeforeUnmount(() => {
                               :label="t('mcpName')"
                               placeholder="mcp1"
                               class="q-mb-sm"
+                              debounce="500"
+                              @change="tabMcp = server.id"
                             />
                             {{ t('onlyAlphaNum') }}
                           </q-card-section>

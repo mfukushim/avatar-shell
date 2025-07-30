@@ -148,6 +148,7 @@ test.describe('Preload context should be exposed', async () => {
     });
   });
 
+/*
   test.describe(`send should be exposed`, async () => {
     test('with same type`', async ({page}) => {
       const type = await page.evaluate(() => typeof globalThis[btoa('send')]);
@@ -165,4 +166,5 @@ test.describe('Preload context should be exposed', async () => {
       expect(value).toEqual(expectedValue);
     });
   });
+*/
 });

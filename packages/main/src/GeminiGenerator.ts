@@ -353,7 +353,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
 
   override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], void, ConfigService | McpService> {
     const state = this;
-    let contents = this.prevContexts
+    let contents = this.prevContexts || []
     if(contents.length > 0 && contents[contents.length - 1].role === 'user') {
       const last = contents[contents.length - 1];
       let lastContent = last.parts;
@@ -362,6 +362,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         role: last.role,
         parts: lastContent ? (curContent ? lastContent.concat(curContent):lastContent):curContent ? curContent : undefined,
       }
+    } else {
+      contents.push(inputContext);
     }
 
     return Effect.gen(this, function* () {
@@ -371,7 +373,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       // console.log('gemini in:',JSON.stringify(state.prevContexts),JSON.stringify(inputContext.flatMap(value => value.parts ? [value.parts]:[]).flat()));
       // let res: AsyncGenerator<GenerateContentResponse, any, any>;
       //  tools用処理 集めて1回でよいはずだが
-      state.prevContexts.push(inputContext);
+      // state.prevContexts.push(inputContext);
       console.log('gemini :', JSON.stringify(state.prevContexts));
       const res = yield* Effect.tryPromise({
         try: () => state.ai.models.generateContentStream({

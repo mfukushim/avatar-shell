@@ -42,7 +42,7 @@ export async function initApp(initConfig: AppInitConfig) {
     .init(disallowMultipleAppInstance())
     .init(terminateAppOnLastWindowClose())
     .init(hardwareAccelerationMode({enable: false}))
-    // .init(autoUpdater()) //  TODO デプロイの仕組みが通るまで一時オフ
+    .init(autoUpdater()) //  TODO デプロイの仕組みが通るまで一時オフ
 
     // Install DevTools extension if needed
     // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
@@ -178,6 +178,10 @@ ipcMain.handle('openBrowser', async (_, url: string) => {
 
 
 ipcMain.handle('updateAvatarMcpSetting', async (_,templateId: string) => await McpService.updateAvatarMcpSetting(templateId).pipe(Effect.catchAll(showAlertIfFatal('updateAvatarMcpSetting')), aiRuntime.runPromise));
+
+ipcMain.handle('getGeneratorList', async (event) => {
+  return await ConfigService.getGeneratorList().pipe(Effect.catchAll(showAlertIfFatal('getGeneratorList')), aiRuntime.runPromise);
+});
 
 ipcMain.handle('getCurrentAvatarList', async (_) => await AvatarService.getCurrentAvatarList().pipe(Effect.catchAll(showAlertIfFatal('getCurrentAvatarList')), aiRuntime.runPromise));
 

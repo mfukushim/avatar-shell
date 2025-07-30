@@ -115,15 +115,17 @@ const clickAlert = async (task: AlertTask, btn: string) => {
   await answerMainAlert(task.id, task.replyTo, btn);
 };
 
-const setTimeline = async (tl0: AsMessage[],excludeSound = false) => {
+const setTimeline = async (tl0: AsMessage[]) => {
   const tl = tl0.sort((a, b) => a.tick - b.tick);
   const oneImage = tl.filter((t: AsMessage) =>
     (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('image/')).slice(-1);
+/*
   const oneVoice = tl.filter((t: AsMessage) =>
     (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('audio/')).slice(-1);
   if (!excludeSound && oneVoice && oneVoice.length > 0 && oneVoice[0].content?.mediaUrl) {
     await playVoice(oneVoice[0]);
   }
+*/
   if (oneImage.length > 0) {
     await setAsMessageImage(oneImage[0]);
   } else {
@@ -139,7 +141,7 @@ const setImage = async (url: string, mime: string) => {
 const setSound = async (url: string, mime: string) => {
   const voice = await getMediaUrl(mime, url);
   console.log('setSound:', voice.slice(0, 200));
-  playSound(voice);
+  await playSound(voice);
 };
 
 const volumeVal = ref(1.0);
@@ -175,6 +177,19 @@ const mergeTimeline = async (add: AsMessage[]) => {
       }
     }
   });
+  const oneVoice = add.filter((t: AsMessage) =>
+    (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('audio/')).slice(-1);
+  if (oneVoice && oneVoice.length > 0 && oneVoice[0].content?.mediaUrl) {
+    await playVoice(oneVoice[0]);
+  }
+/*
+  if (oneImage.length > 0) {
+    await setAsMessageImage(oneImage[0]);
+  } else {
+    mainImage.value = '';
+  }
+*/
+
   await setTimeline(tl);
 };
 
@@ -202,6 +217,7 @@ const setAsMessageImage = async (mes: AsMessage) => {
 };
 
 const playVoice = async (mes: AsMessage) => {
+  console.log('playVoice:', mes);
   if (mes.content.mediaUrl && mes.content.mimeType) {
     //  データ更新は逐次起きるので、直近の再生idと同じなら抑止する
     if (recentSoundId.value === mes.id) {
@@ -211,11 +227,11 @@ const playVoice = async (mes: AsMessage) => {
     console.log('sound id:', mes.id);
     const sound = await getMediaUrl(mes.content.mimeType, mes.content.mediaUrl);
     // console.log('play voice:', sound.slice(0, 200));
-    playSound(sound);
+    await playSound(sound);
   }
 };
 
-const playSound = (sound: string) => {
+const playSound = async (sound: string) => {
   const soundPlayer = document.getElementById("audioPlayer") as HTMLAudioElement;
   if (soundPlayer) {
     soundPlayer.pause();
@@ -229,6 +245,7 @@ const playSound = (sound: string) => {
       console.log('play voice error:', reason);
     },
   ).finally(() => {
+    recentSoundId.value = ''
   });
 }
 
@@ -249,7 +266,7 @@ const saveImage = async () => {
   <q-layout view="hHh lpr fFf " @resize="resize">
 
     <HeadPanel @toggle-drawer="toggleLeftDrawer"
-               @change-doc="mes =>setTimeline(mes,true)"
+               @change-doc="mes =>setTimeline(mes)"
                @change-image="setImage"
                @select-sound="setSound"
                @set-volume="setVolume"
@@ -285,6 +302,7 @@ const saveImage = async () => {
                  :one-mes="oneMes"
                  :area-height="rDrawerHeight"
                  @select="setAsMessageImage"
+                 @play-voice="playVoice"
                  :force-update="forceUpdate"
                  :avatarName="avatarName"
                  :user-name="userName"

@@ -38,6 +38,7 @@ export default {
   addContextDaemon:'Add context daemon',
   outputClass: 'Output Class',
   outputRole: 'Output Role',
+  outputContext: 'Output ContextLine',
   mcpSettings: 'MCP Settings',
   mcpPermission: 'MCP permission',
   setMcpPermissions: 'Set MCP permissions',

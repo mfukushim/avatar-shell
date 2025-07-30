@@ -3,8 +3,6 @@
 import {onMounted, ref} from 'vue';
 import {
   AvatarSetting,
-  // MainLlmList,
-  // type McpEnable,
   McpEnableList,
   AvatarSettingMutable,
   type SchedulerListMutable,
@@ -13,8 +11,8 @@ import {
 } from '../../../common/Def.ts';
 import {Either, ParseResult, Schema} from 'effect';
 import short from 'short-uuid';
-import {getAvatarConfig, updateAvatarMcpSetting, setAvatarConfig} from '@app/preload';
-import {AsClassList, AsRoleList} from '../../../common/DefGenerators.ts';
+import {getAvatarConfig, updateAvatarMcpSetting, setAvatarConfig, getGeneratorList} from '@app/preload';
+import {AsClassList, AsContextLinesList, AsRoleList} from '../../../common/DefGenerators.ts';
 import {useI18n} from 'vue-i18n';
 
 const {t} = useI18n();
@@ -28,6 +26,14 @@ const doOpen = async (templateId: string) => {
     mcp: addMcp,
   };
   editingSchedulers.value = [...config.daemons]
+  generatorList.value =[''].concat(await getGeneratorList())
+
+  if(config.daemons.length > 0){
+    tabDaemon.value = config.daemons[0].name
+  }
+  if(Object.keys(config.mcp).length > 0){
+    tabMcp.value = Object.keys(config.mcp)[0]
+  }
   console.log('mcpSettingList', mcpServers.value);
   // console.log('mcps', mcps);
   console.log('editingSettings.value', editingSettings.value);
@@ -266,7 +272,7 @@ onMounted(async () => {
                     <q-tab-panel v-for="daemon in editingSchedulers" :key="daemon.id" :name="daemon.name">
                       <q-card>
                         <q-card-section class="row items-center">
-                          <q-input bottom-slots class="" v-model="daemon.name">
+                          <q-input bottom-slots class="" v-model="daemon.name" debounce="500" @change="tabDaemon = daemon.name">
                             <template v-slot:hint>
                               {{ $t('name') }}
                             </template>
@@ -329,7 +335,8 @@ onMounted(async () => {
                             <div>{{$t('outputContextAttr')}}</div>
                             <div class="row">
                             <q-select v-model="daemon.exec.setting.toClass" :options="AsClassList" options-dense :label="$t('outputClass')" class="col-6" />
-                            <q-select v-model="daemon.exec.setting.toRole" :options="AsRoleList" options-dense :label="$t('outputRole')" class="col-6" />
+                              <q-select v-model="daemon.exec.setting.toRole" :options="AsRoleList" options-dense :label="$t('outputRole')" class="col-6" />
+                              <q-select v-model="daemon.exec.setting.toContext" :options="AsContextLinesList" options-dense :label="$t('outputContext')" class="col-6" />
                             </div>
                           </div>
                         </div>

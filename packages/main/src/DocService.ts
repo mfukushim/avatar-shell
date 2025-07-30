@@ -5,15 +5,9 @@ import path from 'node:path';
 import {NodeFileSystem} from '@effect/platform-node';
 import {AsOutput} from '../../common/Def.js';
 import {AvatarState} from './AvatarState.js';
-import {ConfigService} from './ConfigService.js';
-import {fileURLToPath} from 'url';
-import {dirname} from 'path';
+import {__pwd, ConfigService} from './ConfigService.js';
 
 const isViTest = process.env.VITEST === 'true'
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-export const __pwd = isViTest ? path.join(__dirname, '../../..'): __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..')
 
 
 export class DocService extends Effect.Service<DocService>()("avatar-shell/DocService", {

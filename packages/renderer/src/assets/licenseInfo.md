@@ -15,7 +15,7 @@
 | audio-play                | MIT            | git+https://github.com/audiojs/audio-play.git                  | 2.3.1             | ΔY <dfcreative@gmail.com>                                     |
 | dayjs                     | MIT            | git+https://github.com/iamkun/dayjs.git                        | 1.11.13           | iamkun                                                        |
 | dotenv                    | BSD-2-Clause   | git://github.com/motdotla/dotenv.git                           | 17.2.1            | n/a                                                           |
-| effect                    | MIT            | git+https://github.com/Effect-TS/effect.git                    | 3.17.2            | n/a                                                           |
+| effect                    | MIT            | git+https://github.com/Effect-TS/effect.git                    | 3.17.1            | n/a                                                           |
 | electron-log              | MIT            | git+https://github.com/megahertz/electron-log.git              | 5.4.1             | Alexey Prokhorov                                              |
 | electron-store            | MIT            | git+https://github.com/sindresorhus/electron-store.git         | 10.1.0            | Sindre Sorhus sindresorhus@gmail.com https://sindresorhus.com |
 | expand-template           | (MIT OR WTFPL) | git+https://github.com/ralphtheninja/expand-template.git       | 2.0.3             | LM <ralphtheninja@riseup.net>                                 |
@@ -52,10 +52,10 @@
 | quasar                      | MIT          | git+https://github.com/quasarframework/quasar.git              | 2.18.2            | Razvan Stoenescu razvan.stoenescu@gmail.com https://quasar.dev                 |
 | vue                         | MIT          | git+https://github.com/vuejs/core.git                          | 3.5.18            | Evan You                                                                       |
 | @quasar/vite-plugin         | MIT          | git+https://github.com/quasarframework/quasar.git              | 1.10.0            | Razvan Stoenescu razvan.stoenescu@gmail.com https://github.com/quasarframework |
-| @vitejs/plugin-vue          | MIT          | git+https://github.com/vitejs/vite-plugin-vue.git              | 5.2.4             | Evan You                                                                       |
+| @vitejs/plugin-vue          | MIT          | git+https://github.com/vitejs/vite-plugin-vue.git              | 6.0.0             | Evan You                                                                       |
 | @vue/tsconfig               | MIT          | git+https://github.com/vuejs/tsconfig.git                      | 0.7.0             | Haoqun Jiang <npm@haoqun.me>                                                   |
 | sass-embedded               | MIT          | git+https://github.com/sass/embedded-host-node.git             | 1.89.2            | Google Inc.                                                                    |
 | typescript                  | Apache-2.0   | git+https://github.com/microsoft/TypeScript.git                | 5.8.3             | Microsoft Corp.                                                                |
-| vite                        | MIT          | git+https://github.com/vitejs/vite.git                         | 6.3.5             | Evan You                                                                       |
+| vite                        | MIT          | git+https://github.com/vitejs/vite.git                         | 7.0.5             | Evan You                                                                       |
 | vue-tsc                     | MIT          | https://github.com/vuejs/language-tools.git                    | 2.2.12            | n/a                                                                            |
 

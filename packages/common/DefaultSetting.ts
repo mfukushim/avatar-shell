@@ -47,7 +47,7 @@ export const defaultAvatarSetting: {id: string, data: AvatarSetting}[] = [
       templateId: 'aa',
       isTemporally: true,
       general: {
-        name: 'Temporally',
+        name: 'Alice',
         // useLlm: 'emptyText',
         mainLlmSetting: {
           previousContextSize: 0,
@@ -57,7 +57,23 @@ export const defaultAvatarSetting: {id: string, data: AvatarSetting}[] = [
         remoteServer: undefined,
         maxGeneratorUseCount: 40
       },
-      mcp: {},
+      mcp: {
+        echoDaemon: {
+          enable: false,
+          notice: "注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。",
+          useTools: {
+            set_task_when_idling: {
+              enable: true,
+              allow: "ask"
+            },
+            set_task_after_minutes: {
+              enable: true,
+              allow: "ask"
+            }
+          }
+        }
+
+      },
       daemons: [],
       configVersion:1,
     } as AvatarSetting,
@@ -68,7 +84,7 @@ export const tutorialAvatarSetting: AvatarSetting =
     templateId: 'aa',
 
     general: {
-      name: 'Temporally',
+      name: 'Alice',
       // useLlm: 'geminiText',
       mainLlmSetting: {
         previousContextSize: 0,
@@ -87,7 +103,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         'isEnabled': true,
         'trigger': {'triggerType': 'IfContextExists', 'condition': {
             asClass: 'talk',
-            asRole: 'user',
+            asRole: 'human',
           }},
         'exec': {
           generator: 'geminiText',
@@ -163,7 +179,7 @@ export const tutorialAvatarSetting: AvatarSetting =
           },
         },
         exec: {
-          // generator: 'geminiText',
+          generator: 'geminiText',
           addDaemonGenToContext: true,
           templateGeneratePrompt: 'Please respond by summarizing the conversation so far and showing your understanding.',
           setting: {
