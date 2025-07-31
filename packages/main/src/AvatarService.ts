@@ -60,7 +60,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function getCurrentAvatarList() {
-      electronLog.log('in getCurrentAvatarList:',avatars);
+      // electronLog.log('in getCurrentAvatarList:',avatars);
       return avatars.pipe(Ref.get, Effect.andThen(HashMap.entries), Effect.andThen(a => Array.from(a)), Effect.andThen(a => a.map(a => ({
         id: a[0],
         name: a[1].Name,

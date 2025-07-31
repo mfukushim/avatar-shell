@@ -10,7 +10,7 @@ import {
   ContextGeneratorSetting,
   GeminiImageSettings,
   GeminiSettings,
-  GeminiTextSettings,
+  GeminiTextSettings, GeminiVoiceSettings,
   GeneratorProvider,
 } from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
@@ -507,18 +507,20 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
   protected genName:GeneratorProvider = 'geminiVoice';
   protected model = 'gemini-2.5-flash-preview-tts';
   protected voice = 'Kore';
+  protected cutoffTextLimit = 150;
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<GeminiBaseGenerator, Error> {
     console.log('GeminiVoiceGenerator make:',sysConfig.generators.gemini);
     if (!sysConfig.generators.gemini?.apiKey) {
       return Effect.fail(new Error('gemini api key is not set.'));
     }
-    return Effect.succeed(new GeminiVoiceGenerator(sysConfig, settings as GeminiImageSettings | undefined));
+    return Effect.succeed(new GeminiVoiceGenerator(sysConfig, settings as GeminiVoiceSettings | undefined));
   }
 
-  constructor(sysConfig: SysConfig, settings?: GeminiSettings) {
+  constructor(sysConfig: SysConfig, settings?: GeminiVoiceSettings) {
     super(sysConfig,settings);
     this.voice = sysConfig.generators.geminiVoice.voice || 'Kore';
+    this.cutoffTextLimit = sysConfig.generators.geminiVoice.cutoffTextLimit || 150;
   }
 
   override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], void, ConfigService | McpService> {
@@ -527,6 +529,11 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
       state.prevContexts.push(inputContext);
       console.log('gemini voice:', JSON.stringify(inputContext));
+      //  音声合成は重いので現時点cutoffTextLimit値で最大文字数を切り捨てる
+      if (inputContext.parts?.[0]?.text) {
+        inputContext.parts[0].text = inputContext.parts?.[0]?.text?.slice(0,state.cutoffTextLimit);
+      }
+
       //  https://ai.google.dev/gemini-api/docs/speech-generation
       const response = yield* Effect.tryPromise({
         try: () => state.ai.models.generateContent({

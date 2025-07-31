@@ -10,7 +10,7 @@ import {
   ContextGeneratorSetting, GeneratorProvider,
   OpenAiImageSettings,
   OpenAiSettings,
-  OpenAiTextSettings,
+  OpenAiTextSettings, OpenAiVoiceSettings,
 } from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
 import short from 'short-uuid';
@@ -511,25 +511,27 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
   protected genName:GeneratorProvider = 'openAiVoice';
   protected model = 'gpt-4o-audio-preview';
   protected voice = 'alloy';
+  protected cutoffTextLimit = 150;
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiBaseGenerator,Error> {
     if (!sysConfig.generators.openAiText?.apiKey) {
       return Effect.fail(new Error('openAi API key is not set.'));
     }
-    return Effect.succeed(new openAiVoiceGenerator(sysConfig, settings as OpenAiImageSettings | undefined));
+    return Effect.succeed(new openAiVoiceGenerator(sysConfig, settings as OpenAiVoiceSettings | undefined));
   }
 
-  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
+  constructor(sysConfig: SysConfig, settings?: OpenAiVoiceSettings) {
     super(new OpenAI({
       apiKey: sysConfig.generators.openAiText?.apiKey,
     }));
     this.openAiSettings = settings;
     this.voice = sysConfig.generators.openAiVoice?.voice || 'alloy';
+    this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
   }
 
   execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput[], void, ConfigService | McpService> {
     const state = this;
-    const text = inputContext.flatMap(value => {
+    let text = inputContext.flatMap(value => {
       if (value.type === 'message') {
         if(typeof value.content === 'string') {
           return [value.content]
@@ -538,6 +540,9 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
       }
       return [];
     }).join(' ')
+    if (text) {
+      text = text.slice(0,state.cutoffTextLimit);
+    }
     // if(inputContext.type !== 'message' || !Array.isArray(inputContext.content)) {
     //   return Effect.fail(new Error(`openAiVoiceGenerator only support message input.`));
     // }

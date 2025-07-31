@@ -76,9 +76,7 @@ export class AvatarState {
       } else {
         state.generatorMaxUseCount = config.general.maxGeneratorUseCount;
       }
-      console.log(config);
       yield* state.restartDaemonSchedules(config.daemons);
-      // console.log('x');
     }).pipe(
       Effect.catchAll(e => {
         console.log('changeApplyAvatarConfig error:', e);
@@ -378,8 +376,11 @@ export class AvatarState {
             }
             return Effect.succeed([]);
           case 'IfContextExists':
-            //  ここはcontextを追加する だからasClass === 'scheduleは見ない。それを見ると無限ループに入りうる。
-            const find = updated.delta.find(value => value.asClass !== 'daemon' && value.asClass === a.config.trigger.condition.asClass && value.asRole === a.config.trigger.condition.asRole);
+            //  ここはcontextを追加する だからasClass === 'daemonは見ない。それを見ると無限ループに入りうる。
+            const find = updated.delta.find(value => value.asClass !== 'daemon'
+              && (value.asClass === a.config.trigger.condition.asClass)
+              && (value.asRole === a.config.trigger.condition.asRole)
+              && (!a.config.trigger.condition.asContext || value.asContext === a.config.trigger.condition.asContext));
             //  TODO triggerで起動する場合、そのtriggerがcurrentになるからコンテキストとして入力するものはtriggerに入る前の状態がprevContextになる。。。ちょっとわかりにくい。。
 /*
             if (find) {
@@ -420,7 +421,7 @@ export class AvatarState {
   execDaemon(daemon: DaemonState, context: AsMessage[], triggerMes?: AsMessage) {
     const state = this;
     return Effect.gen(function* () {
-      console.log('execScheduler:', daemon, triggerMes);
+      console.log('execScheduler:', daemon.config.name, triggerMes);
       /*
       テンプレートの基本構文
       from: 送付者のハンドル
@@ -437,6 +438,7 @@ export class AvatarState {
           ...triggerMes,
           asClass: 'daemon',
           asRole: 'system',
+          asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
           content: {
             ...triggerMes.content,
             text: text,
@@ -450,19 +452,25 @@ export class AvatarState {
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
-          }, 'daemon', 'system','inner'),
+          }, 'daemon', 'system',daemon.config.exec.addDaemonGenToContext ? 'inner':'outer'), //  非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる
         ];
       }
+      //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない
+      const filteredContext = context.filter(value => value.asContext !== 'outer');
 
       console.log('execScheduler in:', message);
-      const out = yield* state.execGenerator(daemon.generator, message, context);
+      const out = yield* state.execGenerator(daemon.generator, message, filteredContext);
       console.log('execScheduler out:', out);
       //  出力用にroleとtextは再加工する
       toLlm = out.filter(a => (a.asRole === 'bot' || a.asRole === 'toolIn'|| a.asRole === 'toolOut')).map(a => {
+        if (a.asRole === 'toolIn' || a.asRole === 'toolOut') {
+          return a  //  tool入出力はクラス加工しない 原則そのまま
+        }
         return {
           ...a,
           asClass: daemon.config.exec.setting?.toClass || 'daemon',
           asRole: daemon.config.exec.setting?.toRole || 'bot',
+          asContext: daemon.config.exec.setting?.toContext || 'surface',
           content: {
             ...a.content,
           },
@@ -618,8 +626,8 @@ export class AvatarState {
     }
     return SubscriptionRef.update(this.talkContext, a => {
       //  TODO ここの扱いがちょっとまだ致命的
-      return {context: a.context, delta: bags};
-      // return {context: a.context.concat(bags), delta: bags};
+      // return {context: a.context, delta: bags};
+      return {context: a.context.concat(bags), delta: bags};
     });
   }
 
