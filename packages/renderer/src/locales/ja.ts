@@ -51,6 +51,7 @@ export default {
   imageModel: '画像モデル名',
   voiceModel: '音声モデル名',
   voice: '音声名',
+  voiceCutoffTextLimit:'音声再生切り捨て長さ(未指定時 150)',
   addMcpDef:'MCPを追加',
   mcpName: 'MCP設定名',
   onlyAlphaNum:'(半角英数字のみ)',

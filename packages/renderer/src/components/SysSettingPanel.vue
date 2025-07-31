@@ -335,6 +335,7 @@ onBeforeUnmount(() => {
                                      placeholder="gpt-4o-audio-preview"
                                      :label="t('voiceModel')" />
                             <q-input v-model="edit.generators.openAiVoice.voice" type="text" placeholder="alloy" :label="t('voice')" />
+                            <q-input v-model.number="edit.generators.openAiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>
@@ -370,6 +371,7 @@ onBeforeUnmount(() => {
                                      placeholder="gemini-2.5-flash-preview-tts"
                                      :label="t('voiceModel')" />
                             <q-input v-model="edit.generators.geminiVoice.voice" type="text" placeholder="Kore" :label="t('voice')" />
+                            <q-input v-model.number="edit.generators.geminiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" />
                           </q-card-section>
                         </q-card>
 

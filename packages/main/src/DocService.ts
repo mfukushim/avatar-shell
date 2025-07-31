@@ -41,7 +41,7 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
     function readDocument(templateId:string,fileName:string) {
       //  データ書式は[]がないjsonのリストとしておく
       const path1 = path.join(docBasePath,'contents',templateId,fileName);
-      console.log('readDocument:',path1);
+      // console.log('readDocument:',path1);
       return fs.readFileString(path1).pipe(
         Effect.andThen(a => a.split('\n').flatMap(value => {
           try {

@@ -51,6 +51,7 @@ export default {
   imageModel: 'Image Model',
   voiceModel: 'Voice Model',
   voice: 'Voice',
+  voiceCutoffTextLimit:'Text cutoff limit(default 150)',
   addMcpDef: 'Add MCP Definition',
   mcpName:'mcp setting name',
   onlyAlphaNum: '(Only alphanumeric characters are allowed.)',

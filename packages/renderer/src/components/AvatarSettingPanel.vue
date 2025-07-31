@@ -127,9 +127,12 @@ const addScheduler = () => {
       },
       exec: {
         generator: 'emptyText',
-        templateGeneratePrompt: '',
+        templateGeneratePrompt: 'Are you ready?',
         addDaemonGenToContext: false,
         setting: {
+          toClass: 'daemon',
+          toRole: 'bot',
+          toContext: 'outer'
         }
       }
     });
@@ -330,7 +333,8 @@ onMounted(async () => {
                         <div class="col-8">
                           <div class="q-ma-md q-pa-md shadow-2">
                             {{$t('execution')}}
-                            <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense :label="$t('generatorName')" /><q-toggle v-model="daemon.exec.addDaemonGenToContext" :label="$t('selectContextLine')"/>
+                            <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense :label="$t('generatorName')" />
+                            <q-toggle v-model="daemon.exec.addDaemonGenToContext" :label="$t('selectContextLine')"/>
                             <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateGeneratePrompt" label="Generator prompt template" outlined :disable="daemon.exec.generator == 'emptyText'" />
                             <div>{{$t('outputContextAttr')}}</div>
                             <div class="row">
