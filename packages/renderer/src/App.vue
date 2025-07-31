@@ -140,7 +140,7 @@ const setImage = async (url: string, mime: string) => {
 };
 const setSound = async (url: string, mime: string) => {
   const voice = await getMediaUrl(mime, url);
-  console.log('setSound:', voice.slice(0, 200));
+  // console.log('setSound:', voice.slice(0, 200));
   await playSound(voice);
 };
 

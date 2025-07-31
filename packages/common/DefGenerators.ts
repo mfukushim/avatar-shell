@@ -33,15 +33,15 @@ export type AsRole = typeof AsRoleSchema.Type
 
 export const AsRoleList = AsRoleSchema.literals;
 
-export const AsContextLines = Schema.Literal(
+export const AsContextLinesSchema = Schema.Literal(
   'inner',
   'surface',
   'outer',
 )
 
-export type AsContextLines = typeof AsContextLines.Type
+export type AsContextLines = typeof AsContextLinesSchema.Type
 
-export const AsContextLinesList = AsContextLines.literals;
+export const AsContextLinesList = AsContextLinesSchema.literals;
 
 export const ContextTypes = Schema.Literal(
   'text',
@@ -95,7 +95,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   useContextType: Schema.Array(ContextTypes),
   toClass: Schema.optional(AsClassSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
-  toContext:Schema.optional(AsContextLines),
+  toContext:Schema.optional(AsContextLinesSchema),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 
@@ -123,6 +123,10 @@ export interface OpenAiImageSettings extends ContextGeneratorSetting {
   outHeight?:number;
 }
 
+export interface OpenAiVoiceSettings extends ContextGeneratorSetting {
+  model?:string;
+}
+
 export interface GeminiSettings extends ContextGeneratorSetting {
   model?:string;
   inWidth?:number;
@@ -136,6 +140,10 @@ export interface GeminiImageSettings extends ContextGeneratorSetting {
   model?:string;
   outWidth?:number;
   outHeight?:number;
+}
+
+export interface GeminiVoiceSettings extends ContextGeneratorSetting {
+  model?:string;
 }
 
 export interface ClaudeTextSettings extends ContextGeneratorSetting {
@@ -170,6 +178,7 @@ export type OpenAiImageConfig = typeof openAiImageMutableConfigSchema.Type
 export const openAiVoiceConfigSchema = Schema.Struct({
   model: Schema.String,
   voice: Schema.String,
+  cutoffTextLimit:Schema.optional(Schema.Number)
 });
 
 
@@ -198,6 +207,7 @@ export const geminiImageConfigSchema = Schema.Struct({
 export const geminiVoiceConfigSchema = Schema.Struct({
   model: Schema.String,
   voice: Schema.String,
+  cutoffTextLimit:Schema.optional(Schema.Number)
 });
 
 export const geminiMutableConfigSchema = Schema.mutable(geminiSysConfigSchema)

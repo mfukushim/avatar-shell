@@ -72,7 +72,7 @@ const flag = reactive({
 //        v-if="isShow(item.asRole)"
 
 
-const isShow = (asClass:AsClass,asRole: AsRole,asContext:AsContextLines,mimeType?:string) => {
+const isShow = (asClass:AsClass, asRole: AsRole, asContext:AsContextLines, mimeType?:string) => {
   let showFlag = false;
   const view = asContext === 'surface' || asContext === 'outer';
   if(flag.showAll) {

@@ -1,7 +1,7 @@
 import {Schema} from 'effect';
 import {
   type AsClass,
-  AsClassSchema, AsContextLines, type AsRole, AsRoleSchema,
+  AsClassSchema,type AsContextLines, AsContextLinesSchema, type AsRole, AsRoleSchema,
   ContextGeneratorSettingSchema, GeneratorProviderSchema,
   generatorsConfigSetChema,
   generatorsMutableConfigSetChema,
@@ -125,11 +125,11 @@ export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
   tick: Schema.Number,
   asClass: AsClassSchema,
   asRole: AsRoleSchema,
-  asContext:AsContextLines,
+  asContext:AsContextLinesSchema,
   isRequestAction: Schema.Boolean,
   content: AsMessageContentSchema,
 }) {
-  static makeMessage(content: AsMessageContent, asClass: AsClass = 'talk', asRole: AsRole = 'human',asContext:AsContextLines, isRequestAction=false) {
+  static makeMessage(content: AsMessageContent, asClass: AsClass = 'talk', asRole: AsRole = 'human', asContext:AsContextLines, isRequestAction=false) {
     return {
       id: short.generate(),
       tick: dayjs().valueOf(),
@@ -162,6 +162,7 @@ const DaemonTriggerSchema = Schema.Struct({
     dateTimeCron: Schema.String,
     asClass: AsClassSchema,
     asRole: AsRoleSchema,
+    asContext: AsContextLinesSchema,
     countMax: Schema.Number,
   })),
 });

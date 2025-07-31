@@ -24,7 +24,7 @@ import short from 'short-uuid';
 import {BrowserWindow} from 'electron';
 import {GeneratorProvider} from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
-import electronLog from 'electron-log';
+// import electronLog from 'electron-log';
 
 
 export interface ToolCallParam {
@@ -98,7 +98,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         });
         const buildInList = yield* BuildInMcpService.getDefines();
         clientInfoList.push(...buildInList);
-        console.log('mcpinfo', clientInfoList);
+        // console.log('mcpinfo', clientInfoList);
       });
     }
 
