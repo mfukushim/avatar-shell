@@ -14,7 +14,7 @@ const props = defineProps<{
   avatarName: string,
   userName:string,
   hideControl: boolean,
-  runningMarks:string[],
+  runningMarks:string[][],
 }>();
 
 const emit = defineEmits<{
@@ -81,7 +81,7 @@ const isShow = (asClass:AsClass, asRole: AsRole, asContext:AsContextLines, mimeT
   if(asClass === 'daemon' && flag.showDaemon && view && (!mimeType || mimeType.startsWith('text'))) {
     showFlag = true;
   }
-  if(flag.showMedia && view && (mimeType && !mimeType.startsWith('text'))) {
+  if(flag.showMedia && (mimeType && !mimeType.startsWith('text'))) {
     showFlag = true;
   }
   if(asClass === 'com' && flag.showOnline) {
@@ -120,6 +120,10 @@ const getItemType = (item: AsMessage) => {
   if (item.content.text) {
     return 'text';
   }
+}
+
+const infoRunningMark = () => {
+  return props.runningMarks.length > 0 ? `Running ${props.runningMarks.length} ${props.runningMarks.map(value => value[1]).join(',')}` : '';
 }
 
 const tableRef = ref<QVirtualScroll>();
@@ -168,7 +172,7 @@ const imageCache = ref<Record<string,string>>({});
         {{ oneMes }}
       </div>
       <q-chip color="red" text-color="white" dense :model-value="runningMarks.length > 0" >
-        Running {{runningMarks.length}}
+        {{infoRunningMark()}}
       </q-chip>
     </div>
     <div class="q-pa-sm" v-if="!props.hideControl">
