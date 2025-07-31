@@ -154,7 +154,7 @@ const setVolume = async (volume: number) => {
   }
 }
 
-const runningMarks = ref<string[]>([]);
+const runningMarks = ref<string[][]>([]);
 
 const mergeTimeline = async (add: AsMessage[]) => {
   const tl = timeline.value;
@@ -166,10 +166,10 @@ const mergeTimeline = async (add: AsMessage[]) => {
       oneMes.value = (oneMes.value || '') + m.content?.textParts?.join('');
     } else if (m.content?.subCommand === 'addRunning' && m.content?.innerId) {
       console.log('addRunning:', m.content);
-      runningMarks.value.push(m.content?.innerId);
+      runningMarks.value.push([m.content?.innerId,m.content.text || '']);
     } else if (m.content?.subCommand === 'delRunning' && m.content?.innerId) {
       console.log('delRunning:', m.content);
-      runningMarks.value = runningMarks.value.filter(value => value !== m.content.innerId);
+      runningMarks.value = runningMarks.value.filter(value => value[0] !== m.content.innerId);
     } else {
       const index = tl.findIndex(t => t && m && t.id === m.id);
       if (index === -1) {
