@@ -36,20 +36,20 @@ async function sendMessage() {
       if (v.mimeType === 'text/plain' && v.text) {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode(v.text);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','surface'))
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','inner'))
       } else if (v.mimeType.startsWith('image')) {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode(v.blob);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','surface'))
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','inner'))
       }
     })
   }
-  const mes = await doAskAi(datas);
+  await doAskAi(datas);
   fileUpload.value = null;
   mcpResource.value = null;
-  const out = datas.concat(mes) //  TODO ユーザ入力も送ってよいが 長いデータはどうするんだっけ。
-  emit('sent', out);  // 会話した内容をtimelineに設定
-  console.log('ans', mes);
+  // const out = datas.concat(mes) //  TODO ユーザ入力も送ってよいが 長いデータはどうするんだっけ。
+  emit('sent', datas);  // 会話した内容をtimelineに設定
+  // console.log('ans', mes);
 }
 
 const sendTalk = async () => {
@@ -64,7 +64,8 @@ const sendKey = async (event:any) => {
 }
 
 const selectResource = async (name:string,res: McpResourceInfo) => {
-  mcpResource.value = await readMcpResource(name, res.uri)
+  await readMcpResource(name, res.uri)
+  // mcpResource.value = await readMcpResource(name, res.uri)
 }
 
 onMounted(async () => {

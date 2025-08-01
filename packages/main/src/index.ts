@@ -101,7 +101,28 @@ ipcMain.handle('AskAi', async (_, avatarId: string, mes: AsMessage[]) => await A
 ipcMain.handle('GetTalkContext', async (_, avatarId: string) => await AvatarService.getTalkContext(avatarId).pipe(Effect.catchAll(showAlertIfFatal('GetTalkContext')), aiRuntime.runPromise));
 ipcMain.handle('addExtTalkContext', async (_, avatarId: string,bags:AsMessage[]) => await AvatarService.addExtTalkContext(avatarId, bags).pipe(Effect.catchAll(showAlertIfFatal('addExtTalkContext')), aiRuntime.runPromise));
 ipcMain.handle('getMcpServerInfos', async (_) => await McpService.getMcpServerInfos().pipe(Effect.catchAll(showAlertIfFatal('getMcpServerInfos')), aiRuntime.runPromise));
-ipcMain.handle('readMcpResource', async (_,name:string,uri:string) => await McpService.readMcpResource(name, uri).pipe(Effect.catchAll(showAlertIfFatal('readMcpResource')), aiRuntime.runPromise));
+ipcMain.handle('readMcpResource', async (_,avatarId: string,userName:string,name:string,uri:string) => {
+  return await McpService.readMcpResource(name, uri).pipe(
+    Effect.andThen(a => {
+      if (a && a.contents) {
+        const mesList = a.contents.flatMap(b => {
+          if(b.mimeType === 'text/plain') {
+            const c = b.text as string
+            return [AsMessage.makeMessage({
+              from: userName,
+              mediaBin: Buffer.from(b.text as string).buffer,
+              mimeType: 'text/plain',
+            }, 'talk', 'human', 'inner')] //  前提条件テキストにしたいが今はLLM直に送る形にする
+          }
+          //  TODO 画像等
+          return []
+        })
+        return AvatarService.askAvatar(avatarId, mesList)
+      }
+      return Effect.succeed([]);
+    }),
+    Effect.catchAll(showAlertIfFatal('readMcpResource')), aiRuntime.runPromise);
+});
 
 ipcMain.handle('answerMainAlert', async (_,id:string,reply:AlertReply,btn:string) => {
   switch (reply) {

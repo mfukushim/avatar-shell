@@ -31,7 +31,7 @@ export let avatarId = '';
 export let userName:string|undefined;
 export let avatarName:string|undefined;
 
-let socket: Socket;
+let socket: Socket | undefined = undefined;
 
 let socketState = false;
 let socketStateCallback: (state: boolean) => void;
@@ -73,6 +73,16 @@ export async function addExtTalkContext(bags:AsMessage[]) {
 
 export {sha256sum, versions};
 
+function makeSocket() {
+  if (avatarSetting?.general.remoteServer) {
+    console.log('remoteServer:', avatarSetting?.general.remoteServer);
+    socket = io(avatarSetting?.general.remoteServer);
+  } else if (sysConfig.websocket.useServer) {
+    console.log('useServer:', sysConfig.websocket.useServer);
+    socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3000}`);
+  }
+}
+
 /**
  * avatar初期化完了を受けたいコンポーネントで登録する
  * 登録コンポーネント分、複数回呼ばれる
@@ -97,16 +107,10 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
     }
 
     if(avatarSetting?.general.useSocket) {
-      if(avatarSetting.general.remoteServer) {
-        console.log('remoteServer:',avatarSetting.general.remoteServer);
-        socket = io(avatarSetting.general.remoteServer)
-      } else if(sysConfig.websocket.useServer) {
-        console.log('useServer:',sysConfig.websocket.useServer);
-        socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3000}`);
-      }
+      makeSocket();
       if(socket) {
         socket.on('connect', () => {
-          console.log('connect client:', socket.id);
+          console.log('connect client:', socket?.id);
           setSocketState(true);
         })
         socket.on('asMessage',async (mes:AsMessage[]) => {
@@ -133,7 +137,7 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
           await socketCallback(extMes);
         })
         socket.on('disconnect', () => {
-          console.log('disconnect client:', socket.id);
+          console.log('disconnect client:', socket?.id);
           setSocketState(false);
         })
         socket.on('connect_error', (err:any) => {
@@ -151,9 +155,11 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
 export function setSocketConnect(state:boolean) {
   if(socket) {
     if(state) {
+      makeSocket()
       socket.connect()
     } else {
       socket.disconnect()
+      socket = undefined
     }
   }
 }
@@ -194,9 +200,11 @@ export async function sendSocket(mes: AsMessage[]) {
  * @param callback
  */
 export function onUpdateLlm( callback: (bag: AsMessage[]) => Promise<any>) {
-  ipcRenderer.on('update-llm', async (_event, bags) => {
+  ipcRenderer.on('update-llm', async (_event, bags:AsMessage[]) => {
     // console.log('preload onUpdateLlm:', bags);
     await callback(bags);
+    const com = bags.filter(t => (t.asRole === 'human' || t.asRole === 'bot') && t.asContext === 'surface');
+    await sendSocket(com)
   });
 }
 
@@ -345,7 +353,7 @@ export async function answerMainAlert(id:string,reply:AlertReply,btn: string) {
 }
 export async function readMcpResource(name:string,url:string) {
   console.log('preload readMcpResource in', name,url);
-  return await ipcRenderer.invoke('readMcpResource',name,url) as McpResource;
+  return await ipcRenderer.invoke('readMcpResource',avatarId,userName,name,url) as McpResource;
 }
 
 export async function getScheduleList() {
