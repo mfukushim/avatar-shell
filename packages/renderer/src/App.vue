@@ -191,6 +191,9 @@ const mergeTimeline = async (add: AsMessage[]) => {
 */
 
   await setTimeline(tl);
+  // const com = tl.filter(t => (t.asRole === 'human' || t.asRole === 'bot') && t.asContext === 'surface');
+  // // console.log('mergeTimeline:com:', com);
+  // sendSocket(com).then(value => console.log('sendSocket:', value));
 };
 
 const sendMessageIn = async (mes: AsMessage[]) => {

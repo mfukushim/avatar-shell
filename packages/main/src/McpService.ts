@@ -24,6 +24,7 @@ import short from 'short-uuid';
 import {BrowserWindow} from 'electron';
 import {GeneratorProvider} from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
+import {ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
 // import electronLog from 'electron-log';
 
 
@@ -135,10 +136,20 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             try: () => info.client.readResource({uri}),
             catch: error => console.log(error),
           }).pipe(
-            Effect.andThen(a => a as {contents: any[]})); //  TODO
+            Effect.tap(a => console.log(a)),
+          Effect.andThen(a => a as ReadResourceResult)) //  TODO {contents: {uri:string,mimeType:string,text:string}[]})
         }
       });
     }
+    /*
+    {
+  contents: [
+    {
+      uri: 'file:///roleWithSns.txt',
+      mimeType: 'text/plain',
+      text: 'Please speak to the user frankly in 2 lines or fewer. Since you are close, please omit honorifics.\n' +
+
+     */
 
     function getToolDefs(mcpList: AvatarMcpSettingList) {
       //  このあたりはopenAiもanthropicも同様書式のはず

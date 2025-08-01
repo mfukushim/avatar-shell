@@ -49,7 +49,7 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
           console.log('connect client:', socket.id);
 
           socket.on('asMessage', (msg: AsMessage) => {
-            // console.log('received asMessage:', msg);
+            console.log('received asMessage:', msg);
 
             // クライアントに返信
             socket.broadcast.emit('asMessage', msg);

@@ -254,9 +254,10 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
                 from: avatarState.Name,
               };
               const nextId = short.generate();
-              let llmOut: any = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
+              let llmOut: (Anthropic.Messages.TextBlockParam|Anthropic.Messages.ImageBlockParam|undefined) // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
               if (a2.type === 'text') {
                 content.text = a2.text;
+                llmOut = a2
               } else if (a2.type === 'image') {
                 const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
                 const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
@@ -268,6 +269,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
                   type: 'image',
                   source: {
                     type: 'base64',
+                    media_type: content.mimeType,
                     data: b1.toString('base64'),
                   },
                 } as Anthropic.Messages.ImageBlockParam;
@@ -277,11 +279,13 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
               }
               //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
               return [{
-                llmOut: {
-                  type: 'tool_result',
-                  tool_use_id: a.id,
-                  content: [llmOut],
-                } as Anthropic.Messages.ToolResultBlockParam,
+                toolOneRes: llmOut,
+                toolId:a.id,  //  todo ちょっとツール集約がおかしい
+                // llmOut: {
+                //   type: 'tool_result',
+                //   tool_use_id: a.id,
+                //   content: [llmOut],
+                // } as Anthropic.Messages.ToolResultBlockParam,
                 mes: {
                   id: nextId,
                   tick: dayjs().valueOf(),
@@ -304,7 +308,11 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //  次に回すタスク
         const nextTask = {
           role: 'user',
-          content: toLlm.flatMap(a => a.llmOut),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
+          content: [{
+            type: 'tool_result',
+            tool_use_id: toLlm[0].toolId,
+            content: toLlm.flatMap(a => a.toolOneRes),
+          } as Anthropic.Messages.ToolResultBlockParam]
         } as Anthropic.Messages.MessageParam;
         task = Option.some(nextTask);
         //  func call結果(native付き)
@@ -381,7 +389,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
       // it.prevContexts.push(inputContext);
-      console.log('claude :', JSON.stringify(it.prevContexts));
+      console.log('claude :', contents.map(value => JSON.stringify(value).slice(0,200)));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',
         messages: contents,

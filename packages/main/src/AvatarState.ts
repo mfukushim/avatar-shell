@@ -443,21 +443,55 @@ export class AvatarState {
        */
       let toLlm: AsMessage[] = [];
       let text: any;
-      let message = [];
+      let message:AsMessage[] = [];
       if (triggerMes) {
-        text = state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes);
-        message = [{
-          ...triggerMes,
-          asClass: 'daemon',
-          asRole: 'system',
-          asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-          content: {
-            ...triggerMes.content,
-            text: text,
-          },
-        } as AsMessage,
-        ];
-        // console.log('execScheduler triggerMes:', text);
+        //  askAiから来るコンテンツには画像がmediaBinで来ることがあるので、それはmediaUrlに変換しておく
+        if (triggerMes.content.mediaBin) {
+          //  今はまだsoundは考えない
+          if(triggerMes.content.mimeType?.startsWith('image/')) {
+            const img = Buffer.from(triggerMes.content.mediaBin).toString('base64');
+            const mediaUrl = yield *DocService.saveDocMedia(triggerMes.id, triggerMes.content.mimeType, img, state.templateId)
+            message = [{
+              ...triggerMes,
+              asClass: 'daemon',
+              asRole: 'system',
+              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              content: {
+                ...triggerMes.content,
+                mediaBin: undefined,
+                mediaUrl: mediaUrl,
+              },
+            } as AsMessage,
+            ];
+          } else if(triggerMes.content.mimeType?.startsWith('text/')) {
+            message = [{
+              ...triggerMes,
+              asClass: 'daemon',
+              asRole: 'system',
+              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              content: {
+                ...triggerMes.content,
+                mediaBin: undefined,
+                text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
+              },
+            } as AsMessage,
+            ];
+          }
+        } else {
+          text = state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes);
+          message = [{
+            ...triggerMes,
+            asClass: 'daemon',
+            asRole: 'system',
+            asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+            content: {
+              ...triggerMes.content,
+              text: text,
+            },
+          } as AsMessage,
+          ];
+          // console.log('execScheduler triggerMes:', text);
+        }
       } else {
         text = daemon.config.exec.templateGeneratePrompt;
         message = [
@@ -637,8 +671,6 @@ export class AvatarState {
       this.externalTalkCounter += bags.length;
     }
     return SubscriptionRef.update(this.talkContext, a => {
-      //  TODO ここの扱いがちょっとまだ致命的
-      // return {context: a.context, delta: bags};
       return {context: a.context.concat(bags), delta: bags};
     });
   }
