@@ -2,7 +2,16 @@
 
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useI18n} from 'vue-i18n';
-import {getAvatarConfigList, getSysConfig, getVersion, openBrowser, setSysConfig} from '@app/preload';
+import {
+  exportAvatar,
+  exportSysConfig,
+  getAvatarConfigList,
+  getSysConfig,
+  getVersion, importAvatar,
+  importSysConfig,
+  openBrowser,
+  setSysConfig,
+} from '@app/preload';
 import {type McpServerDef, type SysConfigMutable, SysConfigSchema} from '../../../common/Def.ts';
 import {Either, ParseResult, Schema} from 'effect';
 
@@ -25,6 +34,8 @@ const mcpConfig = ref<{id: string, body: string}[]>([]);
 
 const websocketPort = ref<string | undefined>(undefined);
 const saving = ref(false);
+
+const exportAvatarTemplateId = ref('');
 
 const {t} = useI18n();
 
@@ -226,6 +237,11 @@ const handleClick = (event: MouseEvent) => {
   }
 };
 
+const importSys = async () => {
+  await importSysConfig()
+  await doOpen()
+}
+
 onMounted(async () => {
   document.addEventListener('click', handleClick);
 });
@@ -262,6 +278,7 @@ onBeforeUnmount(() => {
                   <q-tab name="ai"  icon="smart_toy" :label="t('contextGenerator')" />
                   <q-tab name="mcp" icon="extension" :label="t('mcpSettings')" />
                   <q-tab name="websocket" icon="rss_feed" :label="t('avatarCommunication')" />
+                  <q-tab name="importExport" icon="import_export" :label="t('importExport')" />
                   <q-tab name="license" icon="info_outline" :label="t('license')" />
                 </q-tabs>
               </template>
@@ -478,14 +495,45 @@ onBeforeUnmount(() => {
                                  placeholder="{from} said, &quot;{body}&quot;"
                                  :label="t('templateImportExtTalk')"
                         />
-<!--
-                        <q-input class="col-6" v-model.number="edit.websocket.autoSendTextNumber"
-                                 type="number"
-                                 label="外部会話のみで返答生成する会話数" />
-                        <q-toggle class="col-6"
-                                  v-model="edit.websocket.manualSend"
-                                  label="外部会話のみで返答を生成しない" />
--->
+                        <!--
+                                                <q-input class="col-6" v-model.number="edit.websocket.autoSendTextNumber"
+                                                         type="number"
+                                                         label="外部会話のみで返答生成する会話数" />
+                                                <q-toggle class="col-6"
+                                                          v-model="edit.websocket.manualSend"
+                                                          label="外部会話のみで返答を生成しない" />
+                        -->
+                      </q-card-section>
+                    </q-card>
+                  </q-tab-panel>
+                  <q-tab-panel name="importExport">
+                    <div class="text-h6 q-mb-md">{{ t('importExport') }}</div>
+                    <q-card class="q-ma-md">
+                      <q-card-section class="row">
+                        {{t('importSysInfo')}}
+                        <q-space/>
+                        <q-btn @click="importSys">{{t('importSys')}}</q-btn>
+                      </q-card-section>
+                      <q-card-section class="row">
+                        {{t('exportSysInfo')}}
+                        <q-space/>
+                        <q-btn @click="exportSysConfig">{{t('exportSys')}}</q-btn>
+                      </q-card-section>
+                    </q-card>
+                    <q-card class="q-ma-md">
+                      <q-card-section class="row">
+                        {{t('importAvatarInfo')}}
+                        <q-space/>
+                        <q-btn @click="importAvatar">{{t('importAvatar')}}</q-btn>
+                      </q-card-section>
+                      <q-card-section class="row q-px-md">
+                        {{t('exportAvatarInfo')}}
+                        <q-space/>
+                        <q-select v-model="exportAvatarTemplateId"
+                                  :options="avatarList"
+                                  emit-value
+                                  map-options class="q-px-sm" />
+                        <q-btn @click="exportAvatar(exportAvatarTemplateId)">{{t('exportAvatar')}}</q-btn>
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>

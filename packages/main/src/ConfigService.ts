@@ -1,4 +1,4 @@
-import {Effect, HashMap, Ref, SubscriptionRef} from 'effect';
+import {Effect, HashMap, Ref, Schema, SubscriptionRef} from 'effect';
 import Store from 'electron-store';
 import {
   AvatarSetting,
@@ -6,8 +6,9 @@ import {
   MutableSysConfig,
   SysConfig,
   SysConfigMutable,
+  SysConfigSchema,
 } from '../../common/Def.js';
-import {app} from 'electron';
+import {app, dialog} from 'electron';
 import {defaultAvatarSetting, defaultMutableSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
 import short from 'short-uuid';
 import path from 'node:path';
@@ -23,6 +24,7 @@ import {ClaudeTextGenerator} from './ClaudeGenerator.js';
 import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './LlmGenerator.js';
 import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
+import dayjs from 'dayjs';
 //import electronLog from 'electron-log';
 
 
@@ -179,6 +181,103 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
           return fs.writeFileString(path.join(debugPath,'debugSys.json'),JSON.stringify(a,null,2))
         }
       }));
+    }
+
+    function importSysConfig() {
+      return Effect.tryPromise(signal => dialog.showOpenDialog({
+        title:'import System settings',
+        buttonLabel:'Load',
+        filters:[
+          { name: 'json Files', extensions: ['json'] },
+        ]
+      })).pipe(
+        Effect.andThen(a => {
+          if (a.canceled) {
+            return Effect.fail(new Error('Canceled'))
+          }
+          return fs.readFileString(a.filePaths[0])
+        }),
+        Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
+      )
+    }
+
+    function importAvatar() {
+      return Effect.tryPromise(signal => dialog.showOpenDialog({
+        title:'import Avatar settings',
+        buttonLabel:'Load',
+        filters:[
+          { name: 'json Files', extensions: ['json'] },
+        ]
+      })).pipe(
+        Effect.andThen(a => {
+          if (a.canceled) {
+            return Effect.fail(new Error('Canceled'))
+          }
+          return Effect.partition(a.filePaths,b => fs.readFileString(b).pipe(
+            Effect.andThen(a1 => Schema.decodeUnknown(Schema.parseJson(AvatarSetting))(a1)),
+            Effect.andThen(config => {
+              return Effect.gen(function*() {
+                const dup =yield *avatarConfigs.get.pipe(Effect.andThen(a3 => HashMap.has(a3,config.templateId)))
+                if(dup) {
+                  //  id重複がある 確認ダイアログはalertMainを使うとちょっと深すぎるのでelectron dialogを使う
+                  const res = yield *Effect.tryPromise(signal => dialog.showMessageBox({
+                    title:'Confirm',
+                    message:'AvatarTemplateId already exists. Do you want to overwrite it?',
+                    buttons: ['overwrite','skip'],
+                    defaultId:0,
+                    cancelId:1,
+                  }))
+                  if (res.response !== 0) {
+                    return yield *Effect.fail(new Error('canceled'))
+                  }
+                }
+                const c = yield* SubscriptionRef.make(config);
+                return yield *Ref.update(avatarConfigs,cfMap => {
+                  return HashMap.mutate(cfMap,a2 => HashMap.set(a2,config.templateId,c))
+                })
+              })
+            })
+          ))
+        }),
+      )
+    }
+
+    function exportSysConfig() {
+      return Effect.gen(function*() {
+        const { filePath, canceled } = yield *Effect.tryPromise(signal => dialog.showSaveDialog({
+          title: 'export System settings',
+          defaultPath: `asSys_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
+          buttonLabel: 'Save',
+          filters: [
+            { name: 'json Files', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        }))
+        if (canceled) {
+          return yield *Effect.void
+        }
+        yield *sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(filePath,JSON.stringify(a,null,2))))
+      })
+    }
+
+    function exportAvatar(templateId:string) {
+      return Effect.gen(function*() {
+        const setting = yield *avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)),Effect.andThen(a => a.get))
+        const { filePath, canceled } = yield *Effect.tryPromise(signal => dialog.showSaveDialog({
+          title: `export ${setting.general.name} settings`,
+          defaultPath: `asAvt_${setting.general.name}_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
+          buttonLabel: 'Save',
+          filters: [
+            { name: 'json Files', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        }))
+        if (canceled) {
+          return yield *Effect.void
+        }
+        yield *fs.writeFileString(filePath,JSON.stringify(setting,null,2))
+      })
+
     }
 
     function updateAvatarConfig(templateId: string,f:(c:AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
@@ -356,6 +455,10 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       getAvatarConfigList,
       updateSysConfig,
       setAvatarConfig,
+      exportSysConfig,
+      importSysConfig,
+      exportAvatar,
+      importAvatar,
       updateAvatarConfig,
       updateAvatarConfigEffect,
       copyAvatarConfig,

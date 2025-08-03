@@ -96,5 +96,14 @@ export default {
     DayTimeDirect: '今日の指定時間',
     DateTimeDirect: '指定日時',
     selectCondition:'起動条件を選択してください'
-  }
+  },
+  importExport:'設定読込/書出',
+  importSys:'システム設定読み込み',
+  importSysInfo:'システム設定を読み込みます',
+  exportSys:'システム設定書き出し',
+  exportSysInfo:'システム設定を書き出します',
+  importAvatar:'アバター設定読み込み',
+  importAvatarInfo:'アバター設定を読み込みます',
+  exportAvatar:'アバター設定書き出し',
+  exportAvatarInfo:'アバター設定を書き出します',
 }

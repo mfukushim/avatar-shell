@@ -172,6 +172,22 @@ ipcMain.handle('setSysConfig', async (_, data) => {
     Effect.catchAll(showAlertIfFatal('setSysConfig'))
     , aiRuntime.runPromise);
 });
+
+ipcMain.handle('exportSysConfig',async (_) => {
+  return await ConfigService.exportSysConfig().pipe(Effect.catchAll(showAlertIfFatal('exportSysConfig')), aiRuntime.runPromise)
+})
+ipcMain.handle('importSysConfig',async (_) => {
+  return await ConfigService.importSysConfig().pipe(Effect.catchAll(showAlertIfFatal('importSysConfig')), aiRuntime.runPromise)
+})
+
+ipcMain.handle('exportAvatar',async (_,templateId:string) => {
+  return await ConfigService.exportAvatar(templateId).pipe(Effect.catchAll(showAlertIfFatal('exportAvatar')), aiRuntime.runPromise)
+})
+
+ipcMain.handle('importAvatar',async (_) => {
+  return await ConfigService.importAvatar().pipe(Effect.catchAll(showAlertIfFatal('importAvatar')), aiRuntime.runPromise)
+})
+
 ipcMain.handle('getMutableSetting', async (_) => await ConfigService.getMutableSetting().pipe(Effect.catchAll(showAlertIfFatal('getMutableSetting')), aiRuntime.runPromise));
 
 ipcMain.handle('updateMutableSetting', async (_, data:MutableSysConfig) => await ConfigService.updateMutableSetting(data).pipe(Effect.catchAll(showAlertIfFatal('updateMutableSetting')), aiRuntime.runPromise));

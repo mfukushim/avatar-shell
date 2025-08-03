@@ -1,12 +1,13 @@
 <script setup lang="ts">
 
-import {onMounted, ref} from 'vue';
-import {doAskAi, getMcpServerInfos, getUserName, type McpResource, readMcpResource} from '@app/preload';
+import {ref} from 'vue';
+import {doAskAi, getUserName, type McpResource, readMcpResource} from '@app/preload';
 import type {McpInfo, McpResourceInfo} from '../../../common/Def.ts';
 import {AsMessage} from '../../../common/Def.ts';
 
 const props = defineProps<{
   disableInput: boolean,
+  mcpServers: McpInfo[]
 }>();
 
 const emit = defineEmits<{
@@ -18,7 +19,7 @@ const mcpResource = ref<McpResource|null>(null)
 const talkText = ref('')
 
 
-const mcpServers = ref<McpInfo[]>()
+// const mcpServers = ref<McpInfo[]>()
 
 async function sendMessage() {
   const inText = talkText.value;
@@ -68,11 +69,11 @@ const selectResource = async (name:string,res: McpResourceInfo) => {
   // mcpResource.value = await readMcpResource(name, res.uri)
 }
 
-onMounted(async () => {
-  console.log('onMounted renderer input panel');
-  mcpServers.value = await getMcpServerInfos()
-  console.log(mcpServers.value);
-})
+// onMounted(async () => {
+//   console.log('onMounted renderer input panel');
+//   mcpServers.value = await getMcpServerInfos()
+//   console.log(mcpServers.value);
+// })
 
 </script>
 
@@ -81,7 +82,7 @@ onMounted(async () => {
     <q-btn color="secondary" icon="text_snippet" >
       <q-menu>
         <q-list style="min-width: 100px">
-          <q-item v-for="mcp in mcpServers" :key="mcp.id" clickable>
+          <q-item v-for="mcp in props.mcpServers" :key="mcp.id" clickable>
             <q-item-section>{{ mcp.id }}</q-item-section>
             <q-item-section side>
               <q-icon name="keyboard_arrow_right" />

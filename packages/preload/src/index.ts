@@ -165,6 +165,7 @@ export function setSocketConnect(state:boolean) {
 }
 
 export async function sendSocket(mes: AsMessage[]) {
+  if(mes.length === 0) return;
   if(socket) {
     //  メッセージをソケット用加工 画像、画像urlは大きすぎて無理そう
     const nextMes = mes.map(value => {
@@ -182,6 +183,7 @@ export async function sendSocket(mes: AsMessage[]) {
     let retry = 3
     while (retry > 0) {
       try {
+        console.log('sendSocket',nextMes);
         await socket.emitWithAck('asMessage', nextMes)
         return
       } catch (e) {
@@ -383,6 +385,22 @@ export async function getLocale():Promise<string> {
 
 export async function doAskAi(mes:AsMessage[]) {
   return await ipcRenderer.invoke('AskAi', avatarId, mes) as AsMessage[];
+}
+
+export async function importSysConfig() {
+  return await ipcRenderer.invoke('importSysConfig');
+}
+
+export async function exportSysConfig() {
+  return await ipcRenderer.invoke('exportSysConfig');
+}
+
+export async function exportAvatar(templateId: string) {
+  return await ipcRenderer.invoke('exportAvatar',templateId);
+}
+
+export async function importAvatar() {
+  return await ipcRenderer.invoke('importAvatar');
 }
 
 // export async function receiveExtConversation(messages: AsMessage[]) {

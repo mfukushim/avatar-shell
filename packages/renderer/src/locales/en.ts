@@ -96,6 +96,14 @@ export default {
     DayTimeDirect: 'Today\'s time',
     DateTimeDirect: 'Date and time',
     selectCondition:'Select the start condition',
-  }
-
+  },
+  importExport:'Import/Export',
+  importSys:'Import System Settings',
+  importSysInfo:'Read the system settings',
+  exportSys:'Export System Settings',
+  exportSysInfo:'Write the system settings',
+  importAvatar:'Import Avatar Settings',
+  importAvatarInfo:'Read the avatar settings',
+  exportAvatar:'Export Avatar Settings',
+  exportAvatarInfo:'Write the avatar settings',
 }
