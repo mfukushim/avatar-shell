@@ -21,6 +21,11 @@ const props = defineProps<{
   userName:string
 }>();
 
+const emit = defineEmits<{
+  (e: 'resetAvatarList'): void
+}>()
+
+
 const avatarName = ref('')
 const userName = ref('')
 const readOnlyAvatarName = ref(true)
@@ -178,7 +183,7 @@ const editUser = async () => {
 -->
 
   <q-separator></q-separator>
-  <AvatarSettingSelectPanel />
+  <AvatarSettingSelectPanel @reset-avatar-list="emit('resetAvatarList')"/>
   <SysSettingPanel />
 
 </template>

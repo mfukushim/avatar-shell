@@ -5,14 +5,14 @@ import InputPanel from './components/InputPanel.vue';
 import {
   addExtTalkContext, answerMainAlert,
   getAvatarConfigList,
-  getCurrentAvatarList,
+  getCurrentAvatarList, getMcpServerInfos,
   getMediaUrl, getUserName,
   onInitAvatar, onMainAlert,
   onTestIdle,
   onUpdateLlm,
   sendSocket,
 } from '@app/preload';
-import {type AlertTask, type AsMessage} from '../../common/Def.ts';
+import {type AlertTask, type AsMessage, type McpInfo} from '../../common/Def.ts';
 import TalkPanel from './components/TalkPanel.vue';
 // const TalkPanel = defineAsyncComponent(() =>
 //   import('./components/TalkPanel.vue')
@@ -50,6 +50,7 @@ const toggleRightDrawer = () => {
 // const slide = ref('style');
 const avatarTemplateList = ref<{label: string, value: string}[]>([]);
 const currentAvatarList = ref<{label: string, value: string}[]>([]);
+const mcpServers = ref<McpInfo[]>([]);
 
 const disableInput = ref(true);
 const avatarName = ref('');
@@ -70,11 +71,12 @@ onMounted(async () => {
     userName.value = getUserName();
     disableInput.value = false;
     showWizaed.value = needWizard;
-    console.log('needWizard:', needWizard);
+    await resetAvatarList();
   }, async (bag: AsMessage[]) => {
     //  外部からのsocket AsMessage受信
     await mergeTimeline(bag);
     await addExtTalkContext(bag);
+    mcpServers.value = await getMcpServerInfos()
     // console.log('renderer socket call all ctx:', ctx);
   });
   onMainAlert((alert: AlertTask) => {
@@ -85,8 +87,6 @@ onMounted(async () => {
     console.log('renderer onTestIdle', mes);
   });
 
-  const list = await getAvatarConfigList();
-  avatarTemplateList.value = list.map(e => ({value: e.templateId, label: e.name}));
   const list2 = await getCurrentAvatarList();
   currentAvatarList.value = list2.map(value => ({value: value.id, label: value.name, templateId: value.templateId}));
 
@@ -96,6 +96,11 @@ onMounted(async () => {
     rDrawerHeight.value = (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height || 500;
   }
 });
+
+const resetAvatarList = async () => {
+  const list = await getAvatarConfigList();
+  avatarTemplateList.value = list.map(e => ({value: e.templateId, label: e.name}));
+}
 
 
 const timeline = ref<AsMessage[]>([]);
@@ -288,7 +293,9 @@ const saveImage = async () => {
       <MenuPanel :disable-input="disableInput"
                  :avatar-template-list="avatarTemplateList"
                  :avatar-name="avatarName"
-                 :user-name="userName" />
+                 :user-name="userName"
+                 @reset-avatar-list="resetAvatarList"
+      />
     </q-drawer>
     <!--    show-if-above overlay :mini="!rightDrawerOpen || miniState"               overlay
     -->
@@ -404,6 +411,7 @@ const saveImage = async () => {
         <InputPanel class="col-grow"
                     @open-menu="toggleLeftDrawer"
                     @sent="mes => sendMessageIn(mes)"
+                    :mcp-servers="mcpServers"
                     :disable-input="disableInput" />
         <q-btn dense class="bg-blue-grey-9 q-pa-md" @click="toggleRightDrawer" icon="chat" />
       </div>

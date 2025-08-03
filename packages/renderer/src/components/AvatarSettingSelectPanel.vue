@@ -7,6 +7,10 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
+const emit = defineEmits<{
+  (e: 'resetAvatarList'): void
+}>()
+
 
 const show = ref(false);
 
@@ -41,6 +45,7 @@ const copyOpen = async () => {
   const templateId = selectAvatar.value.value;
   const nextTemplateId = await copyAvatarConfig(templateId)
   await settingDialog.value.doOpen(nextTemplateId)
+  emit('resetAvatarList')
 }
 
 const deleteAvatarTemplate = async () => {
@@ -55,7 +60,7 @@ const doDelete = async () => {
   alert.value = true
 }
 
-const alartClose = async () => {
+const dialogClose = async () => {
   alert.value = false;
   selAlert.value = false;
   await open()
@@ -100,7 +105,7 @@ onMounted(async () => {
         </q-card-section>
         <q-card-actions>
           <q-btn @click="doDelete">{{ t('delete') }}</q-btn>
-          <q-btn @click="alartClose">{{ t('cancel') }}</q-btn>
+          <q-btn @click="dialogClose">{{ t('cancel') }}</q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -110,7 +115,7 @@ onMounted(async () => {
           {{message}}
         </q-card-section>
         <q-card-actions>
-          <q-btn @click="alartClose">{{ t('ok') }}</q-btn>
+          <q-btn @click="dialogClose">{{ t('ok') }}</q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>

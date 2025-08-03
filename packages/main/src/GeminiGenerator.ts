@@ -290,6 +290,22 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                 response: {output: a2},  //  todo 展開を確認したほうがよい
               };
               //  todo geminiの場合、func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
+              return [
+                {
+                  toolOneRes: llmOut ? function_response_part as FunctionResponse : undefined,
+                  toolId:a.id,  //  todo ちょっとツール集約がおかしい
+                  mes: {
+                    id: nextId,
+                    tick: dayjs().valueOf(),
+                    asClass: 'physics', //  TODO ちょっと姑息だがtextだったらsystemにする。それ以外imageとかはtalkにする 後で一貫性について検討要
+                    asRole: 'toolOut',
+                    asContext:'inner',//  メディアは例外的にext
+                    isRequestAction:false,
+                    content: content,
+                  } as AsMessage,
+                }
+            ]
+/*
               return [{
                 llmOut: llmOut ? [function_response_part as FunctionResponse] : [],
                 mes: {
@@ -302,6 +318,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                   content: content,
                 } as AsMessage,
               }];
+*/
             }).pipe(Effect.catchAll(_ => Effect.succeed([])));
           }).pipe(Effect.andThen(a => a.flat()));
 
@@ -314,7 +331,8 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
         //  次に回すタスク
         const nextTask = {
           role: 'user',
-          parts: toLlm.flatMap(a => a.llmOut).map(b => ({functionResponse: b})),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
+          parts: toLlm.flatMap(a => a.toolOneRes ? [a.toolOneRes]:[]),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
+          // parts: toLlm.flatMap(a => a.llmOut).map(b => ({functionResponse: b})),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
         } as Content;
         task = Option.some(nextTask);
         //  func call結果(native付き)

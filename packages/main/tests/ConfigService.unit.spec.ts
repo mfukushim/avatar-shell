@@ -1,9 +1,11 @@
 import {it, expect, describe} from '@effect/vitest';
-import {Effect} from 'effect';
+import {Effect, Schema} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {NodeFileSystem} from '@effect/platform-node';
 import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {vitestAvatarConfigMi, vitestMutableSetting, vitestSysConfig} from '../../../tools/vitestConfig';
+import {vitestAvatarConfigMi, vitestMutableSetting, vitestSysConfig} from '../../common/vitestConfig';
+import {FileSystem} from '@effect/platform';
+import {AvatarMcpSetting} from '../../common/Def';
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';
 
@@ -124,4 +126,26 @@ describe("ConfigService", () => {
       runPromise,
     );
   });
+  it('decodeTest', async () => {
+    const res = await Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const d = yield* fs.readFileString('D:\\mfuku\\Documents\\projects\\daisyProj\\avatar-sight-rel\\tools\\test.json', 'utf8');
+      const t = yield *Schema.decodeUnknown(Schema.parseJson(AvatarMcpSetting))(d)
+      // const t = yield *Schema.decodeUnknown(AvatarMcpSetting)(Schema.parseJson())
+      return t;
+    }).pipe(
+      Effect.provide([ConfigServiceLive, NodeFileSystem.layer]),
+      runPromise,
+    );
+
+    console.log(res);
+    // expect(Array.isArray(res)).toBe(true);
+    // if (res.length > 0) {
+    //   expect(res[0]).toHaveProperty('templateId');
+    //   expect(res[0]).toHaveProperty('name');
+    //   expect(res[0].templateId).toEqual('vitestDummyId');
+    //   expect(res[0].name).toEqual('vitestMi');
+    // }
+  });
+
 });
