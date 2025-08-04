@@ -33,7 +33,7 @@ export default {
   contextGeneratorCommonSettings: 'コンテキストジェネレータ共通設定',
   generatorCommonSettingsDescription: 'ジェネレータ(LLM含む)の共通設定をします',
   generatorName: 'ジェネレーター名',
-  selectContextLine: '出力するコンテキスト線を選択',
+  directTrigger: 'トリガーコンテキストを直接入力コンテキストに使う',
   outputContextAttr: '出力コンテキスト属性',
   outputClass: '出力クラス',
   outputRole: '出力ロール',

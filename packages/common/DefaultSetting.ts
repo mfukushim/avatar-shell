@@ -107,8 +107,8 @@ export const tutorialAvatarSetting: AvatarSetting =
           }},
         'exec': {
           generator: 'geminiText',
-          addDaemonGenToContext: true,
-          templateGeneratePrompt: '{body}',
+          directTrigger: true,
+          // templateGeneratePrompt: '{body}',
           setting: {
             toClass: 'talk',
             toRole: 'bot',
@@ -123,7 +123,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'geminiText',
-          addDaemonGenToContext: true,
+          directTrigger: false,
           templateGeneratePrompt: 'Please write a friendly, short, one-line greeting.',
           setting: {
             toClass: 'talk',
@@ -144,8 +144,8 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiVoice',
-          templateGeneratePrompt: '{body}',
-          addDaemonGenToContext: false,
+          // templateGeneratePrompt: '{body}',
+          directTrigger: true,
           setting: {
             toClass: 'daemon',
             toRole: 'bot',
@@ -160,7 +160,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'geminiImage',
-          addDaemonGenToContext: false,
+          directTrigger: false,
           templateGeneratePrompt: 'Generate a anime-style drawing of a girl saying hello',
           setting: {
             toClass: 'daemon',
@@ -180,7 +180,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiText',
-          addDaemonGenToContext: true,
+          directTrigger: false,
           templateGeneratePrompt: 'Please respond by summarizing the conversation so far and showing your understanding.',
           setting: {
             // previousContextSize: 20,
@@ -201,7 +201,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiImage',
-          addDaemonGenToContext: false,
+          directTrigger: false,
           templateGeneratePrompt: 'Create a diagram that summarizes the conversation so far.',
           setting: {
             previousContextSize: 4,

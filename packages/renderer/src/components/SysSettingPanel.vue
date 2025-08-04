@@ -533,7 +533,7 @@ onBeforeUnmount(() => {
                                   :options="avatarList"
                                   emit-value
                                   map-options class="q-px-sm" />
-                        <q-btn @click="exportAvatar(exportAvatarTemplateId)">{{t('exportAvatar')}}</q-btn>
+                        <q-btn @click="exportAvatar(exportAvatarTemplateId)" :disable="exportAvatarTemplateId==''">{{t('exportAvatar')}}</q-btn>
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>

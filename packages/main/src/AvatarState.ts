@@ -443,43 +443,51 @@ export class AvatarState {
        */
       let toLlm: AsMessage[] = [];
       let text: any;
-      let message:AsMessage[] = [];
+      let message: AsMessage|undefined;
       if (triggerMes) {
+        //  TODO trigger型の場合、そのメッセージはすでにcontextに追加されているものであり、以前のcontextはそのメッセージの前までになる 電文は基本再加工されない。電文の再加工が許されるのは入出力ともにコンテキストに追加しない場合のみ
         //  askAiから来るコンテンツには画像がmediaBinで来ることがあるので、それはmediaUrlに変換しておく
-        if (triggerMes.content.mediaBin) {
+        // if (triggerMes.content.mediaBin) {
           //  今はまだsoundは考えない
-          if(triggerMes.content.mimeType?.startsWith('image/')) {
-            const img = Buffer.from(triggerMes.content.mediaBin).toString('base64');
-            const mediaUrl = yield *DocService.saveDocMedia(triggerMes.id, triggerMes.content.mimeType, img, state.templateId)
-            message = [{
-              ...triggerMes,
-              asClass: 'daemon',
-              asRole: 'system',
-              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-              content: {
-                ...triggerMes.content,
-                mediaBin: undefined,
-                mediaUrl: mediaUrl,
-              },
-            } as AsMessage,
-            ];
-          } else if(triggerMes.content.mimeType?.startsWith('text/')) {
-            message = [{
-              ...triggerMes,
-              asClass: 'daemon',
-              asRole: 'system',
-              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-              content: {
-                ...triggerMes.content,
-                mediaBin: undefined,
-                text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
-              },
-            } as AsMessage,
-            ];
-          }
+          /*
+                    if(triggerMes.content.mimeType?.startsWith('image/')) {
+                      const img = Buffer.from(triggerMes.content.mediaBin).toString('base64');
+                      const mediaUrl = yield *DocService.saveDocMedia(triggerMes.id, triggerMes.content.mimeType, img, state.templateId)
+                      message = [{
+                        ...triggerMes,
+                        asClass: 'daemon',
+                        asRole: 'system',
+                        asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+                        content: {
+                          ...triggerMes.content,
+                          mediaBin: undefined,
+                          mediaUrl: mediaUrl,
+                        },
+                      } as AsMessage,
+                      ];
+                    } else if(triggerMes.content.mimeType?.startsWith('text/')) {
+                      message = [{
+                        ...triggerMes,
+                        asClass: 'daemon',
+                        asRole: 'system',
+                        asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+                        content: {
+                          ...triggerMes.content,
+                          mediaBin: undefined,
+                          text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
+                        },
+                      } as AsMessage,
+                      ];
+                    }
+          */
+        // } else {
+        if (daemon.config.exec.directTrigger) {
+          //  ダイレクト
+          message = triggerMes  //  すでに追加済みなのでaddContentには追加しない
         } else {
-          text = state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes);
-          message = [{
+          //  再加工
+          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes):triggerMes;
+          message = {
             ...triggerMes,
             asClass: 'daemon',
             asRole: 'system',
@@ -488,24 +496,32 @@ export class AvatarState {
               ...triggerMes.content,
               text: text,
             },
-          } as AsMessage,
-          ];
-          // console.log('execScheduler triggerMes:', text);
+          } as AsMessage
+          yield *state.addContext([message])  //  ここは新規なので追加
         }
+        //  トリガーの場合はコンテキストはトリガー位置まででフィルタする
+        const pos = context.findLastIndex(value => value.id === triggerMes.id);
+        if (pos >= 0) {
+          context = context.slice(0, pos );
+        }
+          // console.log('execScheduler triggerMes:', text);
+        // }
       } else {
+        //  非トリガー
         text = daemon.config.exec.templateGeneratePrompt;
-        message = [
+        message =
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
-          }, 'daemon', 'system', daemon.config.exec.addDaemonGenToContext ? 'inner' : 'outer'), //  非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる
-        ];
+          }, 'daemon', 'system', daemon.config.exec.setting.toContext || 'inner') //  TODO 調整要 非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる 'inner'
+        yield *state.addContext([message])  //  ここは新規なので追加
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない
+
       const filteredContext = context.filter(value => value.asContext !== 'outer' && (!value.content.mimeType || !value.content.mimeType.startsWith('text')));
 
       console.log('execScheduler in:', message);
-      const out = yield* state.execGenerator(daemon.generator, message, filteredContext);
+      const out = yield* state.execGenerator(daemon.generator, [message], filteredContext);
       console.log('execScheduler out:', out);
       //  出力用にroleとtextは再加工する
       toLlm = out.filter(a => (a.asRole === 'bot' || a.asRole === 'toolIn' || a.asRole === 'toolOut')).map(a => {
@@ -670,9 +686,77 @@ export class AvatarState {
     if (isExternal) {
       this.externalTalkCounter += bags.length;
     }
-    return SubscriptionRef.update(this.talkContext, a => {
-      return {context: a.context.concat(bags), delta: bags};
+    console.log('addContext',bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
+    // TODO ここにmediaBin等の変換保存を移動させる
+    const it = this;
+    return Effect.gen(function* () {
+      const mesList = yield* Effect.forEach(bags, mes => {
+        return Effect.gen(function* () {
+          if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
+            const img = Buffer.from(mes.content.mediaBin).toString('base64');
+            const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, img, it.templateId);
+            return {
+              ...mes,
+              asClass: 'daemon',
+              asRole: 'system',
+              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              content: {
+                ...mes.content,
+                mediaBin: undefined,
+                mediaUrl: mediaUrl,
+              },
+            } as AsMessage;
+            /*
+                        message = [{
+                          ...triggerMes,
+                          asClass: 'daemon',
+                          asRole: 'system',
+                          asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+                          content: {
+                            ...triggerMes.content,
+                            mediaBin: undefined,
+                            mediaUrl: mediaUrl,
+                          },
+                        } as AsMessage,
+                        ];
+            */
+          } else if (mes.content.mediaBin && mes.content.mimeType?.startsWith('text/')) {
+            return {
+              ...mes,
+              asClass: 'daemon',
+              asRole: 'system',
+              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              content: {
+                ...mes.content,
+                mediaBin: undefined,
+                text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
+              },
+            } as AsMessage;
+            /*
+            message = [{
+              ...triggerMes,
+              asClass: 'daemon',
+              asRole: 'system',
+              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              content: {
+                ...triggerMes.content,
+                mediaBin: undefined,
+                text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
+              },
+            } as AsMessage,
+            ];
+*/
+          } else {
+            return mes;
+          }
+        });
+
+      });
+      return yield* SubscriptionRef.update(it.talkContext, a => {
+        return {context: a.context.concat(mesList), delta: mesList};
+      });
     });
+
   }
 
   /**
@@ -749,7 +833,7 @@ export class AvatarState {
       if (message.length === 0) {
         return [];
       }
-      it.sendRunningMark(message[0].id, true,gen.Name);
+      it.sendRunningMark(message[0].id, true, gen.Name);
       yield* gen.setPreviousContext(context);
       const {task} = yield* gen.setCurrentContext(message.map(value => value.content));
       const output = message.map((a, i) =>
@@ -758,7 +842,7 @@ export class AvatarState {
           model: gen.Model,
           isExternal: false,
         }, i === 0 && Option.isSome(task) ? [task.value] : []));
-      yield* it.addContext(message, false);
+      // yield* it.addContext(message, false);
       yield* DocService.addLog(output, it);
       //  log出力はgenerateContext内で行っている
       return yield* gen.generateContext(task, it).pipe(
@@ -808,7 +892,7 @@ export class AvatarState {
       if (modUserMessage.length === 0) {
         return [];
       }
-      it.sendRunningMark(modUserMessage[0].id, true,gen.Name);
+      it.sendRunningMark(modUserMessage[0].id, true, gen.Name);
       const context = yield* it.TalkContextEffect;
       yield* gen.setPreviousContext(context);
       const {task} = yield* gen.setCurrentContext(modUserMessage.map(value => value.content));
@@ -819,7 +903,7 @@ export class AvatarState {
           isExternal: false,
         }, i === 0 && Option.isSome(task) ? [task.value] : []));
       // const {task, output} = yield* gen.setCurrentContext(modUserMessage);
-      yield* it.addContext(modUserMessage);
+      // yield* it.addContext(modUserMessage);
       yield* DocService.addLog(output, it);
       const append = yield* gen.generateContext(task, it);    //  log出力はgenerateContext内で行っている
       yield* it.addContext(append);
@@ -829,7 +913,7 @@ export class AvatarState {
     });
   }
 
-  sendRunningMark(id: string, isRunning: boolean, status='') {
+  sendRunningMark(id: string, isRunning: boolean, status = '') {
     this.sendToWindow([AsMessage.makeMessage({
         innerId: id,
         subCommand: isRunning ? 'addRunning' : 'delRunning',

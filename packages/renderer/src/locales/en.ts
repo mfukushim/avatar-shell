@@ -33,7 +33,7 @@ export default {
   contextGeneratorCommonSettings: 'Context Generator Common Settings',
   generatorCommonSettingsDescription: 'Configure common settings for generators (including LLM)',
   generatorName: 'Generator Name',
-  selectContextLine: 'Select the context lines to output',
+  directTrigger: 'Use the trigger context directly as the input context',
   outputContextAttr: 'Output Context Attributes',
   addContextDaemon:'Add context daemon',
   outputClass: 'Output Class',

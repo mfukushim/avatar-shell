@@ -149,7 +149,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiImage',
         // 'toRole': 'human',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
         // 'templateContextPrompt': '',
         setting: {
@@ -169,7 +169,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiText',
         // 'toRole': 'human',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
         // 'templateContextPrompt': 'フランクに日本語で挨拶をしてください',
         setting: {
@@ -191,7 +191,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiVoice',
         templateGeneratePrompt: '{body}',
-        addDaemonGenToContext: false,
+        directTrigger: true,
         setting: {
           toClass:'daemon',
           toRole:'bot'
@@ -265,7 +265,7 @@ export const vitestAvatarConfigNone: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyImage',
-        addDaemonGenToContext: false,
+        directTrigger: false,
         templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
         setting: {
           toClass:'daemon',
@@ -283,7 +283,7 @@ export const vitestAvatarConfigNone: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
         setting: {
           toClass:'talk',
@@ -304,8 +304,8 @@ export const vitestAvatarConfigNone: AvatarSetting = {
       'exec': {
         generator: 'geminiVoice',
         // 'toRole': 'human',
-        templateGeneratePrompt: '{body}',
-        addDaemonGenToContext: false,
+        // templateGeneratePrompt: '{body}',
+        directTrigger: true,
         setting: {
           toClass:'daemon',
           toRole:'bot'
@@ -341,7 +341,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: 'Hello',
         setting: {
           toClass:'talk',
@@ -359,7 +359,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: '30 seconds has passed',
         setting: {
           toClass:'talk',
@@ -377,7 +377,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: '1 minute has passed',
         setting: {
           toClass:'talk',
@@ -395,7 +395,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: '2 minutes has passed',
         setting: {
           toClass:'talk',
@@ -431,7 +431,7 @@ export const vitestAvatarConfigDaemon2: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: 'Repeated for 15 seconds',
         setting: {
           toClass:'talk',

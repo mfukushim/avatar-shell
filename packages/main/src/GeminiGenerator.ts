@@ -331,7 +331,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
         //  次に回すタスク
         const nextTask = {
           role: 'user',
-          parts: toLlm.flatMap(a => a.toolOneRes ? [a.toolOneRes]:[]),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
+          parts: toLlm.flatMap(a => a.toolOneRes ? [{ functionResponse:a.toolOneRes}]:[]),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
           // parts: toLlm.flatMap(a => a.llmOut).map(b => ({functionResponse: b})),   //  1回で送る functionResponseにはidが含まれるので区別はできているはず 1回のllm実行に対して1回のtoolsを返す形
         } as Content;
         task = Option.some(nextTask);
