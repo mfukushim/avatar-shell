@@ -213,7 +213,7 @@ describe('avatarState', () => {
             exec: {
               generator:'emptyText',
               templateGeneratePrompt:'1 minute has passed',
-              addDaemonGenToContext: true,
+              directTrigger: false,
               // templateContextPrompt: 'add 1 min Time',
               setting: {
                 toClass:'talk',
@@ -269,7 +269,7 @@ describe('avatarState', () => {
             exec: {
               generator:'emptyText',
               templateGeneratePrompt:`It is now ${add1min}.`,
-              addDaemonGenToContext: true,
+              directTrigger: false,
               // templateContextPrompt: 'add 1 min Time',
               setting: {
                 toClass:'talk',
@@ -326,7 +326,7 @@ describe('avatarState', () => {
             },
             exec: {
               generator:'emptyText',  //  TODO generatorに回すときのcurrentは今はclass/roleを見ないが、roleはuserにしないといけないのではないか?
-              addDaemonGenToContext: false, //  generatorの出力はコンテキストに追加しない
+              directTrigger: false, //  generatorの出力はコンテキストに追加しない
               templateGeneratePrompt: 'user said {body}',
               setting: {
                 debug:true,  //  ダミーログを出力させる
@@ -399,7 +399,7 @@ describe('avatarState', () => {
             },
             exec: {
               generator: 'emptyText',
-              addDaemonGenToContext: true,
+              directTrigger: false,
               templateGeneratePrompt: 'Please respond to the above conversation', //  15秒後
               setting: {
                 toClass:'talk',

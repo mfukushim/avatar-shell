@@ -143,7 +143,7 @@ export const testAvatarConfigMi: AvatarSetting = {
         }},
       'exec': {
         generator: 'openAiText',
-        addDaemonGenToContext: true,
+        directTrigger: true,
         templateGeneratePrompt: '{body}',
         setting: {
           toClass: 'talk',
@@ -164,7 +164,7 @@ export const testAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiVoice',
         'templateGeneratePrompt': '{body}',
-        addDaemonGenToContext: false,
+        directTrigger: true,
         // 'templateContextPrompt': 'フランクに日本語で挨拶をしてください',
         setting: {
           toClass: 'daemon',
@@ -179,7 +179,7 @@ export const testAvatarConfigMi: AvatarSetting = {
       'trigger': {'triggerType': 'Startup', 'condition': {}},
       'exec': {
         generator: 'openAiText',
-        addDaemonGenToContext: true,
+        directTrigger: false,
         templateGeneratePrompt: '親しげに1行で短く日本語で挨拶をしてください',
         // 'templateContextPrompt': '親しげに1行で短く日本語で挨拶をしてください',
         setting: {
@@ -195,7 +195,7 @@ export const testAvatarConfigMi: AvatarSetting = {
       'trigger': {'triggerType': 'Startup', 'condition': {}},
       'exec': {
         generator: 'openAiImage',
-        addDaemonGenToContext: false,
+        directTrigger: false,
         templateGeneratePrompt: '挨拶をするアニメ調の女性の絵を生成してください',
         setting: {
           toClass: 'daemon',
@@ -210,7 +210,7 @@ export const testAvatarConfigMi: AvatarSetting = {
       trigger: {'triggerType': 'Startup', 'condition': {}},
       exec: {
         generator: 'openAiText',
-        addDaemonGenToContext: false,
+        directTrigger: false,
         templateGeneratePrompt: '今いる場所を「横浜駅」に設定してください。目的地を「東京駅」に設定してください。旅を開始してください。',
         setting: {
           toClass: 'daemon',
@@ -283,7 +283,7 @@ export const testAvatarConfigMiAnt: AvatarSetting = {
         }},
       'exec': {
         generator: 'geminiText',
-        addDaemonGenToContext: true,
+        directTrigger: true,
         templateGeneratePrompt: '{body}',
         setting: {
           toClass: 'talk',

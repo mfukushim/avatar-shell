@@ -389,7 +389,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         exec: {
           generator: callGenerator || 'emptyText',  //  TODO ここのデフォルトtext generatorは何にすべきか
           templateGeneratePrompt: inst,
-          addDaemonGenToContext: true,
+          directTrigger: false,
           setting: {
             toClass: 'daemon',
             toRole: 'bot',

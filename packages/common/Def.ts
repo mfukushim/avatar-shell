@@ -90,7 +90,7 @@ export type TimerTrigger = typeof TimerTrigger.Type
 
 
 /*
-  AsMessage
+  AsMessage ====================================
  */
 
 
@@ -171,9 +171,10 @@ export type DaemonTriggerSchema = typeof DaemonTriggerSchema.Type
 
 const SchedulerExecGenSchema = Schema.mutable(Schema.Struct({
   generator: GeneratorProviderSchema, //  undefinedの場合ジェネレーターは使わずにテンプレート変換のみする(多くの場合固定プロンプト)
-  templateGeneratePrompt: Schema.String,  //  [TELLER]は[OUT]と言いました。
+  templateGeneratePrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
   // templateContextPrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
-  addDaemonGenToContext: Schema.Boolean,
+  // addDaemonGenToContext: Schema.Boolean,
+  directTrigger: Schema.Boolean,
   //  誰が(TELLER)
   setting: Schema.mutable(ContextGeneratorSettingSchema),
 }));
