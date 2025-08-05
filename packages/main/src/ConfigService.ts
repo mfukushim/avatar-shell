@@ -38,7 +38,7 @@ const __dirname = dirname(__filename);
 export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..');
 
 //electronLog.log('config start:',debug,isViTest,__filename);
-const debugPath = app ? path.join(app.getPath('userData'),'docs'):`${__pwd}/tools/docs`
+const debugPath = app ? path.join(app.getPath('userData'), 'docs') : `${__pwd}/tools/docs`;
 
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
@@ -55,21 +55,21 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     if (import.meta.env.DEV) {
       if (isViTest) {
         sysData = vitestSysConfig;
-      } else if(debug) {
-        sysData = yield *Effect.tryPromise(() => {
-          return import('../../common/debugConfig.js')
-        }).pipe(Effect.andThen(a => a.debugSysConfig as SysConfig))
-        console.log('sysData:',sysData);
+      } else if (debug) {
+        sysData = yield* Effect.tryPromise(() => {
+          return import('../../common/debugConfig.js');
+        }).pipe(Effect.andThen(a => a.debugSysConfig as SysConfig));
+        console.log('sysData:', sysData);
       } else {
         sysData = store?.get('sysConfig') as SysConfig || defaultSysSetting;
       }
       if (isViTest) {
         avatarData = vitestAvatarConfig;
-      } else if(debug) {
-        avatarData = yield *Effect.tryPromise(() => {
-          return import('../../common/debugConfig.js')
-        }).pipe(Effect.andThen(a => a.debugAvatarConfig))
-        console.log('sysData:',sysData);
+      } else if (debug) {
+        avatarData = yield* Effect.tryPromise(() => {
+          return import('../../common/debugConfig.js');
+        }).pipe(Effect.andThen(a => a.debugAvatarConfig));
+        console.log('sysData:', sysData);
       } else {
         avatarData = (store?.get('avatarConfig') as {
           id: string,
@@ -91,7 +91,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }, {} as Record<string, AvatarSetting>);
       mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
     }
-    const fs = yield* FileSystem.FileSystem
+    const fs = yield* FileSystem.FileSystem;
     //electronLog.log('meta end',sysData,avatarData);
     //const sysData = isViTest? vitestSysConfig: debug || !store ? testSysConfig : store.get('sysConfig') as SysConfig || defaultSysSetting;
     // const avatarData = isViTest ? vitestAvatarConfig: debug || !store ? testAvatarConfig :
@@ -178,131 +178,154 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
           store.set('sysConfig', a);
         }
         if (debugWrite) {
-          return fs.writeFileString(path.join(debugPath,'debugSys.json'),JSON.stringify(a,null,2))
+          return fs.writeFileString(path.join(debugPath, 'debugSys.json'), JSON.stringify(a, null, 2));
         }
       }));
     }
 
     function importSysConfig() {
       return Effect.tryPromise(signal => dialog.showOpenDialog({
-        title:'import System settings',
-        buttonLabel:'Load',
-        filters:[
-          { name: 'json Files', extensions: ['json'] },
-        ]
+        title: 'import System settings',
+        buttonLabel: 'Load',
+        filters: [
+          {name: 'json Files', extensions: ['json']},
+        ],
       })).pipe(
         Effect.andThen(a => {
           if (a.canceled) {
-            return Effect.fail(new Error('Canceled'))
+            return Effect.fail(new Error('Canceled'));
           }
-          return fs.readFileString(a.filePaths[0])
+          return fs.readFileString(a.filePaths[0]);
         }),
         Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
-      )
+        Effect.catchAll(e => {
+          console.log(e);
+          return Effect.tryPromise(() => dialog.showMessageBox({
+            title: 'Error',
+            message: `System setting import error`,
+            detail: 'There is no data format migration yet. Sorry for the inconvenience.',
+            buttons: ['ok'],
+            defaultId: 0,
+          }));
+        }),
+      );
     }
 
     function importAvatar() {
       return Effect.tryPromise(signal => dialog.showOpenDialog({
-        title:'import Avatar settings',
-        buttonLabel:'Load',
-        filters:[
-          { name: 'json Files', extensions: ['json'] },
-        ]
+        title: 'import Avatar settings',
+        buttonLabel: 'Load',
+        filters: [
+          {name: 'json Files', extensions: ['json']},
+        ],
       })).pipe(
         Effect.andThen(a => {
+          console.log(a);
           if (a.canceled) {
-            return Effect.fail(new Error('Canceled'))
+            return Effect.fail(new Error('Canceled'));
           }
-          return Effect.partition(a.filePaths,b => fs.readFileString(b).pipe(
+          return Effect.partition(a.filePaths, b => fs.readFileString(b).pipe(
             Effect.andThen(a1 => Schema.decodeUnknown(Schema.parseJson(AvatarSetting))(a1)),
             Effect.andThen(config => {
-              return Effect.gen(function*() {
-                const dup =yield *avatarConfigs.get.pipe(Effect.andThen(a3 => HashMap.has(a3,config.templateId)))
-                if(dup) {
+              console.log(config);
+              return Effect.gen(function* () {
+                const dup = yield* avatarConfigs.get.pipe(Effect.andThen(a3 => HashMap.has(a3, config.templateId)));
+                if (dup) {
                   //  id重複がある 確認ダイアログはalertMainを使うとちょっと深すぎるのでelectron dialogを使う
-                  const res = yield *Effect.tryPromise(signal => dialog.showMessageBox({
-                    title:'Confirm',
-                    message:'AvatarTemplateId already exists. Do you want to overwrite it?',
-                    buttons: ['overwrite','skip'],
-                    defaultId:0,
-                    cancelId:1,
-                  }))
+                  const res = yield* Effect.tryPromise(signal => dialog.showMessageBox({
+                    title: 'Confirm',
+                    message: 'AvatarTemplateId already exists. Do you want to overwrite it?',
+                    buttons: ['overwrite', 'skip'],
+                    defaultId: 0,
+                    cancelId: 1,
+                  }));
                   if (res.response !== 0) {
-                    return yield *Effect.fail(new Error('canceled'))
+                    return yield* Effect.fail(new Error('canceled'));
                   }
                 }
                 const c = yield* SubscriptionRef.make(config);
-                return yield *Ref.update(avatarConfigs,cfMap => {
-                  return HashMap.mutate(cfMap,a2 => HashMap.set(a2,config.templateId,c))
-                })
-              })
-            })
-          ))
+                return yield* Ref.update(avatarConfigs, cfMap => {
+                  return HashMap.mutate(cfMap, a2 => HashMap.set(a2, config.templateId, c));
+                });
+              });
+            }),
+            Effect.catchAll(e => {
+              console.log(e);
+              return Effect.tryPromise(() => dialog.showMessageBox({
+                title: 'Error',
+                message: `Avatar setting import error`,
+                detail: 'There is no data format migration yet. Sorry for the inconvenience.',
+                buttons: ['ok'],
+                defaultId: 0,
+              }));
+            }),
+          ));
         }),
-      )
+      );
     }
 
     function exportSysConfig() {
-      return Effect.gen(function*() {
-        const { filePath, canceled } = yield *Effect.tryPromise(signal => dialog.showSaveDialog({
+      return Effect.gen(function* () {
+        const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
           title: 'export System settings',
           defaultPath: `asSys_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
           buttonLabel: 'Save',
           filters: [
-            { name: 'json Files', extensions: ['json'] },
-            { name: 'All Files', extensions: ['*'] }
-          ]
-        }))
+            {name: 'json Files', extensions: ['json']},
+            {name: 'All Files', extensions: ['*']},
+          ],
+        }));
         if (canceled) {
-          return yield *Effect.void
+          return yield* Effect.void;
         }
-        yield *sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(filePath,JSON.stringify(a,null,2))))
-      })
+        yield* sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(filePath, JSON.stringify(a, null, 2))));
+      });
     }
 
-    function exportAvatar(templateId:string) {
-      return Effect.gen(function*() {
-        const setting = yield *avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)),Effect.andThen(a => a.get))
-        const { filePath, canceled } = yield *Effect.tryPromise(signal => dialog.showSaveDialog({
+    function exportAvatar(templateId: string) {
+      return Effect.gen(function* () {
+        const setting = yield* avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)), Effect.andThen(a => a.get));
+        const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
           title: `export ${setting.general.name} settings`,
           defaultPath: `asAvt_${setting.general.name}_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
           buttonLabel: 'Save',
           filters: [
-            { name: 'json Files', extensions: ['json'] },
-            { name: 'All Files', extensions: ['*'] }
-          ]
-        }))
+            {name: 'json Files', extensions: ['json']},
+            {name: 'All Files', extensions: ['*']},
+          ],
+        }));
         if (canceled) {
-          return yield *Effect.void
+          return yield* Effect.void;
         }
-        yield *fs.writeFileString(filePath,JSON.stringify(setting,null,2))
-      })
+        yield* fs.writeFileString(filePath, JSON.stringify(setting, null, 2));
+      });
 
     }
 
-    function updateAvatarConfig(templateId: string,f:(c:AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
+    function updateAvatarConfig(templateId: string, f: (c: AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
       return Ref.get(avatarConfigs).pipe(
         Effect.andThen(HashMap.get(templateId)),
         Effect.andThen(SubscriptionRef.updateAndGet(f)),
         Effect.tap(a => {
           if (debugWrite) {
-            return fs.writeFileString(path.join(debugPath,`debugAvatar_${templateId}.json`),JSON.stringify(a,null,2))
+            return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
           }
         }),
-        Effect.andThen(saveAvatarConfigs())
-      )
+        Effect.andThen(saveAvatarConfigs()),
+      );
     }
-    function updateAvatarConfigEffect(templateId: string,f:(c:AvatarSetting) =>Effect.Effect<AvatarSetting | AvatarSettingMutable,Error,any>) {
+
+    function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
       return Ref.get(avatarConfigs).pipe(
         Effect.andThen(HashMap.get(templateId)),
         Effect.andThen(SubscriptionRef.updateAndGetEffect(f)),
         Effect.tap(a => {
           if (debugWrite) {
-            return fs.writeFileString(path.join(debugPath,`debugAvatar_${templateId}.json`),JSON.stringify(a,null,2))
+            return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
           }
         }),
-        Effect.andThen(saveAvatarConfigs())
-      )
+        Effect.andThen(saveAvatarConfigs()),
+      );
     }
 
     function setAvatarConfig(id: string, data: AvatarSetting) {
@@ -320,20 +343,20 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return Effect.gen(function* () {
         const map = yield* Ref.get(avatarConfigs);
         const b = yield* HashMap.get(map, templateId).pipe(Effect.tap(a1 => Effect.log(a1)), Effect.andThen(a1 => a1.get));
-        const dc = structuredClone(b)
-        const copy:AvatarSettingMutable = {
+        const dc = structuredClone(b);
+        const copy: AvatarSettingMutable = {
           ...dc,
-          general:{
+          general: {
             ...dc.general,
-            name: dc.general.name+'_cp'
-          }
+            name: dc.general.name + '_cp',
+          },
         };  // readonlyをややごまかし
         copy.templateId = nextId;
         const c = yield* SubscriptionRef.make(copy);
         yield* Ref.update(avatarConfigs, map => {
           return HashMap.mutate(map, a => HashMap.set(a, nextId, c));
         });
-        yield *saveAvatarConfigs()
+        yield* saveAvatarConfigs();
       }).pipe(
         Effect.andThen(() => nextId as string));
     }
@@ -376,39 +399,39 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     }
 
     const getVersion = () => {
-      return Effect.succeed(app.getVersion())
-/*
-      const packageJsonPath = path.resolve(__pwd, 'package.json');
-      return Effect.async<string, Error>((resume) => {
-        fs.readFile(packageJsonPath, {encoding: 'utf8'}, (err, data) => {
-          if (err) resume(Effect.fail(err));
-          else resume(Effect.succeed(data));
-        });
-      }).pipe(Effect.andThen(a => JSON.parse(a).version as string));
-*/
+      return Effect.succeed(app.getVersion());
+      /*
+            const packageJsonPath = path.resolve(__pwd, 'package.json');
+            return Effect.async<string, Error>((resume) => {
+              fs.readFile(packageJsonPath, {encoding: 'utf8'}, (err, data) => {
+                if (err) resume(Effect.fail(err));
+                else resume(Effect.succeed(data));
+              });
+            }).pipe(Effect.andThen(a => JSON.parse(a).version as string));
+      */
     };
 
-    const genMap:Record<GeneratorProvider, (sysConfig:SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any,Error>> = {
+    const genMap: Record<GeneratorProvider, (sysConfig: SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any, Error>> = {
       //  llm系
-      'openAiText': (sysConfig,settings) => openAiTextGenerator.make(sysConfig, settings),
-      'claudeText': (sysConfig,settings) => ClaudeTextGenerator.make(sysConfig, settings),
-      'geminiText': (sysConfig,settings) => GeminiTextGenerator.make(sysConfig, settings),
+      'openAiText': (sysConfig, settings) => openAiTextGenerator.make(sysConfig, settings),
+      'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig, settings),
+      'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
       //  画像生成系
-      'pixAi': (sysConfig,settings) => PixAiImageGenerator.make(sysConfig,settings),
-      'openAiImage': (sysConfig,settings) => openAiImageGenerator.make(sysConfig, settings),
+      'pixAi': (sysConfig, settings) => PixAiImageGenerator.make(sysConfig, settings),
+      'openAiImage': (sysConfig, settings) => openAiImageGenerator.make(sysConfig, settings),
       'geminiImage': GeminiImageGenerator.make,
       //  音声合成系
-      'openAiVoice': (sysConfig,settings) => openAiVoiceGenerator.make(sysConfig, settings),
-      'geminiVoice': (sysConfig,settings) => GeminiVoiceGenerator.make(sysConfig, settings),
+      'openAiVoice': (sysConfig, settings) => openAiVoiceGenerator.make(sysConfig, settings),
+      'geminiVoice': (sysConfig, settings) => GeminiVoiceGenerator.make(sysConfig, settings),
       // 'openAiVoice',
       // 'voiceVox',
       // 'nijiVoice',
 
       //  ダミージェネレーター
-      'emptyText': (_,settings) => EmptyTextGenerator.make(settings),
-      'emptyImage': (_,settings) => EmptyImageGenerator.make(settings),
-      'emptyVoice': (_,settings) => EmptyVoiceGenerator.make(settings),
-    }
+      'emptyText': (_, settings) => EmptyTextGenerator.make(settings),
+      'emptyImage': (_, settings) => EmptyImageGenerator.make(settings),
+      'emptyVoice': (_, settings) => EmptyVoiceGenerator.make(settings),
+    };
 
 
     const generatorList = Object.keys(genMap);
@@ -472,7 +495,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     };
 
   }),
-  dependencies:[NodeFileSystem.layer]
+  dependencies: [NodeFileSystem.layer],
 }) {
 }
 

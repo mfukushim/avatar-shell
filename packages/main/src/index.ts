@@ -234,6 +234,8 @@ ipcMain.handle('calcDefaultName', async (_, templateId:string) => await AvatarSe
 
 ipcMain.handle('getLocale',  (_) => app.getLocale());
 
+ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await AvatarService.findInPage(avatarId,text).pipe(Effect.catchAll(showAlertIfFatal('findInPage')), aiRuntime.runPromise));
+
 
 app.on('ready', async () => {
   console.log('start app');
