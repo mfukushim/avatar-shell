@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <q-dialog :model-value="showWizard()" >
+  <q-dialog :model-value="showWizard()" persistent>
     <q-card class="q-pa-md bg-amber-4" style="min-width: 900px">
       <q-carousel
         transition-prev="slide-right"

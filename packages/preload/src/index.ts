@@ -382,6 +382,10 @@ export async function getLocale():Promise<string> {
   return await ipcRenderer.invoke('getLocale');
 }
 
+export async function findInPage(text:string):Promise<string> {
+  return await ipcRenderer.invoke('findInPage',avatarId, text);
+}
+
 
 export async function doAskAi(mes:AsMessage[]) {
   return await ipcRenderer.invoke('AskAi', avatarId, mes) as AsMessage[];

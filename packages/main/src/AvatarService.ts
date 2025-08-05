@@ -158,7 +158,18 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         // return out
       })
     }
-  electronLog.log('AvatarService end')
+
+    function findInPage(avatarId:string,text:string) {
+      return avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)),
+        Effect.andThen(a => {
+          if (a && a.BrowserWindow) {
+            a.BrowserWindow.webContents.findInPage(text)
+          }
+        })
+      )
+    }
+
+  // electronLog.log('AvatarService end')
 
     return {
       makeAvatar,
@@ -171,6 +182,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       deleteAvatar,
       getScheduleList,
       cancelSchedule,
+      findInPage,
       setNames,
     }
   })
