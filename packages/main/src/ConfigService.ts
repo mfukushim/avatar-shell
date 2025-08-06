@@ -1,3 +1,4 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect, HashMap, Ref, Schema, SubscriptionRef} from 'effect';
 import Store from 'electron-store';
 import {
@@ -25,7 +26,6 @@ import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './Ll
 import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
 import dayjs from 'dayjs';
-//import electronLog from 'electron-log';
 
 
 const debug = process.env.VITE_LOCAL_DEBUG === '1';
@@ -37,13 +37,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.endsWith('src') ? path.join(__dirname, '../..') : path.join(__dirname, '../../..');
 
-//electronLog.log('config start:',debug,isViTest,__filename);
 const debugPath = app ? path.join(app.getPath('userData'), 'docs') : `${__pwd}/tools/docs`;
 
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    //electronLog.log('in config');
     const store = app ? new Store(debug ? {} : {
       encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
     }) : undefined;
@@ -51,7 +49,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     let sysData;
     let avatarData;
     let mutableSetting: Ref.Ref<MutableSysConfig>;
-    //electronLog.log('meta',import.meta.env.DEV);
     if (import.meta.env.DEV) {
       if (isViTest) {
         sysData = vitestSysConfig;
@@ -92,42 +89,24 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
     }
     const fs = yield* FileSystem.FileSystem;
-    //electronLog.log('meta end',sysData,avatarData);
-    //const sysData = isViTest? vitestSysConfig: debug || !store ? testSysConfig : store.get('sysConfig') as SysConfig || defaultSysSetting;
-    // const avatarData = isViTest ? vitestAvatarConfig: debug || !store ? testAvatarConfig :
-    //   (store.get('avatarConfig') as {
-    //     id: string,
-    //     data: AvatarSetting
-    //   }[] || defaultAvatarSetting).reduce((previousValue, currentValue) => {
-    //     previousValue[currentValue.id] = currentValue.data;
-    //     return previousValue;
-    //   }, {} as Record<string, AvatarSetting>);
 
     const sysConfig: SubscriptionRef.SubscriptionRef<SysConfig> = yield* SubscriptionRef.make(sysData);
-    //electronLog.log('sysConfig ref',sysConfig);
 
     const avatarConfigs: Ref.Ref<HashMap.HashMap<string, SubscriptionRef.SubscriptionRef<AvatarSetting>>>
-      = yield* Effect.gen(function* () {
-      const list = yield* Effect.forEach(Object.entries(avatarData), a => {
-        return Effect.gen(function* () {
-          const setting = yield* SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting);
-          return [a[0], setting] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>];
-        });
-      });
-      // if (list.length === 0) {
-      //   const one = yield* SubscriptionRef.make<AvatarSetting>({
-      //     general: {
-      //       name: defaultAvatarId, // default id をnameに仮置き
-      //     },
-      //     mcp: {},
-      //   } as AvatarSetting);
-      //   return yield* Ref.make(HashMap.make([defaultAvatarId, one]));
-      // }
-      return yield* Ref.make(HashMap.make(...list));
-    });
-    //electronLog.log('avatarConfigs ref',avatarConfigs);
+      = yield *Effect.forEach(Object.entries(avatarData), a =>
+      SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting).pipe(Effect.andThen(a1 => [a[0], a1] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>]))).pipe(
+        Effect.andThen(a => Ref.make(HashMap.make(...a))));
 
-    // const mutableSetting = yield *Ref.make(debug || !store ? testMutableSetting: store.get('mutableSetting') as MutableSysConfig || defaultMutableSetting)
+      // yield* Effect.gen(function* () {
+      // const list = yield* Effect.forEach(Object.entries(avatarData), a => {
+      //   return SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting).pipe(Effect.andThen(a1 => [a[0],a1] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>]))
+      //   // return Effect.gen(function* () {
+      //   //   const setting = yield* SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting);
+      //   //   return [a[0], setting] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>];
+      //   // });
+      // }).pipe(Effect.andThen(a => HashMap.make(...a)));
+      // // return yield* Ref.make(HashMap.make(...list));
+    // });
 
     function getMutableSetting() {
       return mutableSetting.get;
@@ -158,23 +137,17 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
 
     function getAvatarConfigList() {
       return Ref.get(avatarConfigs).pipe(Effect.andThen(a => HashMap.values(a)),
-        Effect.andThen(Effect.forEach(a1 => {
-          return SubscriptionRef.get(a1).pipe(Effect.andThen(a => {
-            return {
-              templateId: a.templateId,
-              name: a.general.name,
-            };
-          }));
-        })),
+        Effect.andThen(Effect.forEach(a1 =>
+          SubscriptionRef.get(a1).pipe(Effect.andThen(a => ({
+            templateId: a.templateId,
+            name: a.general.name,
+          }))))),
       );
     }
 
     function updateSysConfig(f: (c: SysConfig) => SysConfig | SysConfigMutable) {
-      // console.log('updateSysConfig');
       return SubscriptionRef.updateAndGet(sysConfig, f).pipe(Effect.tap(a => {
-        // console.log('ConfigService updateSysConfig:', a);
         if (store) {
-          // console.log('save sys:', a);
           store.set('sysConfig', a);
         }
         if (debugWrite) {
@@ -183,137 +156,146 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }));
     }
 
-    function importSysConfig() {
-      return Effect.tryPromise(signal => dialog.showOpenDialog({
-        title: 'import System settings',
-        buttonLabel: 'Load',
-        filters: [
-          {name: 'json Files', extensions: ['json']},
-        ],
-      })).pipe(
-        Effect.andThen(a => {
-          if (a.canceled) {
-            return Effect.fail(new Error('Canceled'));
+    function importSysConfig(loadPath?:string) {
+      return Effect.gen(function*() {
+        let path = loadPath
+        if (!path) {
+          const {filePaths,canceled} = yield *Effect.tryPromise(signal => dialog.showOpenDialog({
+            title: 'import System settings',
+            buttonLabel: 'Load',
+            filters: [
+              {name: 'json Files', extensions: ['json']},
+            ],
+          }))
+          if (canceled) {
+            return yield *Effect.fail(new Error('Canceled'));
           }
-          return fs.readFileString(a.filePaths[0]);
-        }),
-        Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
-        Effect.catchAll(e => {
-          console.log(e);
-          return Effect.tryPromise(() => dialog.showMessageBox({
-            title: 'Error',
-            message: `System setting import error`,
-            detail: 'There is no data format migration yet. Sorry for the inconvenience.',
-            buttons: ['ok'],
-            defaultId: 0,
-          }));
-        }),
-      );
+          path = filePaths[0]
+        }
+        return yield *fs.readFileString(path).pipe(Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
+          Effect.catchAll(e => {
+            return Effect.tryPromise(() => dialog.showMessageBox({
+              title: 'Error',
+              message: `System setting import error`,
+              detail: 'There is no data format migration yet. Sorry for the inconvenience.',
+              buttons: ['ok'],
+              defaultId: 0,
+            }));
+          }))
+      })
     }
 
-    function importAvatar() {
-      return Effect.tryPromise(signal => dialog.showOpenDialog({
-        title: 'import Avatar settings',
-        buttonLabel: 'Load',
-        filters: [
-          {name: 'json Files', extensions: ['json']},
-        ],
-      })).pipe(
-        Effect.andThen(a => {
-          console.log(a);
-          if (a.canceled) {
-            return Effect.fail(new Error('Canceled'));
+    function importAvatar(loadPath?:string) {
+      return Effect.gen(function*() {
+        let path = loadPath
+        if (!path) {
+          const ret = yield *Effect.tryPromise(() => dialog.showOpenDialog({
+            title: 'import Avatar settings',
+            buttonLabel: 'Load',
+            filters: [
+              {name: 'json Files', extensions: ['json']},
+            ],
+          }))
+          if (ret.canceled) {
+            return yield *Effect.fail(new Error('Canceled'));
           }
-          return Effect.partition(a.filePaths, b => fs.readFileString(b).pipe(
-            Effect.andThen(a1 => Schema.decodeUnknown(Schema.parseJson(AvatarSetting))(a1)),
-            Effect.andThen(config => {
-              console.log(config);
-              return Effect.gen(function* () {
-                const dup = yield* avatarConfigs.get.pipe(Effect.andThen(a3 => HashMap.has(a3, config.templateId)));
-                if (dup) {
-                  //  id重複がある 確認ダイアログはalertMainを使うとちょっと深すぎるのでelectron dialogを使う
-                  const res = yield* Effect.tryPromise(signal => dialog.showMessageBox({
-                    title: 'Confirm',
-                    message: 'AvatarTemplateId already exists. Do you want to overwrite it?',
-                    buttons: ['overwrite', 'skip'],
-                    defaultId: 0,
-                    cancelId: 1,
-                  }));
-                  if (res.response !== 0) {
-                    return yield* Effect.fail(new Error('canceled'));
-                  }
+          path = ret.filePaths[0]
+        }
+        return yield *fs.readFileString(path).pipe(
+          Effect.andThen(a1 => Schema.decodeUnknown(Schema.parseJson(AvatarSetting))(a1)),
+          Effect.andThen(config => {
+            return Effect.gen(function* () {
+              const dup = yield* avatarConfigs.get.pipe(Effect.andThen(a3 => HashMap.has(a3, config.templateId)));
+              if (dup) {
+                //  id重複がある 確認ダイアログはalertMainを使うとちょっと深すぎるのでelectron dialogを使う
+                const res = yield* Effect.tryPromise(signal => dialog.showMessageBox({
+                  title: 'Confirm',
+                  message: 'AvatarTemplateId already exists. Do you want to overwrite it?',
+                  buttons: ['overwrite', 'skip'],
+                  defaultId: 0,
+                  cancelId: 1,
+                }));
+                if (res.response !== 0) {
+                  return yield* Effect.fail(new Error('canceled'));
                 }
-                const c = yield* SubscriptionRef.make(config);
-                return yield* Ref.update(avatarConfigs, cfMap => {
-                  return HashMap.mutate(cfMap, a2 => HashMap.set(a2, config.templateId, c));
-                });
+              }
+              const c = yield* SubscriptionRef.make(config);
+              return yield* Ref.update(avatarConfigs, cfMap => {
+                return HashMap.mutate(cfMap, a2 => HashMap.set(a2, config.templateId, c));
               });
-            }),
-            Effect.catchAll(e => {
-              console.log(e);
-              return Effect.tryPromise(() => dialog.showMessageBox({
-                title: 'Error',
-                message: `Avatar setting import error`,
-                detail: 'There is no data format migration yet. Sorry for the inconvenience.',
-                buttons: ['ok'],
-                defaultId: 0,
-              }));
-            }),
-          ));
-        }),
-      );
+            });
+          }),
+          Effect.catchAll(e => {
+            return Effect.tryPromise(() => dialog.showMessageBox({
+              title: 'Error',
+              message: `Avatar setting import error`,
+              detail: 'There is no data format migration yet. Sorry for the inconvenience.',
+              buttons: ['ok'],
+              defaultId: 0,
+            }));
+          }),
+        );
+      })
     }
 
-    function exportSysConfig() {
+    function exportSysConfig(savePath?:string) {
       return Effect.gen(function* () {
-        const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
-          title: 'export System settings',
-          defaultPath: `asSys_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
-          buttonLabel: 'Save',
-          filters: [
-            {name: 'json Files', extensions: ['json']},
-            {name: 'All Files', extensions: ['*']},
-          ],
-        }));
-        if (canceled) {
-          return yield* Effect.void;
-        }
-        yield* sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(filePath, JSON.stringify(a, null, 2))));
-      });
-    }
-
-    function exportAvatar(templateId: string) {
-      return Effect.gen(function* () {
-        const setting = yield* avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)), Effect.andThen(a => a.get));
-        const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
-          title: `export ${setting.general.name} settings`,
-          defaultPath: `asAvt_${setting.general.name}_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
-          buttonLabel: 'Save',
-          filters: [
-            {name: 'json Files', extensions: ['json']},
-            {name: 'All Files', extensions: ['*']},
-          ],
-        }));
-        if (canceled) {
-          return yield* Effect.void;
-        }
-        yield* fs.writeFileString(filePath, JSON.stringify(setting, null, 2));
-      });
-
-    }
-
-    function updateAvatarConfig(templateId: string, f: (c: AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
-      return Ref.get(avatarConfigs).pipe(
-        Effect.andThen(HashMap.get(templateId)),
-        Effect.andThen(SubscriptionRef.updateAndGet(f)),
-        Effect.tap(a => {
-          if (debugWrite) {
-            return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
+        let path = savePath
+        if (!path) {
+          const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
+            title: 'export System settings',
+            defaultPath: `asSys_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
+            buttonLabel: 'Save',
+            filters: [
+              {name: 'json Files', extensions: ['json']},
+              {name: 'All Files', extensions: ['*']},
+            ],
+          }));
+          if (canceled) {
+            return yield* Effect.void;
           }
-        }),
-        Effect.andThen(saveAvatarConfigs()),
-      );
+          path = filePath
+        }
+        yield* sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(path, JSON.stringify(a, null, 2))));
+      });
     }
+
+    function exportAvatar(templateId: string,savePath?:string) {
+      return Effect.gen(function* () {
+        let path = savePath
+        const setting = yield* avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)), Effect.andThen(a => a.get));
+        if (!path) {
+          const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
+            title: `export ${setting.general.name} settings`,
+            defaultPath: `asAvt_${setting.general.name}_${dayjs().format('YYYYMMDD_HHmmss')}.json`,
+            buttonLabel: 'Save',
+            filters: [
+              {name: 'json Files', extensions: ['json']},
+              {name: 'All Files', extensions: ['*']},
+            ],
+          }));
+          if (canceled) {
+            return yield* Effect.void;
+          }
+          path = filePath
+        }
+        yield* fs.writeFileString(path, JSON.stringify(setting, null, 2));
+      });
+
+    }
+
+    // function updateAvatarConfig(templateId: string, f: (c: AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
+    //   return Ref.get(avatarConfigs).pipe(
+    //     Effect.andThen(HashMap.get(templateId)),
+    //     Effect.andThen(SubscriptionRef.updateAndGet(f)),
+    //     Effect.tap(a => {
+    //       if (debugWrite) {
+    //         return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
+    //       }
+    //     }),
+    //     Effect.andThen(saveAvatarConfigs()),
+    //   );
+    // }
 
     function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
       return Ref.get(avatarConfigs).pipe(
@@ -370,7 +352,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     }
 
     function saveAvatarConfigs() {
-      // console.log('saveAvatarConfigs');
       return avatarConfigs.pipe(
         Effect.andThen(HashMap.entries),
         Effect.andThen(a => Array.from(a)),
@@ -382,7 +363,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
         })),
         Effect.andThen(a => {
           if (store) {
-            // console.log('save data:', JSON.stringify(a, null, 2));
             store.set('avatarConfig', a);
           }
         }),
@@ -400,15 +380,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
 
     const getVersion = () => {
       return Effect.succeed(app.getVersion());
-      /*
-            const packageJsonPath = path.resolve(__pwd, 'package.json');
-            return Effect.async<string, Error>((resume) => {
-              fs.readFile(packageJsonPath, {encoding: 'utf8'}, (err, data) => {
-                if (err) resume(Effect.fail(err));
-                else resume(Effect.succeed(data));
-              });
-            }).pipe(Effect.andThen(a => JSON.parse(a).version as string));
-      */
     };
 
     const genMap: Record<GeneratorProvider, (sysConfig: SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any, Error>> = {
@@ -448,15 +419,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return Effect.fail(new Error('unknown generator'));
     }
 
-    // function makeLlmGenerator(name: MainLlmSchema, sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<ContextGenerator, Error> {
-    //   const gen = genMap[name];
-    //   if (gen) {
-    //     return gen(sysConfig, settings);
-    //   }
-    //   return genMap['emptyText'](sysConfig, settings);
-    // }
-
-    //electronLog.log('before config end')
     if (app) {
       app.setAboutPanelOptions({
         applicationName: 'Avatar Shell',
@@ -467,8 +429,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
         // iconPath: __dirname + '/assets/icon.png', // PNG形式のみ macOS用
       });
     }
-
-    //electronLog.log('config end',app);
 
     return {
       getSysConfig,
@@ -482,7 +442,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       importSysConfig,
       exportAvatar,
       importAvatar,
-      updateAvatarConfig,
       updateAvatarConfigEffect,
       copyAvatarConfig,
       deleteAvatarConfig,

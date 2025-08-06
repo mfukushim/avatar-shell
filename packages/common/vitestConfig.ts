@@ -9,7 +9,7 @@ export const vitestSysConfig: SysConfig = {
   'defaultAvatarId': 'vitestDummyId',
   generators: {
     openAiText: {
-      'apiKey': process.env.VITE_OPENAI_API_KEY as string,
+      'apiKey': process.env.VITE_OPENAI_API_KEY as string || 'aaaa',
       'model': 'gpt-4.1-mini',
     },
     openAiImage: {
@@ -24,7 +24,7 @@ export const vitestSysConfig: SysConfig = {
       'model': 'claude-3-7-sonnet-latest',
     },
     gemini: {
-      apiKey: process.env.VITE_GEMINI_API_KEY as string,
+      apiKey: process.env.VITE_GEMINI_API_KEY as string || 'aaaa',
       model: 'gemini-2.5-flash',
     },
     geminiImage: {
@@ -44,8 +44,7 @@ export const vitestSysConfig: SysConfig = {
       'command': 'npx',
       'args': [
         '-y',
-        'D:\\mfuku\\Documents\\projects\\daisyProj\\map-traveler-mcp',
-        // '@mfukushim/map-traveler-mcp',
+        '@mfukushim/map-traveler-mcp',
       ],
       'env': {
         "GoogleMapApi_key": process.env.VITE_TR_GoogleMapApi_key as string,

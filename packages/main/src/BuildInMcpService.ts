@@ -1,7 +1,9 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect} from 'effect';
 import {McpConfig, McpToolInfo} from '../../common/Def.js';
+import {app} from 'electron';
 
-export const EchoSchedulerId = 'echoDaemon';  //  他のMCPと重ならないユニーク名
+export const EchoSchedulerId = 'echoDaemon';  //  TODO 他のMCPと重ならないユニーク名
 
 export const setTaskWhenIdling = {
   def: {
@@ -54,11 +56,6 @@ export const setTaskAfterMinutes = {
   },
 };
 
-export const buildInMcpList = [
-  setTaskWhenIdling,
-  setTaskAfterMinutes,
-];
-
 export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avatar-shell/BuildInMcpService', {
   accessors: true,
   effect: Effect.gen(function* () {
@@ -67,7 +64,9 @@ export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avat
 
       const echoDaemon:McpConfig = {
         id: EchoSchedulerId,
-        notice:'注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。',
+        notice: app.getLocale() === 'ja' ?
+          '注意 ⚠ : Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。' :
+          'Caution ⚠ : The Echo Scheduler embedded MCP server is powerful, but it does pose security and operational safety risks. Please evaluate the risks before deciding whether to use it.',
         client: {
           connect: () => {
           },
@@ -84,7 +83,6 @@ export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avat
           },
         },
         tools: [
-          // setTaskWhenStartupTool.def,
           setTaskWhenIdling.def,
           setTaskAfterMinutes.def,
         ] as McpToolInfo[],
