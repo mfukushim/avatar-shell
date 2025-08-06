@@ -1,3 +1,4 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect, HashMap, Option, Queue, Ref} from 'effect';
 import {AvatarState} from './AvatarState.js';
 import {ConfigService} from './ConfigService.js';
@@ -7,12 +8,10 @@ import {AsMessage, AsOutput} from '../../common/Def.js';
 import {DocService} from './DocService.js';
 import * as os from 'node:os';
 import {defaultAvatarSetting} from '../../common/DefaultSetting.js';
-import electronLog from 'electron-log';
 
 export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell/AvatarService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    electronLog.log('AvatarService start')
     const avatars = yield* Ref.make(HashMap.empty<string, AvatarState>());
     const avatarStartupQueue = yield* Queue.dropping<{templateId: string, name: string}>(10);
 
@@ -44,7 +43,6 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     function getScheduleList(avatarId: string) {
       return avatars.pipe(
         Ref.get, Effect.andThen(HashMap.get(avatarId)),
-        // Effect.tap(a => console.log('in getScheduleList',a.TemplateId,a.Name)),
         Effect.andThen(a => a.ScheduleList),
         Effect.andThen(a => ({list:a,status:'ok'}) ),
         Effect.catchTag("NoSuchElementException",() => Effect.succeed({status:'Wait a moment',list:[]}))
@@ -54,13 +52,12 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     function cancelSchedule(avatarId: string,id:string) {
       return avatars.pipe(
         Ref.get, Effect.andThen(HashMap.get(avatarId)),
-        Effect.tap(a => console.log('in cancelSchedule',a.TemplateId,a.Name)),
+        // Effect.tap(a => console.log('in cancelSchedule',a.TemplateId,a.Name)),
         Effect.andThen(a => a.cancelSchedule(id))
       )
     }
 
     function getCurrentAvatarList() {
-      // electronLog.log('in getCurrentAvatarList:',avatars);
       return avatars.pipe(Ref.get, Effect.andThen(HashMap.entries), Effect.andThen(a => Array.from(a)), Effect.andThen(a => a.map(a => ({
         id: a[0],
         name: a[1].Name,
@@ -70,9 +67,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
 
     function calcDefaultName(tempId: string) {
       return Effect.gen(function* () {
-        //  TODO ここで渡すidはtemplateのidではなくavatarのユニークidだからuuid
         const currentList = yield* getCurrentAvatarList();
-        console.log('getCurrentAvatarList:', currentList);
         const aConfig = yield* ConfigService.getAvatarConfig(tempId);
         let sameAvatarNum = 0;
         currentList.forEach(a => {
@@ -84,7 +79,6 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
           sameAvatarNum++;
           tempName = `${aConfig.general.name}-${sameAvatarNum > 0 ? sameAvatarNum : ''}`;
         }
-        console.log('sameAvatarNum:', sameAvatarNum, tempName);
         return tempName;
       });
 
@@ -107,7 +101,6 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function makeAvatar(window: BrowserWindow) {
-      // electronLog.log('in makeAvatar',window)
       return Effect.gen(function* () {
         const param = yield* pullAvatarQueue();
         let tempId;
@@ -121,7 +114,6 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
           tempId = sys?.defaultAvatarId;
           if (!tempId) {
             const configList = yield *getCurrentAvatarList();
-            electronLog.log(configList);
             if (configList.length === 0) {
               tempId = defaultAvatarSetting[0].data.templateId
             } else {
@@ -132,11 +124,8 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         }
 
         const userName = os.userInfo().username;
-
-        // electronLog.log('userName',userName);
         const id = short().generate();
         const avatarState = yield* AvatarState.make(id, tempId, name, window,userName);
-        // electronLog.log('makeAvatar after');
         yield* Ref.update(avatars, a => HashMap.mutate(a, m => HashMap.set(m, id, avatarState)));
         return avatarState;
       });
@@ -145,17 +134,9 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     function askAvatar(avatarId: string, mes: AsMessage[]) {
       return Effect.gen(function*() {
         const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
-        //  TODO ここに入る画像、ファイル類はブラウザrender側から直接届いているものなので、ここで実ファイルに落として、url化しておいたほうがよい
         yield *state.addContext(mes)
-        // const logs = mes.map(value => AsOutput.makeOutput(value,{
-        //   model:'none',
-        //   isExternal:false,
-        // }))
-        // yield *DocService.addLog(logs, state)
-        // const out = yield *state.askAi(mes)
         yield *state.rebuildIdle()
         return []
-        // return out
       })
     }
 
@@ -168,8 +149,6 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         })
       )
     }
-
-  // electronLog.log('AvatarService end')
 
     return {
       makeAvatar,

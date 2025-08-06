@@ -14,13 +14,12 @@ import {
 } from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
 import short from 'short-uuid';
-import {ResponseInputContent, ResponseOutputItem} from 'openai/src/resources/responses/responses.js';
 import OpenAI, {APIError, } from 'openai';
 import {ChatCompletion} from 'openai/resources'
 import {
   ResponseCreateParamsNonStreaming,
-  ResponseCreateParamsStreaming,
-  ResponseInputItem,
+  ResponseCreateParamsStreaming, ResponseInputContent,
+  ResponseInputItem, ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
   ResponseStreamEvent,
@@ -34,7 +33,6 @@ import {LlmBaseGenerator} from './LlmGenerator.js';
 export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
   protected openAiSettings: OpenAiSettings | undefined;
   protected openai: OpenAI;
-  // protected contextCache: Map<string, ResponseInputItem[]> = new Map();
   protected prevContexts: ResponseInputItem[] = [];
   protected abstract model:string;
   protected abstract genName:GeneratorProvider
