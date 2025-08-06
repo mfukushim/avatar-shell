@@ -20,7 +20,7 @@
 | electron-store            | MIT            | git+https://github.com/sindresorhus/electron-store.git         | 10.1.0            | Sindre Sorhus sindresorhus@gmail.com https://sindresorhus.com |
 | expand-template           | (MIT OR WTFPL) | git+https://github.com/ralphtheninja/expand-template.git       | 2.0.3             | LM <ralphtheninja@riseup.net>                                 |
 | graphql                   | MIT            | git+https://github.com/graphql/graphql-js.git                  | 16.11.0           | n/a                                                           |
-| graphql-ws                | MIT            | git+https://github.com/enisdenjo/graphql-ws.git                | 6.0.6             | Denis Badurina <badurinadenis@gmail.com>                      |
+| graphql-ws                | MIT            | git+https://github.com/enisdenjo/graphql-ws.git                | 5.16.2            | Denis Badurina <badurinadenis@gmail.com>                      |
 | openai                    | Apache-2.0     | https://github.com/openai/openai-node.git                      | 5.12.0            | OpenAI <support@openai.com>                                   |
 | rxjs                      | Apache-2.0     | git+https://github.com/reactivex/rxjs.git                      | 7.8.2             | Ben Lesh <ben@benlesh.com>                                    |
 | sharp                     | Apache-2.0     | git://github.com/lovell/sharp.git                              | 0.34.3            | Lovell Fuller <npm@lovell.info>                               |
