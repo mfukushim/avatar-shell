@@ -53,7 +53,7 @@
     "@effect/experimental": "^0.54.0",
     "@effect/platform": "^0.90.0",
     "@effect/platform-node": "^0.94.0",
-    "@effect/rpc": "^0.68.0",
+    "@effect/rpc": "^0.68.2",
     "@effect/sql": "^0.44.0",
     "@electron/remote": "^2.1.2",
     "@google/genai": "^1.8.0",
