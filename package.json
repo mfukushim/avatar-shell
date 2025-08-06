@@ -64,7 +64,7 @@
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.0",
     "effect": "^3.17.6",
-    "electron-log": "^5.4.1",
+    "electron-log": "^5.4.2",
     "electron-store": "^10.0.1",
     "expand-template": "^2.0.3",
     "graphql": "^16.11.0",
