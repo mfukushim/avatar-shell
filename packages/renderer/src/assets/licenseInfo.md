@@ -1,6 +1,6 @@
 | Name                      | License type   | Link                                                           | Installed version | Author                                                        |
 | :------------------------ | :------------- | :------------------------------------------------------------- | :---------------- | :------------------------------------------------------------ |
-| @anthropic-ai/sdk         | MIT            | https://github.com/anthropics/anthropic-sdk-typescript.git     | 0.52.0            | Anthropic <support@anthropic.com>                             |
+| @anthropic-ai/sdk         | MIT            | https://github.com/anthropics/anthropic-sdk-typescript.git     | 0.57.0            | Anthropic <support@anthropic.com>                             |
 | @effect/cluster           | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.46.0            | n/a                                                           |
 | @effect/experimental      | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.54.0            | n/a                                                           |
 | @effect/platform          | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.90.0            | n/a                                                           |
@@ -15,13 +15,13 @@
 | audio-play                | MIT            | git+https://github.com/audiojs/audio-play.git                  | 2.3.1             | ΔY <dfcreative@gmail.com>                                     |
 | dayjs                     | MIT            | git+https://github.com/iamkun/dayjs.git                        | 1.11.13           | iamkun                                                        |
 | dotenv                    | BSD-2-Clause   | git://github.com/motdotla/dotenv.git                           | 17.2.1            | n/a                                                           |
-| effect                    | MIT            | git+https://github.com/Effect-TS/effect.git                    | 3.17.1            | n/a                                                           |
+| effect                    | MIT            | git+https://github.com/Effect-TS/effect.git                    | 3.17.6            | n/a                                                           |
 | electron-log              | MIT            | git+https://github.com/megahertz/electron-log.git              | 5.4.1             | Alexey Prokhorov                                              |
 | electron-store            | MIT            | git+https://github.com/sindresorhus/electron-store.git         | 10.1.0            | Sindre Sorhus sindresorhus@gmail.com https://sindresorhus.com |
 | expand-template           | (MIT OR WTFPL) | git+https://github.com/ralphtheninja/expand-template.git       | 2.0.3             | LM <ralphtheninja@riseup.net>                                 |
 | graphql                   | MIT            | git+https://github.com/graphql/graphql-js.git                  | 16.11.0           | n/a                                                           |
-| graphql-ws                | MIT            | git+https://github.com/enisdenjo/graphql-ws.git                | 5.16.2            | Denis Badurina <badurinadenis@gmail.com>                      |
-| openai                    | Apache-2.0     | https://github.com/openai/openai-node.git                      | 4.104.0           | OpenAI <support@openai.com>                                   |
+| graphql-ws                | MIT            | git+https://github.com/enisdenjo/graphql-ws.git                | 6.0.6             | Denis Badurina <badurinadenis@gmail.com>                      |
+| openai                    | Apache-2.0     | https://github.com/openai/openai-node.git                      | 5.12.0            | OpenAI <support@openai.com>                                   |
 | rxjs                      | Apache-2.0     | git+https://github.com/reactivex/rxjs.git                      | 7.8.2             | Ben Lesh <ben@benlesh.com>                                    |
 | sharp                     | Apache-2.0     | git://github.com/lovell/sharp.git                              | 0.34.3            | Lovell Fuller <npm@lovell.info>                               |
 | short-uuid                | MIT            | git+https://github.com/oculus42/short-uuid.git                 | 5.2.0             | Samuel Rouse                                                  |
@@ -37,7 +37,7 @@
 | @types/play-sound         | MIT            | https://github.com/DefinitelyTyped/DefinitelyTyped.git         | 1.1.2             | n/a                                                           |
 | @types/ws                 | MIT            | https://github.com/DefinitelyTyped/DefinitelyTyped.git         | 8.18.1            | n/a                                                           |
 | create-vite               | MIT            | git+https://github.com/vitejs/vite.git                         | 7.0.3             | Evan You                                                      |
-| cross-env                 | MIT            | git+https://github.com/kentcdodds/cross-env.git                | 7.0.3             | Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com)    |
+| cross-env                 | MIT            | git+https://github.com/kentcdodds/cross-env.git                | 10.0.0            | Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com)    |
 | electron                  | MIT            | git+https://github.com/electron/electron.git                   | 37.2.4            | Electron Community                                            |
 | electron-builder          | MIT            | git+https://github.com/electron-userland/electron-builder.git  | 26.0.12           | Vladimir Krivosheev                                           |
 | glob                      | ISC            | git://github.com/isaacs/node-glob.git                          | 11.0.3            | Isaac Z. Schlueter <i@izs.me> (https://blog.izs.me/)          |
