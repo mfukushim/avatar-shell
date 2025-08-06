@@ -72,12 +72,12 @@ onMounted(async () => {
     disableInput.value = false;
     showWizaed.value = needWizard;
     await resetAvatarList();
-  }, async (bag: AsMessage[]) => {
+    mcpServers.value = await getMcpServerInfos()
+  },
+    async (bag: AsMessage[]) => {
     //  外部からのsocket AsMessage受信
     await mergeTimeline(bag);
     await addExtTalkContext(bag);
-    mcpServers.value = await getMcpServerInfos()
-    // console.log('renderer socket call all ctx:', ctx);
   });
   onMainAlert((alert: AlertTask) => {
     alertTasks.value.push(alert);
