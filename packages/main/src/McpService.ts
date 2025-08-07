@@ -1,3 +1,4 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect, SynchronizedRef} from 'effect';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -25,7 +26,6 @@ import {BrowserWindow} from 'electron';
 import {GeneratorProvider} from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
 import {ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
-// import electronLog from 'electron-log';
 
 
 export interface ToolCallParam {
@@ -44,22 +44,8 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       latch: Effect.Latch
     }>());
 
-/*
-    function updateSysConfig(sys: SysConfig) {
-      return reset(sys).pipe(Effect.catchAll(cause => {
-        console.log('mcp error', cause);
-        dialog.showErrorBox('MCP 初期化エラー', String(`${cause.message}`));
-        return Effect.void;
-      }));
-    }
-*/
-
     function reset(sysConfig: SysConfig) {
-      console.log('McpService reset:');
-      //  mcp定義からtransportを作って、clientを作って、初期プラグイン等をロードする
-      //  avatar-sightが使う組み込みサーバーもここで定義する
       return Effect.gen(function* () {
-        // const sysConfig = yield* ConfigService.getSysConfig();
         clientInfoList = yield* Effect.forEach(Object.entries(sysConfig.mcpServers), a1 => {
           return Effect.gen(function* () {
             const client = new Client(
@@ -94,27 +80,13 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
               prompts: prompts.prompts,
               resources: resources.resources,
               buildIn: false,
-            };  //  client,,prompts:prompts.prompts,resources:resources.resources,tools:tools.tools,prompts:prompts.prompts,
+            };
           });
         });
         const buildInList = yield* BuildInMcpService.getDefines();
         clientInfoList.push(...buildInList);
-        // console.log('mcpinfo', clientInfoList);
       });
     }
-
-/*
-    function initial() {
-      return Effect.gen(function* () {
-        const sysConfig = yield* ConfigService.getSysConfigPub();
-        yield* sysConfig.pipe(SubscriptionRef.get, Effect.andThen(a => updateSysConfig(a)));
-        yield* Effect.forkDaemon(sysConfig.changes.pipe(Stream.runForEach(a => {
-          console.log('McpService sys change:');
-          return updateSysConfig(a);
-        })));
-      });
-    }
-*/
 
     function getMcpServerInfos() {
       return clientInfoList.map(v => {
@@ -128,19 +100,17 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       });
     }
 
-    function readMcpResource(name: string, uri: string) {
-      return Effect.gen(function* () {
-        const info = clientInfoList.find(v => v.id === name);
-        if (info) {
-          return yield* Effect.tryPromise({
-            try: () => info.client.readResource({uri}),
-            catch: error => console.log(error),
-          }).pipe(
-            Effect.tap(a => console.log(a)),
-          Effect.andThen(a => a as ReadResourceResult)) //  TODO {contents: {uri:string,mimeType:string,text:string}[]})
-        }
-      });
+    function readMcpResource(name: string, uri: string) { //:Effect.Effect<ReadResourceResult,Error>
+      const info = clientInfoList.find(v => v.id === name);
+      if (info) {
+        return Effect.tryPromise({
+          try: () => info.client.readResource({uri}),
+          catch: error => new Error(`MCP resource read error:${error}`),
+        }).pipe(Effect.andThen(a => a as ReadResourceResult)); //  TODO ReadResourceResult {contents: {uri:string,mimeType:string,text:string}[]})
+      }
+      return Effect.fail(new Error(`MCP resource not found ${name} ${uri}`));
     }
+
     /*
     {
   contents: [
@@ -185,7 +155,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       return Effect.gen(function* () {
         const config = yield* ConfigService.getAvatarConfig(templateId);
         const mcpServers = getMcpServerInfos();
-        const generatorList = [''].concat(yield* ConfigService.getGeneratorList());
+        // const generatorList = [''].concat(yield* ConfigService.getGeneratorList());
         const mcps: Record<string, AvatarMcpSettingMutable> = {};
         mcpServers.forEach(value => {
           const useTools: Record<string, {enable: boolean, allow: McpEnable}> = {};
@@ -258,37 +228,22 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         if (allow === 'ask') {
           //  TODO 困らない形での実行確認アラートを出す
           const ans = yield* mainAlert(state.BrowserWindow, `Can I use tool '${toolName}_${find1.name}'s?`, ['deny', 'accept']);  //  TODO accept onceとaccept sessionがあったほうがよい
-          console.log('ans:', ans);
           if (!ans || ans === 'deny') {
-            return yield* Effect.fail(new Error(`${find1.name} not run`));
+            return yield* Effect.fail(new Error(`${find1.name} is denied`));
             //  TODO accept in sessionがまだ
           }
         }
         if (find.buildIn) {
           //  ビルドインの場合、id情報から直接BuildInMcpServiceを呼ぶ
-          console.log(find);
           const res = callBuildInTool(find.id, {
             name: find1.name,
             arguments: params.input,
             state,
           }, callGenerator);
-          /*
-                        find.client.setGenerator(callGenerator)
-                        //  TODO きれいじゃない。。
-                        // const res: {content: {type: string, text: string}[]} = {content: [{type: 'a', text: 'b'}]}
-                        const res: {content: {type: string, text: string}[]} = yield *(find.client.callToolEffect({
-                          name: find1.name,
-                          arguments: params.input,
-                          state,
-                        }) as Effect.Effect<{content: {type: string, text: string}[]}, Error, ConfigService | DocService | McpService | MediaService>)
-          */
-          console.log(res);
           return {
             toLlm: res, call_id: params.id, status: 'ok',
           };
         } else {
-          // console.log('before func call:', find1.name, params.input);
-          // let res: {content: {type: string, text: string}[]} = {content: []}
           const res = yield* Effect.tryPromise({
             try: () => (find.client as Client).callTool({
               name: find1.name,
@@ -304,7 +259,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           };
         }
       }).pipe(Effect.andThen(a => a),
-        Effect.catchAll(e => Effect.fail(new Error(`${e}`)))); // as Effect.Effect<{toLlm: {content: {type: string, text: string}[]}, call_id: string, status: string}, Error, ConfigService | DocService | McpService | MediaService>;
+        Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
     }
 
     function mainAlert(window: BrowserWindow, message: string, select: string[] | undefined = undefined) {
@@ -321,7 +276,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           yield* SynchronizedRef.update(latchSet, a => a.set(id, {answer: '', latch: latch}));
           window.webContents.send('mainAlert', task);
           yield* latch.await;  //  fiber停止
-          console.log('rerun');
+          // console.log('rerun');
           let ans = '';
           yield* SynchronizedRef.update(latchSet, a => {
             const latch = a.get(id);
@@ -331,7 +286,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             a.delete(id);
             return a;
           });
-          console.log('ans:', ans);
+          // console.log('ans:', ans);
           return ans;
         }
       });
@@ -342,7 +297,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       name: string,
       arguments: any
     }, callGenerator: GeneratorProvider) {
-      console.log('callBuildInTool:', params, callGenerator);
+      // console.log('callBuildInTool:', params, callGenerator);
       switch (params.name) {
 
         case setTaskWhenIdling.def.name:
@@ -350,24 +305,13 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         case setTaskAfterMinutes.def.name:
           return buildInCall(params.state, params.arguments, callGenerator, 'TimerMin');
       }
-      // const find = buildInMcpList.find(value => value.def.name === params.name);
-      // let a
-      // if (find && find.func) {
-      //   return find.func(params.state, params.arguments,callGenerator);
-      // }
       return Effect.fail(new Error('function unknown'));
-      // return Effect.succeed({
-      //   content: [{
-      //     type: 'text',
-      //     text: 'function unknown',
-      //   }],  //  TODO エラーで上げたほうがよいか?
-      // });
     }
 
     function buildInCall(state: AvatarState, args: any, callGenerator: GeneratorProvider, trigger: DaemonTrigger) {
       //  ここはllmからタイマータスクへの設定指示 タイマー実行はAvatarStateなど 指示内容はここの文章
       //  todo ここのすることはスタートアップタスクのプロンプト等を検証してoneTimeとしてavatarConfigに書き込むこと
-      console.log('echoMin:', args, state, callGenerator);
+      // console.log('echoMin:', args, state, callGenerator);
       const inst = args.instructions;
       if (!inst) {
         return Effect.succeed({content: [{type: 'text', text: 'fail to set the instruction. no instructions'}]});
@@ -395,10 +339,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             toRole: 'bot',
           },
         },
-        // prompt: inst,
-        // minInDate: dayjs().startOf('date').add(min,'minutes').format('HH:mm:ss'),
-        // generateMedia: (args.media || 'none') as GenerateMedia,
-        // useContent: (args.useContent || 'text') as UseContent
       }).pipe(
         Effect.andThen(a => Effect.succeed({content: [{type: 'text', text: 'set the instruction'}]})),
         Effect.catchAll(e => Effect.succeed({
@@ -409,45 +349,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         })),
       );
     }
-
-    // func: (state: AvatarState, args: any,callGenerator:GeneratorProvider) => {
-    //   //  ここはllmからタイマータスクへの設定指示 タイマー実行はAvatarStateなど 指示内容はここの文章
-    //   console.log('echoIdle:',args,state,callGenerator);
-    //   const inst = args.instructions;
-    //   if (!inst) {
-    //     return Effect.succeed({content: [{type: 'text', text: 'fail to set the instruction'}]});
-    //   }
-    //   const duringMin = Number.parseFloat(args.minutesToDetectIdling) || undefined;
-    //   return state.addOnceEcho({
-    //     id: short.generate(),
-    //     name: `echoIdle${dayjs().valueOf()}`, //  ユニーク名を決めてよいな
-    //     isEnabled: true,
-    //     trigger:{
-    //       triggerType:'TalkAfterMin',
-    //       condition:{
-    //         min:duringMin
-    //       }
-    //     },
-    //     exec:{
-    //       generator: callGenerator || 'emptyText',  //  TODO ここのデフォルトtext generatorは何にすべきか
-    //       templateGeneratePrompt:inst,
-    //       addDaemonGenToContext:true,
-    //       setting:{
-    //         toClass: 'daemon',
-    //         toRole: 'bot',
-    //       }
-    //     }
-    //     // // isOnetime: true,
-    //     // prompt: inst,
-    //     // duringMin: duringMin,
-    //     // generateMedia: (args.media || 'none') as GenerateMedia,
-    //     // useContent: (args.useContent || 'text') as UseContent
-    //   }).pipe(
-    //     Effect.andThen(a => Effect.succeed({content: [{type: 'text', text: 'set the instruction'}]})),
-    //     Effect.catchAll(e => Effect.succeed({content: [{type: 'text', text: `fail to set the instruction. reason: ${e.message}`}]}))
-    //   );
-    // },
-
 
     function answerMcpAlert(id: string, btn: string) {
       return SynchronizedRef.updateAndGetEffect(latchSet, a => {
@@ -470,7 +371,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }
 
     return {
-      // initial,
       reset,
       getMcpServerInfos,
       readMcpResource,

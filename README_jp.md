@@ -50,25 +50,59 @@ Google geminiのAPI keyをGoogleのサイトより取得してください。
 
 ## 画面解説
 
-準備中
+<img width="600" alt="スクリーンショット 2025-07-28 200329" src="./page_images/img.png" />
 
-<img width="600" alt="スクリーンショット 2025-07-28 200329" src="https://github.com/user-attachments/assets/59cc4ae5-aa2e-4f72-95be-3a8c77bde911" />
-
-
-### MCP設定
-
-準備中
+- title bar
+  - daemon status/on-off コンテキストデーモンの動作を全体でon/offする
+  - socket status/on-off ソケット通信をon/offする  
+  - sound volume 音声ボリューム
+  - conversation browser 過去の会話データ/メディアデータをブラウジングする
+- tools bar
+  - avatar list/add   現在のアバター名と、クローンアバターの追加
+  - daemon schedule   実行中のコンテキストデーモン一覧
+  - avatar setting   アバター設定
+  - system setting   システム設定
+- main window
+  - image area   画像エリア
+  - conversation area   会話エリア
+  - jump to bottom   末尾移動
+  - show details   詳細表示
+  - show find bar   検索バー表示
+  - conversation selector   会話情報セレクタ
+  - find bar (hidden)   検索バー (デフォルト非表示)
+- input bar
+  - tools bar show/hide   ツールバー表示/非表示
+  - MCP resource selector   MCPリソース選択
+  - input file selector   ファイル選択
+  - input text   対話テキスト入力
+  - conversation area show/hide   会話エリア切替(多段)
 
 ### コンテキストジェネレーター
 
-準備中
+本システムでは、タイムラインに文脈(会話文、生成画像など)を追加する機能を持つ部品を「コンテキストジェネレーター」と呼んでいます。  
+LLM/SLMもコンテキストジェネレーターです。
 
 ### コンテキストデーモン
 
-準備中
+AvatarShellでのコンテキストデーモンとは特定条件で起動するコンテキストジェネレーターと定義しています。
+特定の条件を設定して、コンテキストジェネレーターを呼び出します。  
+Avatar-Shellはコンテキストデーモンの組み合わせで会話構造を制御します。
+
+例:  
+- 「人から話しかけられたら、そのときの文脈からLLMを起動して、返事を作る」
+- 「LLMが返答文を作ったら、音声合成AIを起動して返答文を音声ファイルに変換する」
+- 「会話が1分空いたら『今までの文脈に対して閑話休題の話題を作って話しかけなさい』という指示をLLMに行ってください」
+- 「(vector db等で検索して)会話に関連する語/表現が含まれているとき、その語に対する補足情報をLLMの入力に追加して、返答文を作る」
+
 
 ### エコーデーモン
 
-準備中
+AIが内蔵MCPサーバーに提出した予定を、人の入力のようにAvatar-Shellに再入力することで、擬似的自我をシミュレートします。
+注意: 本機能は過大な権限の昇格を発生します。危険性を把握して自己リスクで利用を判断してください。
+
+コンテキストジェネレーター、コンテキストデーモン、エコーデーモンの概念については以下のページでも説明しています(日本語)
+
+https://note.com/marble_walkers/n/nb7930d95c2d3
+
 
 <img width="600" alt="スクリーンショット 2025-06-15 020826" src="https://github.com/user-attachments/assets/d03dcdcb-5e54-4a99-acb4-ae7b492f6ce6" />
