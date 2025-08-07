@@ -97,17 +97,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting).pipe(Effect.andThen(a1 => [a[0], a1] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>]))).pipe(
         Effect.andThen(a => Ref.make(HashMap.make(...a))));
 
-      // yield* Effect.gen(function* () {
-      // const list = yield* Effect.forEach(Object.entries(avatarData), a => {
-      //   return SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting).pipe(Effect.andThen(a1 => [a[0],a1] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>]))
-      //   // return Effect.gen(function* () {
-      //   //   const setting = yield* SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting);
-      //   //   return [a[0], setting] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>];
-      //   // });
-      // }).pipe(Effect.andThen(a => HashMap.make(...a)));
-      // // return yield* Ref.make(HashMap.make(...list));
-    // });
-
     function getMutableSetting() {
       return mutableSetting.get;
     }
@@ -283,19 +272,6 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       });
 
     }
-
-    // function updateAvatarConfig(templateId: string, f: (c: AvatarSetting) => AvatarSetting | AvatarSettingMutable) {
-    //   return Ref.get(avatarConfigs).pipe(
-    //     Effect.andThen(HashMap.get(templateId)),
-    //     Effect.andThen(SubscriptionRef.updateAndGet(f)),
-    //     Effect.tap(a => {
-    //       if (debugWrite) {
-    //         return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
-    //       }
-    //     }),
-    //     Effect.andThen(saveAvatarConfigs()),
-    //   );
-    // }
 
     function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
       return Ref.get(avatarConfigs).pipe(

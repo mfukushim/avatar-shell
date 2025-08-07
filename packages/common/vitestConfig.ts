@@ -65,8 +65,8 @@ export const vitestSysConfig: SysConfig = {
         "@modelcontextprotocol/server-slack"
       ],
       "env": {
-        "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string,
-        "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string,
+        "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string || 'aaa',
+        "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string || 'aaa',
         "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
       }
     }
@@ -104,7 +104,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "set_traveler_destination_address": {"enable": true, "allow": "ask"},
         "get_traveler_view_info": {"enable": true, "allow": "ask"},
         "get_traveler_location": {"enable": true, "allow": "ask"},
-        "tips": {"enable": true, "allow": "ask"},
+        "tips": {"enable": true, "allow": "any"},
         "get_setting": {"enable": true, "allow": "ask"},
         "get_traveler_info": {"enable": true, "allow": "ask"},
         "set_traveler_info": {"enable": true, "allow": "ask"},

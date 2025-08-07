@@ -64,7 +64,7 @@ export class BuildInMcpService extends Effect.Service<BuildInMcpService>()('avat
 
       const echoDaemon:McpConfig = {
         id: EchoSchedulerId,
-        notice: app.getLocale() === 'ja' ?
+        notice: app?.getLocale() === 'ja' ?
           '注意 ⚠ : Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。' :
           'Caution ⚠ : The Echo Scheduler embedded MCP server is powerful, but it does pose security and operational safety risks. Please evaluate the risks before deciding whether to use it.',
         client: {

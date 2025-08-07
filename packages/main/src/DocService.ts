@@ -1,3 +1,4 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect, HashMap, Queue, Ref, Stream} from 'effect';
 import { FileSystem } from "@effect/platform"
 import {app} from 'electron';
@@ -17,17 +18,11 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
     const docBasePath = app ? path.join(app.getPath('userData'),'docs'):`${__pwd}/tools/docs`
     const mediaSaveQueue = yield *Queue.sliding<{path:string,image:string}>(100)
     const mediaCache = yield *Ref.make(HashMap.empty<string,string>())
-    yield *Effect.forkDaemon(Stream.fromQueue(mediaSaveQueue).pipe(Stream.runForEach(a => {
-      return Effect.gen(function*() {
-        console.log('write media:',a.path);
-        yield *fs.writeFile(a.path,Buffer.from(a.image,'base64'))
-        yield *Ref.update(mediaCache,b => HashMap.remove(b,a.path))
-      })
-    })))
-
+    yield *Effect.forkDaemon(Stream.fromQueue(mediaSaveQueue).pipe(
+      Stream.runForEach(a => fs.writeFile(a.path, Buffer.from(a.image, 'base64')).pipe(Effect.andThen(() => Ref.update(mediaCache, b => HashMap.remove(b, a.path))))))
+    )
 
     function readDocList(templateId:string) {
-      console.log('main readDocList',docBasePath,templateId)
       const reg = new RegExp(`^[^_]+_[^_]+_(\\d{14})\\.asdata$`)
       return fs.readDirectory(path.join(docBasePath,'contents',templateId)).pipe(
         Effect.andThen(a =>
@@ -41,7 +36,6 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
     function readDocument(templateId:string,fileName:string) {
       //  データ書式は[]がないjsonのリストとしておく
       const path1 = path.join(docBasePath,'contents',templateId,fileName);
-      // console.log('readDocument:',path1);
       return fs.readFileString(path1).pipe(
         Effect.andThen(a => a.split('\n').flatMap(value => {
           try {
@@ -73,39 +67,17 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
       return Effect.fail(new Error('no match media file'))
     }
 
-    // function makeDocPath(avatarConfig:AvatarSetting) {
-    //   return Effect.gen(function*() {
-    //     const outPath = yield *ConfigService.getSysConfig().pipe(
-    //       Effect.andThen(a => a.defaultContentPath || path.join(docBasePath, 'contents', avatarConfig.templateId)),
-    //     )
-    //     if (yield* fs.exists(outPath)) {
-    //       const stat = yield *fs.stat(outPath)
-    //       if (stat.type !== 'Directory') {
-    //         return yield *Effect.fail(new Error(`saveMedia path wrong:${outPath}`))
-    //       }
-    //     } else {
-    //       yield *fs.makeDirectory(outPath,{recursive:true})
-    //     }
-    //     return outPath
-    //   })
-    // }
-
     function saveDocMedia(id:string,mime:string,image:string|null|undefined,templateId:string) {
       //  速度を対応するためにテンポラリにメモリキャッシュしてもよいかも
       if (!image) {
         return Effect.fail(new Error('no image'))
       }
-
-      return Effect.gen(function*() {
-        console.log('run saveMedia');
-        const ext = mime === 'image/jpg'? '.jpg': mime ==='image/png'? '.png':mime ==='image/gif'? '.gif':mime ==='image/webp'? '.webp':mime ==='audio/wav' ? '.wav':''
-        const mediaPath = path.join(docBasePath,'contents',templateId,`${id}${ext}`);
-        yield *Ref.update(mediaCache,a => HashMap.set(a,mediaPath,image))
-        yield *Queue.offer(mediaSaveQueue,({path:mediaPath,image:image}))
-
-          // return yield *fs.writeFile(path.join(avatarState.DocPath,`${avatarState.Tag}_${seq}${ext}`),Buffer.from(image,'base64'));
-        return `file://${templateId}/${id}${ext}`
-      })
+      const ext = mime === 'image/jpg'? '.jpg': mime ==='image/png'? '.png':mime ==='image/gif'? '.gif':mime ==='image/webp'? '.webp':mime ==='audio/wav' ? '.wav':''
+      const mediaPath = path.join(docBasePath,'contents',templateId,`${id}${ext}`);
+      return Ref.update(mediaCache,a => HashMap.set(a,mediaPath,image)).pipe(
+        Effect.andThen(() => Queue.offer(mediaSaveQueue,({path:mediaPath,image:image}))),
+        Effect.andThen(() => `file://${templateId}/${id}${ext}`)
+      )
     }
 
     function addLog(log:AsOutput[],avatarState:AvatarState) {
@@ -136,7 +108,6 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
         const writeLogs = log.map(value => AsOutput.makeOutput(value.mes, value.genType))
         //  書き込みファイルは完全なjsonファイルではなくオブジェクト配列で前後の[]をないという形にして追記にするか
         const s = JSON.stringify(writeLogs);
-        // const d = s.slice(s.indexOf('[')+1).slice(0,s.lastIndexOf(']'))
         yield *fs.writeFileString(path.join(docBasePath,'contents',avatarState.TemplateId,avatarState.LogFileName),s+'\n',{flag:'a'});
       });
     }
@@ -148,7 +119,6 @@ export class DocService extends Effect.Service<DocService>()("avatar-shell/DocSe
       readDocument,
       saveDocMedia,
       readDocMedia,
-      // appendLog,
       addLog,
     }
   }),

@@ -9,7 +9,7 @@ import {McpService, McpServiceLive} from '../src/McpService';
 import {DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
-import {vitestAvatarConfigMi} from '../../../tools/vitestConfig';
+import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig';
 
 describe('McpService', () => {
   beforeEach(() => {
@@ -26,39 +26,23 @@ describe('McpService', () => {
     // vi.clearAllMocks();
   });
 
-  it('init', async () => {
+  it('reset_getMcpServerInfos', async () => {
     //  vitest --run --testNamePattern=init McpService.unit.spec.ts
-    await Effect.gen(function* () {
-      yield* McpService.initial();
-    }).pipe(
-      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
-    );
-
-  });
-  it('Info', async () => {
-    //  vitest --run --testNamePattern=init_Info McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
-      return yield* McpService.getMcpServerInfos();
+      yield* McpService.reset(vitestSysConfig);
+      return yield *McpService.getMcpServerInfos()
     }).pipe(
       Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
       runPromise
     );
-
-    console.log(JSON.stringify(res,null,2));
-    // expect(res).toHaveLength(2);
-    if (res.length > 0) {
-      expect(res[0]).toHaveProperty('id');
-      expect(res[0]).toHaveProperty('tools');
-      expect(res[0]).toHaveProperty('prompts');
-      expect(res[0]).toHaveProperty('resources');
-    }
+    console.log(res);
+    expect(Array.isArray(res)).toBeTruthy()
+    expect(res[0].id === 'traveler').toBeTruthy()
   });
 
   it('readMcpResource', async () => {
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       return yield* McpService.readMcpResource('traveler', 'file:///credit.txt');
     }).pipe(
       Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
@@ -73,7 +57,7 @@ describe('McpService', () => {
     it('getToolDefs', async () => {
 
       const res = await Effect.gen(function* () {
-        yield* McpService.initial();
+        yield* McpService.reset(vitestSysConfig);
         return yield* McpService.getToolDefs(vitestAvatarConfigMi.mcp);
       }).pipe(
         Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
@@ -86,16 +70,15 @@ describe('McpService', () => {
 
   it('callFunction', async () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
-    console.log('a');
 
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_tips',
-        id: 'tip',
+        id: 'tips',
         input: { }
       },'emptyText');
     }).pipe(
@@ -103,8 +86,10 @@ describe('McpService', () => {
       runPromise
     );
 
-    console.log(res);
+    console.log(JSON.stringify(res));
     expect(typeof res === 'object').toBe(true)
+    expect(res.call_id).toEqual('tips');
+    expect(res.toLlm !== undefined).toBeTruthy();
   });
 
   it('callFunctionNoMcp', async () => {
@@ -114,7 +99,7 @@ describe('McpService', () => {
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'xxx',
@@ -135,7 +120,7 @@ describe('McpService', () => {
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_xxx',
@@ -155,7 +140,7 @@ describe('McpService', () => {
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_start_traveler_journey',
@@ -176,7 +161,7 @@ describe('McpService', () => {
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_traveler_location',
@@ -197,7 +182,7 @@ describe('McpService', () => {
     const res = await Effect.gen(function* () {
       console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_setting',
@@ -210,6 +195,78 @@ describe('McpService', () => {
     );
 
     console.log(res);
+    expect(res._tag).toBe('Failure');
+  });
+  it('updateAvatarMcpSetting', async () => {
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      return yield* McpService.updateAvatarMcpSetting('vitestDummyId');
+    }).pipe(
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise
+    );
+
+    expect(res).toBeDefined();
+    expect(typeof res).toBe('object');
+    // MCPの設定が正しく含まれているか確認
+    Object.values(res).forEach(mcpSetting => {
+      expect(mcpSetting).toHaveProperty('enable');
+      expect(mcpSetting).toHaveProperty('useTools');
+      expect(typeof mcpSetting.useTools).toBe('object');
+    });
+  });
+
+  it('getMcpServerInfos should return empty array when no servers', async () => {
+    const res = await Effect.gen(function* () {
+      // 初期化せずに直接getMcpServerInfosを呼び出す
+      return yield* McpService.getMcpServerInfos();
+    }).pipe(
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise
+    );
+
+    console.log(res);
+    expect(Array.isArray(res)).toBe(true);
+    expect(res).toHaveLength(0);
+  });
+
+  // it('deepMerge should correctly merge objects', async () => {
+  //   const res = await Effect.gen(function* () {
+  //     const target = {
+  //       id: 'test',
+  //       settings: {
+  //         enable: true,
+  //         tools: { tool1: true }
+  //       }
+  //     };
+  //     const source = {
+  //       settings: {
+  //         tools: { tool2: false }
+  //       },
+  //       newProp: 'value'
+  //     };
+  //
+  //     return yield* McpService.deepMerge(target, source);
+  //   }).pipe(
+  //     Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+  //     runPromise
+  //   );
+  //   expect(res).toHaveProperty('id', 'test');
+  //   expect(res.settings).toHaveProperty('enable', true);
+  //   expect(res.settings.tools).toHaveProperty('tool1', true);
+  //   expect(res.settings.tools).toHaveProperty('tool2', false);
+  //   expect(res).toHaveProperty('newProp', 'value');
+  // });
+
+  it('updateAvatarMcpSetting should handle invalid templateId', async () => {
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      return yield* McpService.updateAvatarMcpSetting('nonexistentId');
+    }).pipe(
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromiseExit
+    );
+
     expect(res._tag).toBe('Failure');
   });
 },5 * 60 * 1000);

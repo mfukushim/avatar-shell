@@ -1,3 +1,4 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {AsOutput, AsMessage, AsMessageContent} from '../../common/Def.js';
 import {Effect,Option} from 'effect';
 import {ConfigService} from './ConfigService.js';
@@ -11,7 +12,6 @@ export type GeneratorTask = any
 export type GeneratorOutput = any
 
 export abstract class ContextGenerator {
-  // abstract initialize(sysConfig:SysConfig,setting:any)
 
   abstract getGeneratorInfo():ContextGeneratorInfo
 
