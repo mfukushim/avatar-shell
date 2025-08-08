@@ -4,7 +4,7 @@ import {ipcRenderer} from 'electron';
 import {
   type AlertReply,
   type AlertTask,
-  AsMessage, AvatarMcpSettingList,
+  AsMessage,
   AvatarSetting, type DaemonTriggerSchema, type McpInfo,
   type MutableSysConfig,
   type SysConfig,
@@ -366,8 +366,8 @@ export async function cancelSchedule(id:string) {
   return await ipcRenderer.invoke('cancelSchedule', avatarId,id);
 }
 
-export async function updateAvatarMcpSetting(templateId: string):Promise<AvatarMcpSettingList> {
-  return await ipcRenderer.invoke('updateAvatarMcpSetting',templateId);
+export async function getAvatarConfigMcpUpdate(templateId: string):Promise<AvatarSetting> {
+  return await ipcRenderer.invoke('getAvatarConfigMcpUpdate',templateId);
 }
 
 export async function getGeneratorList() {

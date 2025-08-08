@@ -273,6 +273,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
 
     }
 
+/*
     function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
       return Ref.get(avatarConfigs).pipe(
         Effect.andThen(HashMap.get(templateId)),
@@ -285,15 +286,19 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
         Effect.andThen(saveAvatarConfigs()),
       );
     }
+*/
 
     function setAvatarConfig(id: string, data: AvatarSetting) {
-      return Ref.get(avatarConfigs).pipe(
-        Effect.andThen(HashMap.get(id)),
-        Effect.andThen(SubscriptionRef.update(() => {
-          return data;
-        })),
-        Effect.andThen(saveAvatarConfigs()),
-      );
+      return Effect.gen(function*() {
+        // const updated = yield *McpService.updateAvatarMcpSetting(data) //  TODO ここでMcpServiceを使うと依存性の順序が崩れるようだ。。
+        return yield *Ref.get(avatarConfigs).pipe(
+          Effect.andThen(HashMap.get(id)),
+          Effect.andThen(SubscriptionRef.update(() => {
+            return data;
+          })),
+          Effect.andThen(saveAvatarConfigs()),
+        );
+      })
     }
 
     function copyAvatarConfig(templateId: string) {
@@ -418,7 +423,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       importSysConfig,
       exportAvatar,
       importAvatar,
-      updateAvatarConfigEffect,
+      // updateAvatarConfigEffect,
       copyAvatarConfig,
       deleteAvatarConfig,
       needWizard,

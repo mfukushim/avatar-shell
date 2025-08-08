@@ -106,4 +106,10 @@ export default {
   importAvatarInfo:'アバター設定を読み込みます',
   exportAvatar:'アバター設定書き出し',
   exportAvatarInfo:'アバター設定を書き出します',
+  mcpPermissionSet: {
+    any: '◎ 常に許可',
+    no: '× 許可しない',
+    ask: '⚠ 問い合わせる'
+  },
+  enableHide: '許可/隠す',
 }

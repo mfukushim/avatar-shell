@@ -1,5 +1,5 @@
 <script setup lang="ts">
-
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {onMounted, ref} from 'vue';
 import {
   AvatarSetting,
@@ -11,19 +11,19 @@ import {
 } from '../../../common/Def.ts';
 import {Either, ParseResult, Schema} from 'effect';
 import short from 'short-uuid';
-import {getAvatarConfig, updateAvatarMcpSetting, setAvatarConfig, getGeneratorList} from '@app/preload';
+import {getAvatarConfigMcpUpdate, setAvatarConfig, getGeneratorList, getMcpServerInfos} from '@app/preload';
 import {AsClassList, AsContextLinesList, AsRoleList} from '../../../common/DefGenerators.ts';
 import {useI18n} from 'vue-i18n';
 
 const {t} = useI18n();
 
-const doOpen = async (templateId: string) => {
+const mcpEnableList = ref<{label:string,value:string}[]>([])
 
-  const config = await getAvatarConfig(templateId);
-  const addMcp = await updateAvatarMcpSetting(templateId)
+
+const doOpen = async (templateId: string) => {
+  const config = await getAvatarConfigMcpUpdate(templateId)
   editingSettings.value = {
     ...config,
-    mcp: addMcp,
   };
   editingSchedulers.value = [...config.daemons]
   generatorList.value =[''].concat(await getGeneratorList())
@@ -34,12 +34,9 @@ const doOpen = async (templateId: string) => {
   if(Object.keys(config.mcp).length > 0){
     tabMcp.value = Object.keys(config.mcp)[0]
   }
-  console.log('mcpSettingList', mcpServers.value);
-  // console.log('mcps', mcps);
-  console.log('editingSettings.value', editingSettings.value);
-  // const mcp = await applyMcpSetting(templateId.value)
-  // mcpSettingList.value = config.mcp
+  mcpServers.value = await getMcpServerInfos()
   //  TODO ちょっとreadonlyをごまかしているがどうするか
+  mcpEnableList.value = McpEnableList.map(value => ({value,label:t(`mcpPermissionSet.${value}`)}))
 
   show.value = true;
 };
@@ -78,10 +75,16 @@ const getMcpInfo = (id:string,name?:string):any => {
   return {}
 }
 
+const getMcpLabel = (id:string,name?:string) => {
+  const mcp = getMcpInfo(id,name)
+  if(mcp){
+    return mcp.title ? `${mcp.title} (${name})` : name
+  }
+  return name
+}
+
 const saveAndClose = async () => {
   saving.value = true;
-  console.log('editing:', JSON.stringify(editingSettings.value));
-  // console.log('mcpSettingList',mcpSettingList.value);
   //  TODO ここで選択したLLMのsystem側apiKeyやmodelが空欄でないかどうかだけ確認する LLM未選択はエラーがわかりにくいので出来れば避けたい
   const save = {
     ...editingSettings.value,
@@ -89,7 +92,6 @@ const saveAndClose = async () => {
   };
   const setting = Schema.decodeUnknownEither(AvatarSetting)(save);
   if (Either.isRight(setting)) {
-    console.log('editingSettings:', JSON.stringify(setting.right));
     await setAvatarConfig(editingSettings.value?.templateId!!, setting.right);
     saving.value = false;
     show.value = false;
@@ -104,7 +106,6 @@ const saveAndClose = async () => {
   },new Map<string,string>()).entries()).map(e => `${e[0]} : ${e[1]}`).join('\n');
   //  TODO エラー時にLLMと音声読み上げが有効ならローカル言語化と音声読み上げを行う
   saving.value = false;
-  console.log(e);
 };
 
 
@@ -232,20 +233,20 @@ onMounted(async () => {
                       <q-card>
                       <q-card-section>
                         <div class="text-subtitle2">{{ mcp[0] }}</div>
-                        <q-toggle v-model="mcp[1].enable" label="enable" />
+                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" />
                         <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
                       </q-card-section>
                       <div class="row q-pa-sm">
                         <div class="col-6 q-my-sm q-pa-sm shadow-1"
                              v-for="(tool, inputIndex) in Object.entries(mcp[1].useTools)"
                              :key="inputIndex">
-                          {{ tool[0] }}
+                          {{getMcpLabel(mcp[0],tool[0])}}
                           <div class="row">
-                            <q-toggle class="col-6" v-model="tool[1].enable" label="enable" />
-                            <q-select class="col-6" v-model="tool[1].allow" :options="McpEnableList" label="Permission" />
-                            <q-tooltip>
+                            <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" />
+                            <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" label="Permission" emit-value map-options/>
+                            <div class="text-caption q-ma-sm">
                               {{getMcpInfo(mcp[0],tool[0])?.description}}
-                            </q-tooltip>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -367,7 +368,7 @@ onMounted(async () => {
 <q-card-section class="row">
   <q-input type="textarea" :model-value="errorMes" readonly class="col-11" style="height: 60px"/>
   <div v-if="saving">reset and saving...</div>
-  <q-btn flat :label="t('close')" @click="saveAndClose" class="col-1"/>
+  <q-btn flat :label="$t('close')" @click="saveAndClose" class="col-1"/>
 </q-card-section>
     </q-card>
   </q-dialog>
