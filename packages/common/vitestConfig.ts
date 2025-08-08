@@ -127,14 +127,14 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "slack_get_user_profile": {"enable": true, "allow": "ask"}
       }
     },
-    "echoDaemon": {
-      "enable": true,
-      "notice": "注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。",
-      "useTools": {
-        "set_task_when_idling": {"enable": true, "allow": "ask"},
-        "set_task_after_minutes": {"enable": true, "allow": "ask"}
-      }
-    }
+    // "echoDaemon": {
+    //   "enable": true,
+    //   "notice": "注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。",
+    //   "useTools": {
+    //     "set_task_when_idling": {"enable": true, "allow": "ask"},
+    //     "set_task_after_minutes": {"enable": true, "allow": "ask"}
+    //   }
+    // }
   },
   daemons: [
     {

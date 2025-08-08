@@ -135,7 +135,9 @@ ipcMain.handle('getAvatarConfig', async (_, templateId) => await ConfigService.g
 
 ipcMain.handle('setNames', async (_,id:string, setting:{userName?:string,avatarName?:string}) => await AvatarService.setNames(id, setting).pipe(Effect.catchAll(showAlertIfFatal('setNames')), aiRuntime.runPromise));
 
-ipcMain.handle('setAvatarConfig', async (_, id, data) => await ConfigService.setAvatarConfig(id, data).pipe(Effect.catchAll(showAlertIfFatal('setAvatarConfig')), aiRuntime.runPromise));
+ipcMain.handle('setAvatarConfig', async (_, id, data) => {
+  return await McpService.updateAvatarMcpSetting(data).pipe(Effect.andThen(a => ConfigService.setAvatarConfig(id, a)),Effect.catchAll(showAlertIfFatal('setAvatarConfig')), aiRuntime.runPromise);
+});
 ipcMain.handle('copyAvatarConfig', async (_, templateId) => await ConfigService.copyAvatarConfig(templateId).pipe(Effect.catchAll(showAlertIfFatal('copyAvatarConfig')), aiRuntime.runPromise));
 ipcMain.handle('deleteAvatarConfig', async (_, templateId) => {
   //  現在動いているtemplateのインスタンスが存在するかをチェック
@@ -159,6 +161,8 @@ ipcMain.handle('setSysConfig', async (_, data) => {
     Effect.andThen(a => McpService.reset(a)),
     Effect.andThen(a => AvatarService.getCurrentAvatarList()),
     Effect.andThen(a => Effect.forEach(Array.from(new Set(a.map(b => b.templateId))), templateId => {
+      return ConfigService.getAvatarConfig(templateId).pipe(Effect.andThen(b => ConfigService.setAvatarConfig(templateId, b)))  //  TODO 強制更新
+/*
       return ConfigService.updateAvatarConfigEffect(templateId, a => {
         return McpService.updateAvatarMcpSetting(templateId).pipe(Effect.andThen(b => {
           // console.log('update avatar mcp setting: ', b);
@@ -168,6 +172,7 @@ ipcMain.handle('setSysConfig', async (_, data) => {
           })
         }));
       });
+*/
     })),
     Effect.catchAll(showAlertIfFatal('setSysConfig'))
     , aiRuntime.runPromise);
@@ -214,7 +219,7 @@ ipcMain.handle('openBrowser', async (_, url: string) => {
 });
 
 
-ipcMain.handle('updateAvatarMcpSetting', async (_,templateId: string) => await McpService.updateAvatarMcpSetting(templateId).pipe(Effect.catchAll(showAlertIfFatal('updateAvatarMcpSetting')), aiRuntime.runPromise));
+ipcMain.handle('getAvatarConfigMcpUpdate', async (_,templateId: string) => await ConfigService.getAvatarConfig(templateId).pipe(Effect.andThen(a => McpService.updateAvatarMcpSetting(a)),Effect.catchAll(showAlertIfFatal('getAvatarConfigMcpUpdate')), aiRuntime.runPromise));
 
 ipcMain.handle('getGeneratorList', async (event) => {
   return await ConfigService.getGeneratorList().pipe(Effect.catchAll(showAlertIfFatal('getGeneratorList')), aiRuntime.runPromise);

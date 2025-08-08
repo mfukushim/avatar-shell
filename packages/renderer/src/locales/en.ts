@@ -106,4 +106,10 @@ export default {
   importAvatarInfo:'Read the avatar settings',
   exportAvatar:'Export Avatar Settings',
   exportAvatarInfo:'Write the avatar settings',
+  mcpPermissionSet: {
+    any: 'O Always Allow',
+    no: 'X Don’t Allow',
+    ask: '! Ask Every Time'
+  },
+  enableHide: 'Enable/Hide',
 }

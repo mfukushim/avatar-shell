@@ -3,9 +3,9 @@ import {Effect, SynchronizedRef} from 'effect';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
-  AlertTask,
+  AlertTask, AvatarMcpSetting,
   AvatarMcpSettingList,
-  AvatarMcpSettingMutable,
+  AvatarSetting,
   DaemonTrigger,
   McpConfigList,
   type McpEnable,
@@ -13,10 +13,9 @@ import {
   McpServerDef,
   SysConfig,
 } from '../../common/Def.js';
-import {ConfigService} from './ConfigService.js';
 import {
   BuildInMcpService,
-  BuildInMcpServiceLive,
+  BuildInMcpServiceLive, EchoSchedulerId,
   setTaskAfterMinutes,
   setTaskWhenIdling,
 } from './BuildInMcpService.js';
@@ -38,7 +37,7 @@ export interface ToolCallParam {
 export class McpService extends Effect.Service<McpService>()('avatar-shell/McpService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    let clientInfoList: McpConfigList = [];  //  client:Client,,prompts:McpPromptInfo[],resources:McpResourceInfo[]
+    let clientInfoList: McpConfigList = [];
     const latchSet = yield* SynchronizedRef.make<Map<string, {answer: string, latch: Effect.Latch}>>(new Map<string, {
       answer: string,
       latch: Effect.Latch
@@ -151,32 +150,30 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
 
     }
 
-    function updateAvatarMcpSetting(templateId: string) {
-      return Effect.gen(function* () {
-        const config = yield* ConfigService.getAvatarConfig(templateId);
-        const mcpServers = getMcpServerInfos();
-        // const generatorList = [''].concat(yield* ConfigService.getGeneratorList());
-        const mcps: Record<string, AvatarMcpSettingMutable> = {};
-        mcpServers.forEach(value => {
-          const useTools: Record<string, {enable: boolean, allow: McpEnable}> = {};
-          value.tools.map(tool => {
-            useTools[tool.name] = {
-              enable: true,
-              allow: 'ask',
-              // info: tool,
-            };
-          });
-          mcps[value.id] = {
-            enable: config.mcp[value.id]?.enable === undefined ? true : config.mcp[value.id]?.enable,
-            notice: value.notice,
-            useTools: {
-              ...useTools,
-              ...config.mcp[value.id]?.useTools,
-            },
+    function updateAvatarMcpSetting(configMcp: AvatarSetting) {
+      const mcpServers = getMcpServerInfos();
+      const mcps: Record<string, AvatarMcpSetting> = {};
+      mcpServers.forEach(value => {
+        const useTools: Record<string, {enable: boolean, allow: McpEnable;}> = {};
+        value.tools.map(tool => {
+          useTools[tool.name] = {
+            enable: true,
+            allow: 'ask',
           };
         });
-        return deepMerge(mcps, config.mcp as Record<string, AvatarMcpSettingMutable>);
-      }).pipe(Effect.catchAll(e => Effect.fail(new Error(e.message))));
+        mcps[value.id] = {
+          enable: configMcp.mcp[value.id]?.enable === undefined ? (value.id !== EchoSchedulerId) : configMcp.mcp[value.id]?.enable, // 通常のmcpは追加時デフォルトはenable:true だが EchoDaemonは追加時デフォルトは enable: falseである
+          notice: value.notice,
+          useTools: {
+            ...useTools,
+            ...configMcp.mcp[value.id]?.useTools,
+          },
+        };
+      });
+      return Effect.succeed({
+        ...configMcp,
+        mcp: deepMerge(mcps, configMcp.mcp) as Record<string, AvatarMcpSetting>,
+      } as AvatarSetting);
     }
 
     function deepMerge<T extends object, U extends object>(target: T, source: U): T & U {
@@ -286,7 +283,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             a.delete(id);
             return a;
           });
-          // console.log('ans:', ans);
           return ans;
         }
       });
@@ -297,7 +293,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       name: string,
       arguments: any
     }, callGenerator: GeneratorProvider) {
-      // console.log('callBuildInTool:', params, callGenerator);
       switch (params.name) {
 
         case setTaskWhenIdling.def.name:
@@ -311,7 +306,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     function buildInCall(state: AvatarState, args: any, callGenerator: GeneratorProvider, trigger: DaemonTrigger) {
       //  ここはllmからタイマータスクへの設定指示 タイマー実行はAvatarStateなど 指示内容はここの文章
       //  todo ここのすることはスタートアップタスクのプロンプト等を検証してoneTimeとしてavatarConfigに書き込むこと
-      // console.log('echoMin:', args, state, callGenerator);
       const inst = args.instructions;
       if (!inst) {
         return Effect.succeed({content: [{type: 'text', text: 'fail to set the instruction. no instructions'}]});
@@ -344,7 +338,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         Effect.catchAll(e => Effect.succeed({
           content: [{
             type: 'text',
-            text: `fail to set the instruction. reason: ${e.message}`,
+            text: `fail to set the instruction. reason: ${e}`,
           }],
         })),
       );

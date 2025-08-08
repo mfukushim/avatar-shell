@@ -18,6 +18,7 @@ Note: There are still some parts of the app that are not stable, and there may b
 - Context daemons are used to launch context generators based on set conditions.
 - Echo daemons allow LLMs to perform pseudo-willful actions at their own discretion.
 
+https://note.com/marble_walkers/n/nf3e2a277c061 (Japanese)
 
 ## Install
 
@@ -65,19 +66,19 @@ For other LLMs, try adding them via System Settings or Avatar Settings.
   - system setting  
     edit system setting
 - main window
-  - image area
+  - image area  
     Image display area
-  - conversation area
+  - conversation area  
     Area to display conversations
-  - jump to bottom
+  - jump to bottom  
     Move to the end
-  - show details
+  - show details  
     Detailed display
-  - show find bar
+  - show find bar  
     Search bar display
-  - conversation selector
+  - conversation selector  
     Conversation Information Selector
-  - find bar
+  - find bar  
     Search bar (hidden by default)
 - input bar
   - tools bar show/hide  

@@ -124,7 +124,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         exec: {
           generator: 'geminiText',
           directTrigger: false,
-          templateGeneratePrompt: 'Please write a friendly, short, one-line greeting.',
+          templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
           setting: {
             toClass: 'talk',
             toRole: 'bot',
@@ -144,7 +144,6 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiVoice',
-          // templateGeneratePrompt: '{body}',
           directTrigger: true,
           setting: {
             toClass: 'daemon',
