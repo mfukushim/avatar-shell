@@ -110,7 +110,7 @@ Examples:
 - "After a one-minute pause in the conversation, instruct LLM to 'create a new topic based on the current context and start a conversation.'"
 - "When the conversation contains words/phrases related to the previous conversation (searched in a vector database, etc.), add supplementary information about those words to the LLM's input and create a reply."
 
-### Echo Demon
+### Echo Daemon
 
 The schedule submitted by the AI to the built-in MCP server is re-entered into the Avatar Shell as if it were a human, simulating a pseudo-ego.
 Caution: This function may result in excessive privilege escalation. Please be aware of the risks and use it at your own risk.
