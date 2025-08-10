@@ -11,10 +11,10 @@ import {
 } from '../../common/Def.js';
 import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
-//  @ts-ignore
-// import expand_template from 'expand-template';
-//
-// const expand = expand_template();
+// @ts-ignore
+import expand_template from 'expand-template';
+
+const expand = expand_template();
 
 //  https://modelcontextprotocol.io/specification/2025-03-26/server/resources#resource-contents
 export interface McpResource {
@@ -113,27 +113,25 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
           console.log('connect client:', socket?.id);
           setSocketState(true);
         })
-        socket.on('asMessage',async (mes:AsMessage[]) => {
-          console.log('received socket asMessage:',mes);
+        socket.on('asMessage',async (mes:AsMessage) => {
+          console.log('received socket asMessage:', mes);
           //  socket受信テキストは asClassで comの属性を強制的に付ける
           //  テンプレート置き換えを行った上で userの発言として追加する
-          const extMes = mes.map(value => {
-                  // value.content.from = `com:${value.content.from}`
-            // const text = value.content.text ? expand(sysConfig.websocket.textTemplate,{
-            //   from: value.content.from,
-            //   body: value.content.text
-            // }): value.content.text
-            return {
-              ...value,
-              asClass: 'com',
-              asRole: 'human',
-              content:{
-                ...value.content,
-                // text,
-                isExternal: true,
-              }
-            } as AsMessage;
-          })
+          const extMes = [{
+            ...mes,
+            asClass: 'com',
+            asRole: 'human',
+            content: {
+              ...mes.content,
+              isExternal: true,
+              text: mes.content.text && sysConfig?.websocket?.textTemplate ?
+                expand(sysConfig.websocket.textTemplate, {
+                from: mes.content.from,
+                body: mes.content.text,
+              }): undefined
+            }
+          } as AsMessage]
+
           await socketCallback(extMes);
         })
         socket.on('disconnect', () => {
