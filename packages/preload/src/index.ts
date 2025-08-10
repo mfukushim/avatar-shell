@@ -117,22 +117,6 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
           console.log('received socket asMessage:', mes);
           //  socket受信テキストは asClassで comの属性を強制的に付ける
           //  テンプレート置き換えを行った上で userの発言として追加する
-          /*
-                    const extMes = mes.map(value => {
-                      return {
-                        ...value,
-                        asClass: 'com',
-                        asRole: 'human',
-                        content:{
-                          ...value.content,
-                          // text,
-                          isExternal: true,
-                        }
-                      } as AsMessage;
-                    })
-                    await socketCallback(extMes);
-                  })
-          */
           const extMes = [{
             ...mes,
             asClass: 'com',
