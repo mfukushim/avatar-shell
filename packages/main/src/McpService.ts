@@ -15,7 +15,7 @@ import {
 } from '../../common/Def.js';
 import {
   BuildInMcpService,
-  BuildInMcpServiceLive, EchoSchedulerId,
+  BuildInMcpServiceLive,
   setTaskAfterMinutes,
   setTaskWhenIdling,
 } from './BuildInMcpService.js';
@@ -162,7 +162,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           };
         });
         mcps[value.id] = {
-          enable: configMcp.mcp[value.id]?.enable === undefined ? (value.id !== EchoSchedulerId) : configMcp.mcp[value.id]?.enable, // 通常のmcpは追加時デフォルトはenable:true だが EchoDaemonは追加時デフォルトは enable: falseである
+          enable: configMcp.mcp[value.id]?.enable === undefined ? false: configMcp.mcp[value.id]?.enable,
           notice: value.notice,
           useTools: {
             ...useTools,
