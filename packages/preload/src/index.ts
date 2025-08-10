@@ -113,24 +113,24 @@ export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?
           console.log('connect client:', socket?.id);
           setSocketState(true);
         })
-        socket.on('asMessage',async (mes:AsMessage) => {
+        socket.on('asMessage',async (mes:AsMessage[]) => {
           console.log('received socket asMessage:', mes);
           //  socket受信テキストは asClassで comの属性を強制的に付ける
           //  テンプレート置き換えを行った上で userの発言として追加する
-          const extMes = [{
-            ...mes,
+          const extMes = mes.map(value => ({
+            ...value,
             asClass: 'com',
             asRole: 'human',
             content: {
-              ...mes.content,
+              ...value.content,
               isExternal: true,
-              text: mes.content.text && sysConfig?.websocket?.textTemplate ?
+              text: value.content.text && sysConfig?.websocket?.textTemplate ?
                 expand(sysConfig.websocket.textTemplate, {
-                from: mes.content.from,
-                body: mes.content.text,
+                from: value.content.from,
+                body: value.content.text,
               }): undefined
             }
-          } as AsMessage]
+          } as AsMessage))
 
           await socketCallback(extMes);
         })
