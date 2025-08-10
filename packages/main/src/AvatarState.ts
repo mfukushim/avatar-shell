@@ -412,7 +412,6 @@ export class AvatarState {
             return Effect.succeed([]);
           case 'IfExtTalkCounterOver':
             state.externalTalkCounter += updated.delta.filter(value => value.content.isExternal).length;
-            console.log('IfExtTalkCounterOver:',state.externalTalkCounter);
             if (a.config.trigger.condition.countMax && state.externalTalkCounter >= a.config.trigger.condition.countMax) {
               return state.execDaemon(a, updated.context).pipe(Effect.tap(_ => state.externalTalkCounter = 0));
             }
@@ -688,11 +687,7 @@ export class AvatarState {
     if (bags.length === 0) {
       return Effect.void;  //  更新の無限ループ防止
     }
-    // if (isExternal) {
-    //   this.externalTalkCounter += bags.length;
-    // }
     console.log('addContext',bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
-    // TODO ここにmediaBin等の変換保存を移動させる
     const it = this;
     return Effect.gen(function* () {
       const mesList = yield* Effect.forEach(bags, mes => {
