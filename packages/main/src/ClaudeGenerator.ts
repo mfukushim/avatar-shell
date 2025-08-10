@@ -389,7 +389,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
       // it.prevContexts.push(inputContext);
-      console.log('claude :', contents.map(value => JSON.stringify(value).slice(0,200)));
+      console.log('claude :', contents.map(value => JSON.stringify(value,null,2).slice(0,250)).join('\n'));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',
         messages: contents,

@@ -31,6 +31,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       return Effect.gen(function*() {
         const m = yield *Ref.get(avatars)
         const state = yield *HashMap.get(m,avatarId)
+        console.log('add ext:',state.ExternalTalkCounter);
         yield *state.addContext(bags,true)
         yield* DocService.addLog(bags.map(value => (AsOutput.makeOutput(value,{
           provider:'emptyText', //  無効値を持たせたいが
