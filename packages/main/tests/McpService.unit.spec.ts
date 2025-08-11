@@ -10,7 +10,7 @@ import {DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig';
-import {AvatarSetting} from '../../common/Def';
+import {AvatarMcpSettingListMutable, AvatarSetting} from '../../common/Def';
 
 describe('McpService', () => {
   beforeEach(() => {
@@ -310,6 +310,102 @@ describe('McpService', () => {
 
     console.log(res);
     expect(res._tag).toBe('Failure');
+  });
+
+  it('getToolDefs1', async () => {
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      {
+        const res1 = yield* McpService.getToolDefs(vitestAvatarConfigMi.mcp);
+        console.log(res1);
+        expect(Array.isArray(res1)).toBe(true);
+        const filter1 = res1.filter(v => v.name.startsWith('traveler'));
+        expect(filter1.length).toBe(8)
+      }
+      //  -----
+      const cloned:AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
+
+      {
+        cloned.traveler.enable = false;
+        const res1 = yield* McpService.getToolDefs(cloned);
+        console.log(res1);
+        expect(Array.isArray(res1)).toBe(true);
+        const filter1 = res1.filter(v => v.name.startsWith('traveler'));
+        expect(filter1.length).toBe(0)
+      }
+      {
+        cloned.traveler.enable = true;
+        for (const key of Object.keys(cloned.traveler.useTools)) {
+          cloned.traveler.useTools[key].enable = false;
+        }
+        const res1 = yield* McpService.getToolDefs(cloned);
+        console.log(res1);
+        expect(Array.isArray(res1)).toBe(true);
+        const filter1 = res1.filter(v => v.name.startsWith('traveler'));
+        expect(filter1.length).toBe(0)
+
+      }
+      {
+        cloned.traveler.enable = true;
+        console.log('useTools',cloned.traveler.useTools);
+        for (const key of Object.keys(cloned.traveler.useTools)) {
+          console.log(key);
+          if(key.startsWith('get_setting')) {
+            cloned.traveler.useTools[key].enable = true;
+          } else {
+            cloned.traveler.useTools[key].enable = false;
+          }
+        }
+        const res1 = yield* McpService.getToolDefs(cloned);
+        console.log(res1);
+        expect(Array.isArray(res1)).toBe(true);
+        const filter1 = res1.filter(v => v.name.startsWith('traveler'));
+        expect(filter1.length).toBe(1)
+      }
+      {
+        cloned.traveler.enable = true;
+        for (const key of Object.keys(cloned.traveler.useTools)) {
+          if(key.startsWith('get_setting')) {
+            cloned.traveler.useTools[key].enable = true;
+            cloned.traveler.useTools[key].allow = 'no';
+          } else if(key.startsWith('start_traveler_journey')) {  //  動作モード次第で使えない状態もあるので⚠
+            cloned.traveler.useTools[key].enable = true;
+            cloned.traveler.useTools[key].allow = 'any';
+          } else if(key.startsWith('get_traveler_location')) {
+            cloned.traveler.useTools[key].enable = true;
+            cloned.traveler.useTools[key].allow = 'ask';
+          } else {
+            cloned.traveler.useTools[key].enable = false;
+          }
+        }
+        console.log(JSON.stringify(cloned,null,2));
+        const res1 = yield* McpService.getToolDefs(cloned);
+        console.log(res1);
+        expect(Array.isArray(res1)).toBe(true);
+        const filter1 = res1.filter(v => v.name.startsWith('traveler'));
+        expect(filter1.length).toBe(3)
+      }
+    }).pipe(
+      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise
+    );
+
+  });
+  it('getToolDefs2', async () => {
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      const cloned:AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
+      cloned.traveler.enable = false;
+
+      return yield* McpService.getToolDefs(cloned);
+    }).pipe(
+      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise
+    );
+
+    console.log(res);
+    expect(Array.isArray(res)).toBe(true);
+    expect(res.every(v => !v.name.startsWith('traveler'))).toBeTruthy()
   });
 
 },5 * 60 * 1000);

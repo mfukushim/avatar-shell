@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {minimize, toggleMaximize, closeApp, onSocketState, setSocketConnect} from '@app/preload';
 import VolumePanel from './VolumePanel.vue';
 import {onMounted, ref} from 'vue';
@@ -19,8 +20,14 @@ const emit = defineEmits<{
 }>()
 
 
-const showSchedule = ref("daemon")
+const showSchedule = ref("schedule")
 const showCom = ref("wifi_off")
+
+const changeDoc = (doc: AsMessage[]) => emit('changeDoc',doc)
+const changeImage = (url: string,mime:string) => emit('changeImage',url,mime)
+const selectSound = (url: string,mime:string) => emit('selectSound',url,mime)
+const setVol = (vol: number) => emit('setVolume',vol)
+
 const toggleSchedule = () => {
   showSchedule.value = showSchedule.value === "schedule" ? "update_disabled" : "schedule"
 }
@@ -28,17 +35,11 @@ const toggleCom = () => {
   showCom.value = showCom.value === "wifi" ? "wifi_off" : "wifi"
   setSocketConnect(showCom.value === "wifi")
 }
-// const showVolume = ref("volume_up")
+
 const showImageSelect = ref(false)
 const toggleImageSelect = () => {
   showImageSelect.value = !showImageSelect.value
 }
-
-
-const changeDoc = (doc: AsMessage[]) => emit('changeDoc',doc)
-const changeImage = (url: string,mime:string) => emit('changeImage',url,mime)
-const selectSound = (url: string,mime:string) => emit('selectSound',url,mime)
-const setVol = (vol: number) => emit('setVolume',vol)
 
 onMounted(async () => {
   onSocketState(state => {

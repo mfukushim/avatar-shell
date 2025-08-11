@@ -126,6 +126,7 @@ export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
   asClass: AsClassSchema,
   asRole: AsRoleSchema,
   asContext:AsContextLinesSchema,
+  genName:Schema.optional(Schema.String),
   isRequestAction: Schema.Boolean,
   content: AsMessageContentSchema,
 }) {
@@ -172,8 +173,6 @@ export type DaemonTriggerSchema = typeof DaemonTriggerSchema.Type
 const SchedulerExecGenSchema = Schema.mutable(Schema.Struct({
   generator: GeneratorProviderSchema, //  undefinedの場合ジェネレーターは使わずにテンプレート変換のみする(多くの場合固定プロンプト)
   templateGeneratePrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
-  // templateContextPrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
-  // addDaemonGenToContext: Schema.Boolean,
   directTrigger: Schema.Boolean,
   //  誰が(TELLER)
   setting: Schema.mutable(ContextGeneratorSettingSchema),
@@ -366,10 +365,10 @@ export const AvatarMcpSetting = Schema.Struct({
   notice: Schema.optional(Schema.String),
   useTools: Schema.Record({
     key: Schema.String,
-    value: Schema.Struct({
+    value: Schema.mutable(Schema.Struct({
       enable: Schema.Boolean,
       allow: McpEnable,
-    }),
+    })),
   }),
 });
 
@@ -382,6 +381,14 @@ export const AvatarMcpSettingList = Schema.Record({
   key: Schema.String,
   value: AvatarMcpSetting,
 });
+
+export const AvatarMcpSettingListMutable = Schema.Record({
+  key: Schema.String,
+  value: AvatarMcpSettingMutable,
+});
+
+// export const AvatarMcpSettingListMutable = Schema.mutable(AvatarMcpSettingList);
+export type AvatarMcpSettingListMutable = typeof AvatarMcpSettingListMutable.Type
 
 export type AvatarMcpSettingList = typeof AvatarMcpSettingList.Type
 

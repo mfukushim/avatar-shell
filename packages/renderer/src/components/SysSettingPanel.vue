@@ -445,7 +445,7 @@ onBeforeUnmount(() => {
                               :label="t('mcpName')"
                               placeholder="mcp1"
                               class="q-mb-sm"
-                              debounce="500"
+                              debounce="1000"
                               @change="tabMcp = server.id"
                             />
                             {{ t('onlyAlphaNum') }}

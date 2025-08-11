@@ -49,7 +49,6 @@ interface TimeDaemonState {
 
 export class AvatarState {
   private readonly tag: string;
-  // private mainLlmGenerator?: ContextGenerator;
   private summaryCounter: number = 0;
   private externalTalkCounter: number = 0;
   private generatorMaxUseCount: number | undefined;
@@ -65,41 +64,74 @@ export class AvatarState {
     private window: BrowserWindow,
     private avatarConfig: AvatarSetting,
     private talkContext: SubscriptionRef.SubscriptionRef<{context: AsMessage[], delta: AsMessage[]}>,
-    private talkSeq: number,
+    // private talkSeq: number,
     private daemonStates: Ref.Ref<DaemonState[]>,
     private daemonStatesQueue: Queue.Queue<DaemonState>,  //  Echo Mcpで追加された予定をキューする
-    // private timeDaemonStates: Ref.Ref<DaemonState[]>,
     private fiberTimers: SynchronizedRef.SynchronizedRef<TimeDaemonState[]>,
   ) {
-    // this.previousResponseId = null;
     this.tag = `${id}_${name}_${dayjs().format('YYYYMMDDHHmmss')}`;
+  }
+
+  get TemplateId() {
+    return this.templateId;
+  }
+
+  get Name() {
+    return this.name;
+  }
+
+  get UserName() {
+    return this.userName;
+  }
+
+  get TalkContextEffect() {
+    return this.talkContext.pipe(SubscriptionRef.get, Effect.andThen(a => a.context));
+  }
+
+  get BrowserWindow() {
+    return this.window;
+  }
+
+  get Tag() {
+    return this.tag;
+  }
+
+  get LogFileName() {
+    return this.tag + '.asdata';
+  }
+
+  get Config() {
+    return this.avatarConfig;
   }
 
   private changeApplyAvatarConfig(config: AvatarSetting) {
     console.log('update changeApplyAvatarConfig:');
-    const state = this;
-    return Effect.gen(function* () {
-      state.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
-
-      // const sysConfig = yield* ConfigService.getSysConfig();
-      // state.mainLlmGenerator = yield *ConfigService.makeLlmGenerator(state.avatarConfig.general.useLlm,sysConfig,config.general.mainLlmSetting)
-      if (config.general.maxGeneratorUseCount === 0) {
-        state.generatorMaxUseCount = undefined;
-      } else {
-        state.generatorMaxUseCount = config.general.maxGeneratorUseCount;
-      }
-      yield* state.restartDaemonSchedules(config.daemons);
-    }).pipe(
+    // const it = this;
+    this.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
+    if (config.general.maxGeneratorUseCount === 0) {
+      this.generatorMaxUseCount = undefined;
+    } else {
+      this.generatorMaxUseCount = config.general.maxGeneratorUseCount;
+    }
+    return this.restartDaemonSchedules(config.daemons).pipe(
+    // return Effect.gen(function* () {
+    //   it.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
+    //   if (config.general.maxGeneratorUseCount === 0) {
+    //     it.generatorMaxUseCount = undefined;
+    //   } else {
+    //     it.generatorMaxUseCount = config.general.maxGeneratorUseCount;
+    //   }
+    //   yield* it.restartDaemonSchedules(config.daemons);
+    // }).pipe(
       Effect.catchAll(e => {
         console.log('changeApplyAvatarConfig error:', e);
-        state.showAlert(`avatar config error:${e}`);
+        this.showAlert(`avatar config error:${e}`);
         return Effect.void;
       }), //  configの設定エラーは普通に起きうる
-      // Effect.catchAll(showAlertIfFatal('avatar config')), //  configの設定エラーは普通に起きうる
       Effect.andThen(_ => ConfigService.needWizard()),
       Effect.andThen(needWizard => {
-        if (state.window) {
-          state.window.webContents.send('init-avatar', state.id, state.Name, config, needWizard, state.userName);
+        if (this.window) {
+          this.window.webContents.send('init-avatar', this.id, this.Name, config, needWizard, this.userName);
         }
       }),
     );
@@ -181,13 +213,11 @@ export class AvatarState {
 
   makeDaemonSet(config: DaemonConfig, sysConfig: SysConfig) {
     if (config.exec.generator) {
-      return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
-        // yield *gen.initialize(sysConfig, a.exec.setting)
-        return {
+      return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a =>
+        ({
           config: config,
           generator: a,
-        } as DaemonState;
-      }));
+        } as DaemonState)));
     }
     return Effect.succeed({
       config,
@@ -533,6 +563,7 @@ export class AvatarState {
           asClass: daemon.config.exec.setting?.toClass || 'daemon',
           asRole: daemon.config.exec.setting?.toRole || 'bot',
           asContext: daemon.config.exec.setting?.toContext || 'surface',
+          genName: daemon.generator.Name,
           content: {
             ...a.content,
           },
@@ -553,37 +584,6 @@ export class AvatarState {
     });
   }
 
-  get TemplateId() {
-    return this.templateId;
-  }
-
-  get Name() {
-    return this.name;
-  }
-
-  get UserName() {
-    return this.userName;
-  }
-
-  get TalkContextEffect() {
-    return this.talkContext.pipe(SubscriptionRef.get, Effect.andThen(a => a.context));
-  }
-
-  get BrowserWindow() {
-    return this.window;
-  }
-
-  get Tag() {
-    return this.tag;
-  }
-
-  get LogFileName() {
-    return this.tag + '.asdata';
-  }
-
-  get Config() {
-    return this.avatarConfig;
-  }
 
   get ScheduleList() {
     const state = this;
@@ -665,7 +665,7 @@ export class AvatarState {
       const avatar = new AvatarState(
         id, templateId, name, userName, window, aConfig,
         mes,
-        0,
+        // 0,
         daemonStates,
         daemonStatesQueue,
         // timeDaemonStates,
@@ -706,20 +706,6 @@ export class AvatarState {
                 mediaUrl: mediaUrl,
               },
             } as AsMessage;
-            /*
-                        message = [{
-                          ...triggerMes,
-                          asClass: 'daemon',
-                          asRole: 'system',
-                          asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-                          content: {
-                            ...triggerMes.content,
-                            mediaBin: undefined,
-                            mediaUrl: mediaUrl,
-                          },
-                        } as AsMessage,
-                        ];
-            */
           } else if (mes.content.mediaBin && mes.content.mimeType?.startsWith('text/')) {
             return {
               ...mes,
@@ -732,20 +718,6 @@ export class AvatarState {
                 text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
               },
             } as AsMessage;
-            /*
-            message = [{
-              ...triggerMes,
-              asClass: 'daemon',
-              asRole: 'system',
-              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-              content: {
-                ...triggerMes.content,
-                mediaBin: undefined,
-                text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
-              },
-            } as AsMessage,
-            ];
-*/
           } else {
             return mes;
           }
@@ -758,46 +730,6 @@ export class AvatarState {
     });
 
   }
-
-  /**
-   * 会話コンテキストを持つLLM実行
-   * @param message
-   */
-
-  /*
-    askAi(message: AsMessage[]) {
-      return Effect.forEach(message, asMessage => {
-        if (!this.mainLlmGenerator) {
-          return Effect.fail(new Error('main llm not init'));
-        }
-        //  askAiから来るコンテンツには画像がmediaBinで来ることがあるので、それはmediaUrlに変換しておく
-        if (asMessage.content.mimeType?.startsWith('image/') && asMessage.content.mediaBin) {
-          const img = Buffer.from(asMessage.content.mediaBin).toString('base64');
-          return DocService.saveDocMedia(asMessage.id, asMessage.content.mimeType, img, this.TemplateId).pipe(
-            Effect.andThen(a => {
-              return {
-                ...asMessage,
-                content: {
-                  ...asMessage.content,
-                  mediaBin: undefined,
-                  mediaUrl: a,
-                },
-              };
-            }),
-          );
-        }
-        return Effect.succeed(asMessage);
-      }).pipe(
-        Effect.andThen(mes => this.execGeneratorToContext(this.mainLlmGenerator!!, mes)),
-        Effect.tap(a => this.sendToWindow(a)),
-        Effect.catchAll(e => {
-          console.log('askAi error:', e);
-          this.showAlert(`ask ai error:${e}`);
-          return Effect.succeed([] as AsMessage[]);
-        }),
-      );
-    }
-  */
 
   checkGeneratorCount() {
     if (this.generatorMaxUseCount === undefined) {
