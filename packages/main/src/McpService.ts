@@ -2,6 +2,7 @@
 import {Effect, SynchronizedRef} from 'effect';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
+import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
   AlertTask, AvatarMcpSetting,
   AvatarMcpSettingList,
@@ -10,7 +11,6 @@ import {
   McpConfigList,
   type McpEnable,
   McpInfo,
-  McpServerDef,
   SysConfig,
 } from '../../common/Def.js';
 import {
@@ -53,7 +53,11 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
                 version: '1.0.0',
               },
             );
-            const transport = new StdioClientTransport(a1[1] as McpServerDef);
+            const transport = a1[1].kind === 'stdio' ? new StdioClientTransport(a1[1]): a1[1].kind === 'streamHttp' ? new StreamableHTTPClientTransport(new URL(a1[1].url)):undefined
+            if (!transport) {
+              console.log(a1[1]);
+              return yield *Effect.fail(new Error('MCP define error'))
+            }
             yield* Effect.tryPromise({
               try: () => client.connect(transport),
               catch: error => new Error(`MCP ${a1[0]}.connect:\n${error}`),

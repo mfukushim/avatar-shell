@@ -1,5 +1,5 @@
 <script setup lang="ts" xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-import {defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
+import {computed, defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
 import HeadPanel from './components/HeadPanel.vue';
 import InputPanel from './components/InputPanel.vue';
 import {
@@ -95,6 +95,14 @@ onMounted(async () => {
     console.log('mounted: box height =', (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height);
     rDrawerHeight.value = (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height || 500;
   }
+  // カスタムイベントの購読は addEventListener を推奨
+  // （HTML テンプレート上の @onUIAction は属性名が小文字化されて取りにくいため）
+  rendererRef.value?.addEventListener('onUIAction', (e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    console.log('UI Action:', detail);
+    // ここでツール呼び出し等の処理を行う
+  });
+
 });
 
 const resetAvatarList = async () => {
@@ -187,18 +195,8 @@ const mergeTimeline = async (add: AsMessage[]) => {
   if (oneVoice && oneVoice.length > 0 && oneVoice[0].content?.mediaUrl) {
     await playVoice(oneVoice[0]);
   }
-/*
-  if (oneImage.length > 0) {
-    await setAsMessageImage(oneImage[0]);
-  } else {
-    mainImage.value = '';
-  }
-*/
 
   await setTimeline(tl);
-  // const com = tl.filter(t => (t.asRole === 'human' || t.asRole === 'bot') && t.asContext === 'surface');
-  // // console.log('mergeTimeline:com:', com);
-  // sendSocket(com).then(value => console.log('sendSocket:', value));
 };
 
 const sendMessageIn = async (mes: AsMessage[]) => {
@@ -267,6 +265,17 @@ const saveImage = async () => {
   URL.revokeObjectURL(url);
 };
 
+const rendererRef = ref<HTMLElement | null>(null);
+
+// Web Component は props を「文字列」で受け取るため、JSON.stringify した文字列を用意
+const htmlResourceJson = computed(() =>
+  JSON.stringify({
+    uri: 'ui://example/hello',
+    mimeType: 'text/html',
+    text: '<h2>Hello from Vue + Web Component!</h2>',
+  }),
+);
+
 
 </script>
 
@@ -326,6 +335,12 @@ const saveImage = async () => {
 -->
         <div class="wave"></div>
         <div class="q-pa-sm">
+          <ui-resource-renderer
+            ref="rendererRef"
+            :resource="htmlResourceJson"
+            style="display:block;width:100%;height:400px;border:2px solid green;background-color: white;"
+          ></ui-resource-renderer>
+
           <q-img
             :src="mainImage"
             error-src="./assets/blank.png"
