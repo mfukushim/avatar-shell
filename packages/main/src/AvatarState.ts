@@ -52,6 +52,7 @@ export class AvatarState {
   private summaryCounter: number = 0;
   private externalTalkCounter: number = 0;
   private generatorMaxUseCount: number | undefined;
+  private forcedStopDaemons = false
 
   fiberConfig: Fiber.RuntimeFiber<any, any> | undefined;
   fiberTalkContext: Fiber.RuntimeFiber<any, any> | undefined;
@@ -406,15 +407,19 @@ export class AvatarState {
 
   changeTalkContext(updated: {context: AsMessage[], delta: AsMessage[]}) {
     console.log('changeTalkContext:', updated.context.length, updated.delta.length, updated.delta.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
-    const state = this;
+    const it = this;
     return Effect.gen(function* () {
-      //  TODO talkContextが更新されたら、daemon scheduleをチェックする
-      const appendContext = yield* state.daemonStates.pipe(Ref.get).pipe(Effect.andThen(Effect.forEach(a => {
+      if (it.forcedStopDaemons) {
+        //  強制中断フラグが立っている場合、ワンタイムでコンテキスト変動時に次のデーモンを起動しない
+        it.forcedStopDaemons = false
+        return yield *Effect.succeed([]);
+      }
+      yield* it.daemonStates.pipe(Ref.get).pipe(Effect.andThen(Effect.forEach(a => {
         console.log('update changeTalkContext len:', updated.context.length, updated.delta.length);
         switch (a.config.trigger.triggerType as ContextTrigger) {
           case 'Startup':
             if (updated.context.length === 0 && updated.delta.length == 0) {
-              return state.execDaemon(a, updated.context);
+              return it.execDaemon(a, updated.context);
             }
             return Effect.succeed([]);
           case 'IfContextExists':
@@ -432,24 +437,23 @@ export class AvatarState {
                         }
                         return Effect.succeed([]);
             */
-            return find ? state.execDaemon(a, updated.context, find) : Effect.succeed([]);
+            return find ? it.execDaemon(a, updated.context, find) : Effect.succeed([]);
           case 'IfSummaryCounterOver':
             //  TODO 今は簡略化のため、会話数で決定する
-            state.summaryCounter += updated.delta.length;
-            if (a.config.trigger.condition.countMax && state.summaryCounter > a.config.trigger.condition.countMax) {
-              return state.execDaemon(a, updated.context).pipe(Effect.tap(_ => state.summaryCounter = 0));
+            it.summaryCounter += updated.delta.length;
+            if (a.config.trigger.condition.countMax && it.summaryCounter > a.config.trigger.condition.countMax) {
+              return it.execDaemon(a, updated.context).pipe(Effect.tap(_ => it.summaryCounter = 0));
             }
             return Effect.succeed([]);
           case 'IfExtTalkCounterOver':
-            state.externalTalkCounter += updated.delta.filter(value => value.content.isExternal).length;
-            if (a.config.trigger.condition.countMax && state.externalTalkCounter >= a.config.trigger.condition.countMax) {
-              return state.execDaemon(a, updated.context).pipe(Effect.tap(_ => state.externalTalkCounter = 0));
+            it.externalTalkCounter += updated.delta.filter(value => value.content.isExternal).length;
+            if (a.config.trigger.condition.countMax && it.externalTalkCounter >= a.config.trigger.condition.countMax) {
+              return it.execDaemon(a, updated.context).pipe(Effect.tap(_ => it.externalTalkCounter = 0));
             }
             return Effect.succeed([]);
         }
         return Effect.fail(new Error('unknown triggerType'));
       })), Effect.andThen(a => a.flat()));
-      //yield* state.addContext(appendContext); 各execScheduler内で追加判断している それに全部をループする前に追加をするものもあるのでdeltaが更新されない
     });
   }
 
@@ -471,7 +475,7 @@ export class AvatarState {
       それ以外は必要時に追加していく
       '{from} said, "{output}"'
        */
-      let toLlm: AsMessage[] = [];
+      let toLlm: AsMessage[];
       let text: any;
       let message: AsMessage|undefined;
       if (triggerMes) {
@@ -534,8 +538,6 @@ export class AvatarState {
         if (pos >= 0) {
           context = context.slice(0, pos );
         }
-          // console.log('execScheduler triggerMes:', text);
-        // }
       } else {
         //  非トリガー
         text = daemon.config.exec.templateGeneratePrompt;
@@ -652,7 +654,7 @@ export class AvatarState {
 
   static make(id: string, templateId: string, name: string, window: BrowserWindow, userName: string) {
     return Effect.gen(function* () {
-      console.log('avatarstate make');
+      // console.log('avatarstate make');
       const configPub = yield* ConfigService.getAvatarConfigPub(templateId);
 
       const aConfig = yield* SubscriptionRef.get(configPub);
@@ -673,13 +675,18 @@ export class AvatarState {
       );
 
       avatar.fiberConfig = yield* Effect.forkDaemon(configPub.changes.pipe(Stream.runForEach(a => {
-          console.log('avatarState update avatarConfig:');
+          // console.log('avatarState update avatarConfig:');
           return avatar.changeApplyAvatarConfig(a); //  config更新
         }),
       ));
 
       return avatar;
     });
+  }
+
+  stopAvatar() {
+    //  ワンタイムでContext変動によるdaemonの実行を無視させる
+    this.forcedStopDaemons = true
   }
 
 
@@ -692,6 +699,13 @@ export class AvatarState {
     return Effect.gen(function* () {
       const mesList = yield* Effect.forEach(bags, mes => {
         return Effect.gen(function* () {
+          //  TODO 本来socket.ioから自分の電文は来ないはずだが、来ることがあるのでフィルタする。。。
+          const current = yield *it.talkContext.get
+          const isSame = current.context.find(value => value.id === mes.id)
+          if (isSame) {
+            console.log('addContext same id:',mes);
+            return undefined
+          }
           if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
             const img = Buffer.from(mes.content.mediaBin).toString('base64');
             const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, img, it.templateId);
@@ -724,8 +738,12 @@ export class AvatarState {
         });
 
       });
+      const mesOut = mesList.filter((v): v is  AsMessage => v !== undefined)
+      if (mesOut.length === 0) {
+        return Effect.void;
+      }
       return yield* SubscriptionRef.update(it.talkContext, a => {
-        return {context: a.context.concat(mesList), delta: mesList};
+        return {context: a.context.concat(mesOut), delta: mesOut};
       });
     });
 
