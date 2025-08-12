@@ -241,6 +241,8 @@ ipcMain.handle('getLocale',  (_) => app.getLocale());
 
 ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await AvatarService.findInPage(avatarId,text).pipe(Effect.catchAll(showAlertIfFatal('findInPage')), aiRuntime.runPromise));
 
+ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.stopAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('stopAvatar')), aiRuntime.runPromise));
+
 
 app.on('ready', async () => {
   console.log('start app');

@@ -15,6 +15,7 @@ export class MediaService extends Effect.Service<MediaService>()('avatar-shell/M
     const cachePath = app ? path.join(app.getPath('userData'), 'mediaCache') : path.join(__dirname, '../../../tools/mp3');
     yield* fs.makeDirectory(cachePath, {recursive: true});
 
+    //  TODO 現在未使用 media処理はそのうち必要なのでserviceとしては残しておく
     function playSound(path: string) {
       console.log('playSound');
       //  TODO linux非対応

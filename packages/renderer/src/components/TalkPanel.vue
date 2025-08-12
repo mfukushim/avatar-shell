@@ -1,9 +1,10 @@
 <script setup lang="ts">
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {nextTick, onMounted, reactive, ref, watch} from 'vue';
 import type {AsMessage} from '../../../common/Def.ts';
 import type {QVirtualScroll} from 'quasar';
 import dayjs from 'dayjs';
-import {findInPage, getMediaUrl} from '@app/preload';
+import {findInPage, getMediaUrl, stopAvatar} from '@app/preload';
 import type {AsClass, AsContextLines, AsRole} from '../../../common/DefGenerators.ts';
 
 const props = defineProps<{
@@ -19,7 +20,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'select', mes: AsMessage): void
-  // (e: 'openMenu'): void
   (e: 'playVoice', mes: AsMessage): void
 }>();
 
@@ -38,15 +38,12 @@ watch(() => props.forceUpdate, async () => {
 const updateExt = async () => {
   data.value = props.timeline.filter(value => isShow(value.asClass, value.asRole, value.asContext, value?.content?.mimeType));
   await nextTick();
-  // console.log('watch num:', data.value.length, tableRef.value);
   tableRef.value?.scrollTo(data.value.length - 1);
   for (const v of props.timeline) {
     if (v.content?.mimeType && v.content?.mediaUrl) {
-      // console.log(v);
       const url = await getMediaUrl(v.content.mimeType, v.content.mediaUrl);
       if (url) {
         imageCache.value[v.id] = url;
-        // console.log('cache:',v.id,url.slice(0,20),);
       }
     }
   }
@@ -69,8 +66,6 @@ const flag = reactive({
   showDaemon: false,
   showAll: false,
 });
-//        v-if="isShow(item.asRole)"
-
 
 const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mimeType?: string) => {
   let showFlag = false;
@@ -89,24 +84,19 @@ const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mim
   }
   if (flag.showUser) {
     if (view && asRole === 'human') showFlag = true;
-    // if(asClass === 'talk' && asRole === 'human') showFlag = true;
-    // if(asClass === 'com' && asRole === 'human') showFlag = true;
   }
   if (flag.showAssistant) {
     if (view && asRole === 'bot' && asClass !== 'daemon' && asClass !== 'system') showFlag = true;
-    // if(asClass === 'com' && asRole === 'bot') showFlag = true;
   }
   return showFlag;
 };
 
 const pickItem = (item: AsMessage) => {
   //  何か処理あるか
-  console.log('pickItem', item);
   emit('select', item);
 };
 
 const playSound = (item: AsMessage) => {
-  console.log('playsound', item);
   emit('playVoice', item);
 };
 
@@ -136,6 +126,10 @@ const scrollBottom = async () => {
   }
 };
 
+const stopAvatarBtn = async () => {
+  await stopAvatar();
+}
+
 const tableRef = ref<QVirtualScroll>();
 const showTextFind = ref(false);
 const showInfo = ref(false);
@@ -162,6 +156,7 @@ const imageCache = ref<Record<string, string>>({});
             <q-chip dense>{{ item.content.from }}</q-chip>
             <q-chip dense>{{ getItemType(item) }}</q-chip>
             <div>{{ item.asClass }}/{{ item.asRole }}/{{ item.asContext }}</div>
+            <div>{{ item.genName ? `/${item.genName}`: '' }}</div>
             <div>{{ item.content.toolName }}</div>
             <q-space />
             <div class="text-caption">{{ dayjs(item.tick).format('YYYY-MM-DD HH:mm:ss') }}</div>
@@ -180,20 +175,22 @@ const imageCache = ref<Record<string, string>>({});
       <div v-if="oneMes">
         {{ oneMes }}
       </div>
-      <q-chip color="red" text-color="white" dense :model-value="runningMarks.length > 0">
+      <q-chip color="red" text-color="white" dense :model-value="runningMarks.length > 0" icon="cancel" clickable @click="stopAvatarBtn">
         {{ infoRunningMark() }}
       </q-chip>
     </div>
     <div class="q-pa-sm row" v-if="!props.hideControl">
       <div class="row col-all">
-        <q-icon name="vertical_align_bottom" size="md" color="primary" @click="scrollBottom" />
+        <q-icon name="vertical_align_bottom" size="md" color="primary" @click="scrollBottom"  class="cursor-pointer" />
         <q-space />
         <q-toggle
+          name="showInfo"
           v-model="showInfo"
           dense
           label="詳細" class="q-px-sm"
         />
         <q-toggle
+          name="showTextFind"
           v-model="showTextFind"
           dense
           label="検索"
@@ -219,6 +216,7 @@ const imageCache = ref<Record<string, string>>({});
         All
       </q-chip>
       <q-input outlined
+               name="inputText"
                bottom-slots
                v-model="text"
                label="Label"
@@ -227,7 +225,6 @@ const imageCache = ref<Record<string, string>>({});
                @keydown.enter="findText"
                dense
                v-if="showTextFind">
-
         <template v-slot:append>
           <q-icon v-if="text !== ''" name="close" @click="text = ''" class="cursor-pointer" />
           <q-icon name="search" @click="findText" />

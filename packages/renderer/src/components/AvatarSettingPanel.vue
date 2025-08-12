@@ -276,7 +276,7 @@ onMounted(async () => {
                     <q-tab-panel v-for="daemon in editingSchedulers" :key="daemon.id" :name="daemon.name">
                       <q-card>
                         <q-card-section class="row items-center">
-                          <q-input bottom-slots class="" v-model="daemon.name" debounce="500" @change="tabDaemon = daemon.name">
+                          <q-input bottom-slots class="" v-model="daemon.name" debounce="1000" @change="tabDaemon = daemon.name">
                             <template v-slot:hint>
                               {{ $t('name') }}
                             </template>

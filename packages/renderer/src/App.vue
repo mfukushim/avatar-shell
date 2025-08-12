@@ -225,14 +225,14 @@ const setAsMessageImage = async (mes: AsMessage) => {
 };
 
 const playVoice = async (mes: AsMessage) => {
-  console.log('playVoice:', mes);
+  // console.log('playVoice:', mes);
   if (mes.content.mediaUrl && mes.content.mimeType) {
     //  データ更新は逐次起きるので、直近の再生idと同じなら抑止する
     if (recentSoundId.value === mes.id) {
       return;
     }
     recentSoundId.value = mes.id;
-    console.log('sound id:', mes.id);
+    // console.log('sound id:', mes.id);
     const sound = await getMediaUrl(mes.content.mimeType, mes.content.mediaUrl);
     // console.log('play voice:', sound.slice(0, 200));
     await playSound(sound);

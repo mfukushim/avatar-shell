@@ -150,6 +150,11 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       )
     }
 
+    function stopAvatar(avatarId:string) {
+      return avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)),
+        Effect.andThen(a => a.stopAvatar()))
+    }
+
     return {
       makeAvatar,
       askAvatar,
@@ -163,6 +168,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       cancelSchedule,
       findInPage,
       setNames,
+      stopAvatar,
     }
   })
 }) {}

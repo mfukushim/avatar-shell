@@ -1,5 +1,5 @@
+/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect, Stream} from 'effect';
-
 import {Server} from 'socket.io';
 import {AsMessage, SysConfig} from '../../common/Def.js';
 import {ConfigService, ConfigServiceLive} from './ConfigService.js';
@@ -7,7 +7,6 @@ import {ConfigService, ConfigServiceLive} from './ConfigService.js';
 export class SocketService extends Effect.Service<SocketService>()('avatar-shell/SocketService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    console.log('top');
     let ioServer: Server | undefined;
     const sysConfig = yield* ConfigService.getSysConfigPub();
     yield* Effect.forkDaemon(sysConfig.changes.pipe(Stream.runForEach(a => {
@@ -15,12 +14,9 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
       return updateSysConfig(a);
     })));
 
-
     function updateSysConfig(v: SysConfig) {
-      console.log('in update');
       return Effect.gen(function* () {
         //  sys変更
-        console.log('SocketService changed sysConfig');
         if ((ioServer !== undefined) !== (v.websocket.useServer)) {
           if (ioServer) {
             ioServer.disconnectSockets(true);
@@ -35,9 +31,7 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
     }
 
     function starUp(sys: SysConfig) {
-      console.log('in startup');
       if (sys.websocket.useServer) {
-        // console.log('ComServer start');
         ioServer = new Server({
           // オプション設定（必要に応じて）
           cors: {
@@ -46,8 +40,6 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
           },
         });
         ioServer.on('connection', (socket) => {
-          console.log('connect client:', socket.id);
-
           socket.on('asMessage', (msg: AsMessage[]) => {
             console.log('received asMessage:', msg);
 
@@ -56,7 +48,6 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
           });
 
           socket.on('disconnect', () => {
-            // console.log('disconnect client:', socket.id);
           });
         });
         ioServer.listen(sys.websocket.serverPort || 3000);
@@ -64,7 +55,6 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
     }
 
     function close() {
-      console.log('in close');
       return Effect.gen(function* () {
         if (ioServer) {
           ioServer.disconnectSockets(true);
