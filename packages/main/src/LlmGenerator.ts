@@ -15,14 +15,14 @@ import sharp from 'sharp';
 export type LlmInputContent = any
 
 export abstract class LlmBaseGenerator extends ContextGenerator {
-  abstract execLlm(inputContext: LlmInputContent, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], void, ConfigService | McpService>
+  abstract execLlm(inputContext: LlmInputContent, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService>
 
   abstract toAnswerOut(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<AsOutput[], Error, DocService>
 
   abstract execFuncCall(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
-  }, Error, DocService | McpService>
+  }, Error, DocService | McpService|ConfigService>
 
   override generateContext(task: Option.Option<GeneratorTask>, avatarState: AvatarState): Effect.Effect<AsMessage[], Error, ConfigService | McpService | DocService | MediaService> {
     const state = this;
@@ -45,7 +45,7 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
           yield* DocService.addLog(outText, avatarState);
           //  MCP結果はさらにLLMへの依頼戻しとしてiteratorに回す
           const {output, nextTask} = yield* state.execFuncCall(outputLlm, avatarState);
-          console.log('outFunc:', output.map(a => JSON.stringify(a).slice(0, 100)).join('\n'));
+          console.log('outFunc:', output.map(a => JSON.stringify(a).slice(0, 200)).join('\n'));
           // nextIn.push(...outFunc.flatMap(value => value.genNative));
           ansList.push(...output.flatMap(value => value.mes));
           yield* DocService.addLog(output, avatarState);
@@ -185,7 +185,7 @@ export abstract class EmptyLlmGenerator extends LlmBaseGenerator {
     });
   }
 
-  execLlm(inputContext: any, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], void, ConfigService | McpService> {
+  execLlm(inputContext: any, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService> {
     console.log('empty execLlm:');
     return Effect.succeed([]);
   }

@@ -236,7 +236,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         }
         if (find.buildIn) {
           //  ビルドインの場合、id情報から直接BuildInMcpServiceを呼ぶ
-          const res = callBuildInTool(find.id, {
+          const res = yield *callBuildInTool(find.id, {
             name: find1.name,
             arguments: params.input,
             state,

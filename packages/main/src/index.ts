@@ -205,7 +205,7 @@ ipcMain.handle('readDocument', async (_,templateId:string, fileName: string) => 
     aiRuntime.runPromise,
   );
 });
-ipcMain.handle('readDocMedia', async (_, mediaUrl: string) => await DocService.readDocMedia(mediaUrl).pipe(Effect.catchAll(showAlertIfFatal(`readDocument`)), aiRuntime.runPromise,));
+ipcMain.handle('readDocMedia', async (_, mediaUrl: string) => await DocService.readDocMedia(mediaUrl).pipe(Effect.catchAll(showAlertIfFatal(`readDocMedia`)), aiRuntime.runPromise,));
 
 ipcMain.handle('getScheduleList', async (_, avatarId: string) => await AvatarService.getScheduleList(avatarId).pipe(Effect.catchAll(showAlertIfFatal('getScheduleList')), aiRuntime.runPromise));
 

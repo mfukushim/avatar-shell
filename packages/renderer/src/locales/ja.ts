@@ -60,7 +60,7 @@ export default {
   startSocketIoServer:'ローカルsocket.ioサーバーを起動する',
   portNumber:'ポート番号',
   useWebSocketCommunication: 'アバター間通信を使用する',
-  remoteServerAddress:'リモート socket.io サーバー (空の場合は localServer を使用、例: http://192.168.1.10:3000 )',
+  remoteServerAddress:'リモート socket.io サーバー (空の場合は localServer を使用、例: http://192.168.1.10:3010 )',
   noteSecurityCom:'アバター間通信には通信の暗号化を付けていません。',
   importExtTalk: '外部通信コンテキスト取込み',
   templateImportExtTalk: '外部通信取込みテンプレート',

@@ -60,7 +60,7 @@ export default {
   startSocketIoServer: 'Start local Socket.io Server',
   portNumber: 'Port Number',
   useWebSocketCommunication: 'Use avatar communication',
-  remoteServerAddress:'Remote socket.io server address (if empty uses localServer, e.g. http://192.168.1.10:3000 )',
+  remoteServerAddress:'Remote socket.io server address (if empty uses localServer, e.g. http://192.168.1.10:3010 )',
   noteSecurityCom:'Communication between avatars is not encrypted.',
   importExtTalk: 'External communication capture',
   templateImportExtTalk: 'External communication import template',

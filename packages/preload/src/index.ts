@@ -79,7 +79,7 @@ function makeSocket() {
     socket = io(avatarSetting?.general.remoteServer);
   } else if (sysConfig.websocket.useServer) {
     console.log('useServer:', sysConfig.websocket.useServer);
-    socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3000}`);
+    socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3010}`);
   }
 }
 

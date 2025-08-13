@@ -1,5 +1,5 @@
 <script setup lang="ts" xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-import {computed, defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
+import {defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
 import HeadPanel from './components/HeadPanel.vue';
 import InputPanel from './components/InputPanel.vue';
 import {
@@ -9,7 +9,7 @@ import {
   getMediaUrl, getUserName,
   onInitAvatar, onMainAlert,
   onTestIdle,
-  onUpdateLlm,
+  onUpdateLlm, readDocMedia,
   sendSocket,
 } from '@app/preload';
 import {type AlertTask, type AsMessage, type McpInfo} from '../../common/Def.ts';
@@ -119,6 +119,8 @@ const showAsAlert = ref(false);
 
 const recentSoundId = ref('');
 
+const htmlResourceJson = ref<string | undefined>(undefined);
+
 const clickAlert = async (task: AlertTask, btn: string) => {
   console.log('clickAlert:', task, btn);
   alertTasks.value = alertTasks.value.filter(t => t.id !== task.id);
@@ -132,17 +134,28 @@ const setTimeline = async (tl0: AsMessage[]) => {
   const tl = tl0.sort((a, b) => a.tick - b.tick);
   const oneImage = tl.filter((t: AsMessage) =>
     (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('image/')).slice(-1);
-/*
-  const oneVoice = tl.filter((t: AsMessage) =>
-    (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('audio/')).slice(-1);
-  if (!excludeSound && oneVoice && oneVoice.length > 0 && oneVoice[0].content?.mediaUrl) {
-    await playVoice(oneVoice[0]);
-  }
-*/
-  if (oneImage.length > 0) {
-    await setAsMessageImage(oneImage[0]);
+  const mcpUiResource = tl.filter((t: AsMessage) =>
+    (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mediaUrl.startsWith('ui:')).slice(-1); //  todo 現状は最後の一つのui: グループ化は必要?
+  //  今のところmcpUiを優先
+  if(mcpUiResource && mcpUiResource.length > 0) {
+    const ui = mcpUiResource[0];
+    const url = ui.content?.mediaUrl;
+    if(url) {
+      const text = await readDocMedia(url);
+      console.log('readDocMedia:',url, text);
+      htmlResourceJson.value = JSON.stringify({
+        uri: url,
+        mimeType: 'text/html',
+        text: text,
+      })
+    }
   } else {
-    mainImage.value = '';
+    htmlResourceJson.value = undefined;
+    if (oneImage.length > 0) {
+      await setAsMessageImage(oneImage[0]);
+    } else {
+      mainImage.value = '';
+    }
   }
   timeline.value = tl;
   forceUpdate.value = !forceUpdate.value;
@@ -268,13 +281,13 @@ const saveImage = async () => {
 const rendererRef = ref<HTMLElement | null>(null);
 
 // Web Component は props を「文字列」で受け取るため、JSON.stringify した文字列を用意
-const htmlResourceJson = computed(() =>
-  JSON.stringify({
-    uri: 'ui://example/hello',
-    mimeType: 'text/html',
-    text: '<h2>Hello from Vue + Web Component!</h2>',
-  }),
-);
+// const htmlResourceJson = computed(() =>
+//   JSON.stringify({
+//     uri: 'ui://example/hello',
+//     mimeType: 'text/html',
+//     text: '<h2>Hello from Vue + Web Component!</h2>',
+//   }),
+// );
 
 
 </script>
@@ -330,18 +343,18 @@ const htmlResourceJson = computed(() =>
     </q-drawer>
 
     <q-page-container class="wave-background ">
-<!--
-      <div>
--->
+      <div >
         <div class="wave"></div>
         <div class="q-pa-sm">
+
           <ui-resource-renderer
+            v-if="htmlResourceJson"
             ref="rendererRef"
             :resource="htmlResourceJson"
-            style="display:block;width:100%;height:400px;border:2px solid green;background-color: white;"
+            style="display:block;width:100%;height:800px;border:2px solid green;background-color: white;"
           ></ui-resource-renderer>
-
           <q-img
+            v-else
             :src="mainImage"
             error-src="./assets/blank.png"
           >
@@ -414,9 +427,7 @@ const htmlResourceJson = computed(() =>
                   </q-carousel>
           -->
         </div>
-<!--
       </div>
--->
       <audio id="audioPlayer" src="" hidden></audio>
     </q-page-container>
 

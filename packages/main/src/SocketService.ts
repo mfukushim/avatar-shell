@@ -50,7 +50,7 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
           socket.on('disconnect', () => {
           });
         });
-        ioServer.listen(sys.websocket.serverPort || 3000);
+        ioServer.listen(sys.websocket.serverPort || 3010);
       }
     }
 

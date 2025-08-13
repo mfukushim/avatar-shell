@@ -226,7 +226,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
   execFuncCall(responseOut: GeneratorOutput[], avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
-  }, Error, DocService | McpService> {
+  }, Error, DocService | McpService | ConfigService> {
     const funcCalls = responseOut.flatMap(b => b.functionCalls && b.functionCalls.length > 0 ? b.functionCalls : []); //  1回のllm実行がstreamで複数分割されているのを結合するが、1回のllm実行で複数のfuncがあることはありうる
     if (funcCalls.length === 0) return Effect.succeed({output: [], nextTask: Option.none()});
     console.log('funcCalls:', funcCalls);
@@ -369,7 +369,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
     return Effect.succeed(new GeminiTextGenerator(sysConfig, settings as GeminiTextSettings | undefined));
   }
 
-  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], void, ConfigService | McpService> {
+  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], Error, ConfigService | McpService> {
     const state = this;
     let contents = this.prevContexts || []
     if(contents.length > 0 && contents[contents.length - 1].role === 'user') {
@@ -416,7 +416,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`gemini API error:timeout`))),
       );
       //  Stream部分実行をUIに反映
-      const stream: Stream.Stream<GenerateContentResponse, void> =
+      const stream =
         Stream.fromAsyncIterable(res, (e) => new Error(String(e))).pipe(
           Stream.tap((ck) => {
             if (ck.text) {
@@ -448,7 +448,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
     return Effect.succeed(new GeminiImageGenerator(sysConfig, settings as GeminiImageSettings | undefined));
   }
 
-  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], void, ConfigService | McpService> {
+  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], Error, ConfigService | McpService> {
     const state = this;
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
@@ -541,7 +541,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
     this.cutoffTextLimit = sysConfig.generators.geminiVoice.cutoffTextLimit || 150;
   }
 
-  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], void, ConfigService | McpService> {
+  override execLlm(inputContext: Content, avatarState: AvatarState): Effect.Effect<GenerateContentResponse[], Error, ConfigService | McpService> {
     const state = this;
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
