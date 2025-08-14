@@ -166,7 +166,6 @@ const setImage = async (url: string, mime: string) => {
 };
 const setSound = async (url: string, mime: string) => {
   const voice = await getMediaUrl(mime, url);
-  // console.log('setSound:', voice.slice(0, 200));
   await playSound(voice);
 };
 
@@ -280,15 +279,18 @@ const saveImage = async () => {
 
 const rendererRef = ref<HTMLElement | null>(null);
 
-// Web Component は props を「文字列」で受け取るため、JSON.stringify した文字列を用意
-// const htmlResourceJson = computed(() =>
-//   JSON.stringify({
-//     uri: 'ui://example/hello',
-//     mimeType: 'text/html',
-//     text: '<h2>Hello from Vue + Web Component!</h2>',
-//   }),
-// );
+onMounted(() => {
+  console.log('rendererRef:', rendererRef.value);
+  if (rendererRef.value) {
+    rendererRef.value?.addEventListener('onUIAction', (event:any) => {
+      console.log('Action1:', event.detail);
+    });
+  }
+})
 
+const handleUIAction = (event: CustomEvent) => {
+  console.log('Action2:', event.detail);
+}
 
 </script>
 
@@ -343,18 +345,18 @@ const rendererRef = ref<HTMLElement | null>(null);
     </q-drawer>
 
     <q-page-container class="wave-background ">
+        <ui-resource-renderer
+
+          ref="rendererRef"
+          :resource="htmlResourceJson"
+          @onUIAction="handleUIAction"
+          style="display:block;width:100%;height:600px;border:2px solid green;background-color: white;"
+        ></ui-resource-renderer>
       <div >
         <div class="wave"></div>
         <div class="q-pa-sm">
 
-          <ui-resource-renderer
-            v-if="htmlResourceJson"
-            ref="rendererRef"
-            :resource="htmlResourceJson"
-            style="display:block;width:100%;height:800px;border:2px solid green;background-color: white;"
-          ></ui-resource-renderer>
           <q-img
-            v-else
             :src="mainImage"
             error-src="./assets/blank.png"
           >
@@ -503,5 +505,9 @@ body, html {
   100% {
     bottom: 100%; /* 最後は画面の上に移動 */
   }
+}
+
+iframe {
+  height: 600px; /* 高さ300px固定 */
 }
 </style>

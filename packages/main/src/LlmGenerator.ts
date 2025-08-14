@@ -55,6 +55,7 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
       },
     }).pipe(
       Effect.tap(() => state.clearStreamingText(avatarState)),
+      Effect.tapError(() => state.clearStreamingText(avatarState)),
       Effect.catchAll(e => {
         console.log('llm error:', e);
         return Effect.fail(new Error(`${e}`));
@@ -82,7 +83,7 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
 
   clearStreamingText(avatarState: AvatarState) {
     avatarState.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system','outer')]);
-
+    return Effect.void;
   }
 
   joinRole(inContext: AsMessage[], margeText = true): AsContents[] {

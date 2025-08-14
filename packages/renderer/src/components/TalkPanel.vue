@@ -27,6 +27,8 @@ const text = ref('');
 
 const data = ref<AsMessage[]>([]);
 
+const useStore = ['file:','ui:'];
+
 watch(props.timeline, async () => {
   await updateExt();
 }, {deep: true});
@@ -40,7 +42,7 @@ const updateExt = async () => {
   await nextTick();
   tableRef.value?.scrollTo(data.value.length - 1);
   for (const v of props.timeline) {
-    if (v.content?.mimeType && v.content?.mediaUrl) {
+    if (v.content?.mimeType && v.content?.mediaUrl && useStore.some(value => (v.content.mediaUrl || '').startsWith(value))) {
       const url = await getMediaUrl(v.content.mimeType, v.content.mediaUrl);
       if (url) {
         imageCache.value[v.id] = url;

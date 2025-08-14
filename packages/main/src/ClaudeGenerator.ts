@@ -246,7 +246,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
             });
           }));
 
-          console.log('toolRes:',toolRes); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
+          console.log('toolRes:'); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
           //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
           return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, a2 => {
             return Effect.gen(function* () {

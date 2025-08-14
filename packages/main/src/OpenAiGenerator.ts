@@ -336,7 +336,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
         };
       }) as OpenAI.Responses.Tool[];
       it.prevContexts.push(...inputContext);
-      console.log('openAi execLlm input:', it.prevContexts);
+      console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: it.prevContexts,
