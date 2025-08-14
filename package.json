@@ -47,7 +47,7 @@
     "vitest": "^3.1.4"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.57.0",
+    "@anthropic-ai/sdk": "^0.60.0",
     "@app/main": "*",
     "@effect/cluster": "^0.46.0",
     "@effect/experimental": "^0.54.0",
