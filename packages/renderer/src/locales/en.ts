@@ -112,4 +112,7 @@ export default {
     ask: '! Ask Every Time'
   },
   enableHide: 'Enable/Hide',
+  experimental:'Experimental',
+  useMcpUi:'Use MCP-UI',
+  mcpUiSelectTemplate:'Conversion template when UI selected',
 }

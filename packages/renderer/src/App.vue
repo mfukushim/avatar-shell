@@ -3,26 +3,30 @@ import {defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
 import HeadPanel from './components/HeadPanel.vue';
 import InputPanel from './components/InputPanel.vue';
 import {
-  addExtTalkContext, answerMainAlert,
+  addExtTalkContext, answerMainAlert, doAskAi,
   getAvatarConfigList,
   getCurrentAvatarList, getMcpServerInfos,
-  getMediaUrl, getUserName,
+  getMediaUrl, getSysConfig, getUserName,
   onInitAvatar, onMainAlert,
   onTestIdle,
   onUpdateLlm, readDocMedia,
   sendSocket,
 } from '@app/preload';
-import {type AlertTask, type AsMessage, type McpInfo} from '../../common/Def.ts';
+import {type AlertTask, AsMessage, type McpInfo} from '../../common/Def.ts';
 import TalkPanel from './components/TalkPanel.vue';
 // const TalkPanel = defineAsyncComponent(() =>
 //   import('./components/TalkPanel.vue')
 // )
 import type {QDrawer} from 'quasar';
-// import Wizard from './components/Wizard.vue';
+// @ts-ignore
+import expand_template from 'expand-template';
+
+const expand = expand_template();
 const Wizard = defineAsyncComponent(() =>
   import('./components/Wizard.vue'),
 );
 import MenuPanel from './components/MenuPanel.vue';
+import McpUiWapper from './components/McpUiWapper.vue';
 // const MenuPanel = defineAsyncComponent(() =>
 //   import('./components/MenuPanel.vue')
 // )
@@ -65,20 +69,20 @@ onMounted(async () => {
     return await mergeTimeline(bag);
   });
   onInitAvatar(async (name, needWizard) => {
-    //  クライアントの初期化完了
-    console.log('renderer init avatar', name);
-    avatarName.value = name;
-    userName.value = getUserName();
-    disableInput.value = false;
-    showWizaed.value = needWizard;
-    await resetAvatarList();
-    mcpServers.value = await getMcpServerInfos()
-  },
+      //  クライアントの初期化完了
+      // console.log('renderer init avatar', name);
+      avatarName.value = name;
+      userName.value = getUserName();
+      disableInput.value = false;
+      showWizaed.value = needWizard;
+      await resetAvatarList();
+      mcpServers.value = await getMcpServerInfos();
+    },
     async (bag: AsMessage[]) => {
-    //  外部からのsocket AsMessage受信
-    await mergeTimeline(bag);
-    await addExtTalkContext(bag);
-  });
+      //  外部からのsocket AsMessage受信
+      await mergeTimeline(bag);
+      await addExtTalkContext(bag);
+    });
   onMainAlert((alert: AlertTask) => {
     alertTasks.value.push(alert);
     showAsAlert.value = alertTasks.value.length > 0;
@@ -92,23 +96,14 @@ onMounted(async () => {
 
   await nextTick();
   if (rDrawerRef.value) {
-    console.log('mounted: box height =', (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height);
     rDrawerHeight.value = (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height || 500;
   }
-  // カスタムイベントの購読は addEventListener を推奨
-  // （HTML テンプレート上の @onUIAction は属性名が小文字化されて取りにくいため）
-  rendererRef.value?.addEventListener('onUIAction', (e: Event) => {
-    const detail = (e as CustomEvent).detail;
-    console.log('UI Action:', detail);
-    // ここでツール呼び出し等の処理を行う
-  });
-
 });
 
 const resetAvatarList = async () => {
   const list = await getAvatarConfigList();
   avatarTemplateList.value = list.map(e => ({value: e.templateId, label: e.name}));
-}
+};
 
 
 const timeline = ref<AsMessage[]>([]);
@@ -122,7 +117,6 @@ const recentSoundId = ref('');
 const htmlResourceJson = ref<string | undefined>(undefined);
 
 const clickAlert = async (task: AlertTask, btn: string) => {
-  console.log('clickAlert:', task, btn);
   alertTasks.value = alertTasks.value.filter(t => t.id !== task.id);
   if (alertTasks.value.length === 0) {
     showAsAlert.value = false;
@@ -137,17 +131,17 @@ const setTimeline = async (tl0: AsMessage[]) => {
   const mcpUiResource = tl.filter((t: AsMessage) =>
     (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mediaUrl.startsWith('ui:')).slice(-1); //  todo 現状は最後の一つのui: グループ化は必要?
   //  今のところmcpUiを優先
-  if(mcpUiResource && mcpUiResource.length > 0) {
+  const sysConfig = await getSysConfig();
+  if (mcpUiResource && mcpUiResource.length > 0 && sysConfig.experimental.mcpUi) {
     const ui = mcpUiResource[0];
     const url = ui.content?.mediaUrl;
-    if(url) {
+    if (url) {
       const text = await readDocMedia(url);
-      console.log('readDocMedia:',url, text);
       htmlResourceJson.value = JSON.stringify({
         uri: url,
         mimeType: 'text/html',
         text: text,
-      })
+      });
     }
   } else {
     htmlResourceJson.value = undefined;
@@ -172,12 +166,12 @@ const setSound = async (url: string, mime: string) => {
 const volumeVal = ref(1.0);
 
 const setVolume = async (volume: number) => {
-  const soundPlayer = document.getElementById("audioPlayer") as HTMLAudioElement;
+  const soundPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
   volumeVal.value = volume;
-  if(soundPlayer) {
+  if (soundPlayer) {
     soundPlayer.volume = volumeVal.value;
   }
-}
+};
 
 const runningMarks = ref<string[][]>([]);
 
@@ -187,13 +181,10 @@ const mergeTimeline = async (add: AsMessage[]) => {
     if (m.content?.subCommand === 'deleteTextParts') {
       oneMes.value = undefined;
     } else if (m.content?.subCommand === 'addTextParts') {
-      // console.log('addTextParts:', m.content);
       oneMes.value = (oneMes.value || '') + m.content?.textParts?.join('');
     } else if (m.content?.subCommand === 'addRunning' && m.content?.innerId) {
-      console.log('addRunning:', m.content);
-      runningMarks.value.push([m.content?.innerId,m.content.text || '']);
+      runningMarks.value.push([m.content?.innerId, m.content.text || '']);
     } else if (m.content?.subCommand === 'delRunning' && m.content?.innerId) {
-      console.log('delRunning:', m.content);
       runningMarks.value = runningMarks.value.filter(value => value[0] !== m.content.innerId);
     } else {
       const index = tl.findIndex(t => t && m && t.id === m.id);
@@ -222,7 +213,6 @@ const mainImage = ref('blank2.png');
 const resize = async (size: {width: number, height: number}) => {
   await nextTick();
   if (rDrawerRef.value) {
-    console.log('resizedrawer: box height =', (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height);
     rDrawerHeight.value = (rDrawerRef.value.$refs.content as HTMLElement).getBoundingClientRect().height || 500;
   }
   layoutWidth.value = size.width;
@@ -235,37 +225,34 @@ const setAsMessageImage = async (mes: AsMessage) => {
 };
 
 const playVoice = async (mes: AsMessage) => {
-  // console.log('playVoice:', mes);
   if (mes.content.mediaUrl && mes.content.mimeType) {
     //  データ更新は逐次起きるので、直近の再生idと同じなら抑止する
     if (recentSoundId.value === mes.id) {
       return;
     }
     recentSoundId.value = mes.id;
-    // console.log('sound id:', mes.id);
     const sound = await getMediaUrl(mes.content.mimeType, mes.content.mediaUrl);
-    // console.log('play voice:', sound.slice(0, 200));
     await playSound(sound);
   }
 };
 
 const playSound = async (sound: string) => {
-  const soundPlayer = document.getElementById("audioPlayer") as HTMLAudioElement;
+  const soundPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
   if (soundPlayer) {
     soundPlayer.pause();
     soundPlayer.currentTime = 0;
   }
   soundPlayer.volume = volumeVal.value;
   soundPlayer.src = sound;
-  soundPlayer.play().then(value => {
-    console.log('play voice end:', value);
-  }).catch(reason => {
-      console.log('play voice error:', reason);
+  soundPlayer.play().then(() => {
+    console.log('play voice end:');
+  }).catch(() => {
+      console.log('play voice error:');
     },
   ).finally(() => {
-    recentSoundId.value = ''
+    recentSoundId.value = '';
   });
-}
+};
 
 const saveImage = async () => {
   const blob = await (await fetch(mainImage.value)).blob();
@@ -277,20 +264,24 @@ const saveImage = async () => {
   URL.revokeObjectURL(url);
 };
 
-const rendererRef = ref<HTMLElement | null>(null);
-
-onMounted(() => {
-  console.log('rendererRef:', rendererRef.value);
-  if (rendererRef.value) {
-    rendererRef.value?.addEventListener('onUIAction', (event:any) => {
-      console.log('Action1:', event.detail);
-    });
-  }
-})
-
-const handleUIAction = (event: CustomEvent) => {
+const handleUIAction = async (event: CustomEvent) => {
   console.log('Action2:', event.detail);
-}
+  if (event.detail.type === 'tool') {
+    const sysConfig = await getSysConfig();
+    if (sysConfig.experimental.mcpUi) {
+      let inText = JSON.stringify(event.detail.payload);
+      if (sysConfig.experimental.mcpUiTemplate) {
+        inText = expand(sysConfig.experimental.mcpUiTemplate, {
+          body: inText,
+        });
+      }
+      console.log('inText', inText);
+      const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
+      await doAskAi([mes])
+      await sendMessageIn([mes]);
+    }
+  }
+};
 
 </script>
 
@@ -345,15 +336,9 @@ const handleUIAction = (event: CustomEvent) => {
     </q-drawer>
 
     <q-page-container class="wave-background ">
-        <ui-resource-renderer
-
-          ref="rendererRef"
-          :resource="htmlResourceJson"
-          @onUIAction="handleUIAction"
-          style="display:block;width:100%;height:600px;border:2px solid green;background-color: white;"
-        ></ui-resource-renderer>
-      <div >
-        <div class="wave"></div>
+      <mcp-ui-wapper v-if="htmlResourceJson" :html-resource-json="htmlResourceJson" @on-ui-action="handleUIAction" />
+      <div>
+        <div class="wave" v-if="!htmlResourceJson"></div>
         <div class="q-pa-sm">
 
           <q-img
@@ -379,55 +364,6 @@ const handleUIAction = (event: CustomEvent) => {
               </div>
             </template>
           </q-img>
-          <!--
-                  <q-carousel
-                    v-model="slide"
-                    transition-prev="jump-right"
-                    transition-next="jump-left"
-                    swipeable
-                    animated
-                    control-color="white"
-                    prev-icon="arrow_left"
-                    next-icon="arrow_right"
-                    navigation-icon="radio_button_unchecked"
-                    navigation
-                    arrows
-                    height="1200px"
-                    vertical
-                    class="bg-transparent"
-                  >
-                    <q-carousel-slide name="style" class="column no-wrap ">
-                      <q-img
-                        :src="mainImage"
-                        error-src="./assets/blank.png"
-                      >
-                        <q-popup-proxy>
-                          <q-banner @click="saveImage" dense>
-                            <template v-slot:avatar>
-                              <q-icon name="save" color="primary" />
-                            </template>
-                            Save image
-                          </q-banner>
-                        </q-popup-proxy>
-                        <template v-slot:loading>
-                          <div class="text-subtitle1 text-white">
-                            Loading...
-                          </div>
-                        </template>
-                        <template v-slot:error>
-                          <div class="absolute-full flex">
-                            Error encountered
-                          </div>
-                        </template>
-                      </q-img>
-                    </q-carousel-slide>
-                    <q-carousel-slide name="tv" class="column no-wrap  bg-white">
-                      <q-icon name="live_tv" size="56px" color="blue" />
-                      <div class="q-mt-md text-center text-white">
-                      </div>
-                    </q-carousel-slide>
-                  </q-carousel>
-          -->
         </div>
       </div>
       <audio id="audioPlayer" src="" hidden></audio>
@@ -505,9 +441,5 @@ body, html {
   100% {
     bottom: 100%; /* 最後は画面の上に移動 */
   }
-}
-
-iframe {
-  height: 600px; /* 高さ300px固定 */
 }
 </style>

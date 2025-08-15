@@ -112,4 +112,7 @@ export default {
     ask: '⚠ 問い合わせる'
   },
   enableHide: '許可/隠す',
+  experimental:'実験機能',
+  useMcpUi: 'MCP-UIを使う',
+  mcpUiSelectTemplate:'UI選択時の変換テンプレート',
 }

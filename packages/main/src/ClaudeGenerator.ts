@@ -76,7 +76,13 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //   //  TODO 過去文脈のときの生画像は送るべきか。。。
         // }
       }
-      return []
+      // return [] //  TODO claudeは空を受け付けない ダミーを今は入れる でも本質的にはどうしよう。。
+      return [
+        {
+          type: 'text',
+          text: '',
+        }as Anthropic.Messages.ContentBlockParam
+      ]
     })
   }
 

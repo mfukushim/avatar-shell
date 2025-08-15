@@ -29,6 +29,10 @@ export const defaultSysSetting: SysConfigMutable = {
   defaultAvatarId: 'aa',
   generators: defaultGenerators,
   mcpServers: {},
+  experimental:{
+    mcpUi:false,
+    mcpUiTemplate:"user select '{body}'"
+  },
   websocket: {
     useServer: true,
     serverPort: undefined,

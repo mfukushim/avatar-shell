@@ -341,6 +341,11 @@ const websocketSchema = Schema.Struct({
 
 export const webSocketMutableSchema = Schema.mutable(websocketSchema)
 
+const ExperimentalSchema = Schema.mutable(Schema.Struct({
+  mcpUi: Schema.Boolean,
+  mcpUiTemplate: Schema.String,
+}));
+
 
 /**
  * SysConfig  ======================
@@ -350,6 +355,7 @@ export const SysConfigSchema = Schema.Struct({
   generators: generatorsConfigSetChema,
   mcpServers: mcpServerListSchema,
   websocket: websocketSchema,
+  experimental: ExperimentalSchema,
   configVersion: Schema.Number,
 });
 
@@ -360,6 +366,7 @@ export const sysConfigMutableSchema = Schema.mutable(Schema.Struct({
   generators: generatorsMutableConfigSetChema,
   mcpServers: mcpServerMutableListSchema,
   websocket: webSocketMutableSchema,
+  experimental: ExperimentalSchema,
   configVersion: Schema.mutable(Schema.Number),
 }));
 
