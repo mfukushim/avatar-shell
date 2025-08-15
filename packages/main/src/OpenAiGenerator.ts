@@ -22,7 +22,6 @@ import {
   ResponseInputItem, ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
-  ResponseStreamEvent,
 } from 'openai/resources/responses/responses';
 import {TimeoutException} from 'effect/Cause';
 import {z} from 'zod';
@@ -193,7 +192,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
   execFuncCall(responseOut: GeneratorOutput[], avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<ResponseInputItem[]>
-  }, Error, DocService | McpService> {
+  }, Error, DocService | McpService| ConfigService> {
     const it = this;
     const next: AsOutput[] = [];
     return Effect.forEach(responseOut.filter(b => b.type === 'function_call'), a1 => {
@@ -247,6 +246,16 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
             } else if (a2.type === 'resource') {
               //  TODO resourceはuriらしい
               content.mediaUrl = a2.uri;
+              //  TODO resourceはuriらしい resourceはLLMに回さないらしい
+              // llmOut = undefined;
+              //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
+              content.innerId = a1.call_id
+              content.mediaUrl = a2.resource.uri;
+              content.mimeType = a2.resource.mimeType
+              if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
+                //  TODO なんで型があってないんだろう。。
+                yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
+              }
             }
             //  ツール実行結果なのでここで追加
             return [{
@@ -313,7 +322,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
   }
 
-  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], void, ConfigService | McpService> {
+  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], Error, ConfigService | McpService> {
     const it = this;
     // console.log('openAi execLlm input:', inputContext);
     return Effect.gen(this, function* () {
@@ -327,7 +336,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
         };
       }) as OpenAI.Responses.Tool[];
       it.prevContexts.push(...inputContext);
-      console.log('openAi execLlm input:', it.prevContexts);
+      console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: it.prevContexts,
@@ -350,7 +359,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
         Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
       );
       //  Stream部分実行をUIに反映
-      const stream: Stream.Stream<ResponseStreamEvent, void> =
+      const stream =
         Stream.fromAsyncIterable(res, (e) => new Error(String(e))).pipe(
           Stream.tap((ck) => {
             if (ck.type === `response.output_text.delta`) {
@@ -391,7 +400,7 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
   }
 
-  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], void, ConfigService | McpService> {
+  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], Error, ConfigService | McpService> {
     const body: ResponseCreateParamsNonStreaming = {
       model: this.model,
       input: inputContext,
@@ -470,7 +479,7 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
     this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
   }
 
-  execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput[], void, ConfigService | McpService> {
+  execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService> {
     let text = inputContext.flatMap(value => {
       if (value.type === 'message') {
         if (typeof value.content === 'string') {

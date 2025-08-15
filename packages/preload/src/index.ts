@@ -49,7 +49,6 @@ export const toggleMaximize = async () => {
 };
 
 export const closeApp = async () => {
-  console.log('closeApp preload');
   await ipcRenderer.invoke('request-window-close', avatarId);
 };
 
@@ -67,19 +66,15 @@ export async function addExtTalkContext(bags:AsMessage[]) {
   await ipcRenderer.invoke('addExtTalkContext', avatarId,bags);
 }
 
-// function send(channel: string, message: string) {
-//   return ipcRenderer.invoke(channel, message);
-// }
-
 export {sha256sum, versions};
 
 function makeSocket() {
   if (avatarSetting?.general.remoteServer) {
-    console.log('remoteServer:', avatarSetting?.general.remoteServer);
+    // console.log('remoteServer:', avatarSetting?.general.remoteServer);
     socket = io(avatarSetting?.general.remoteServer);
   } else if (sysConfig.websocket.useServer) {
-    console.log('useServer:', sysConfig.websocket.useServer);
-    socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3000}`);
+    // console.log('useServer:', sysConfig.websocket.useServer);
+    socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3010}`);
   }
 }
 
@@ -91,7 +86,7 @@ function makeSocket() {
  */
 export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?:string) => Promise<any>,socketCallback:(bags:AsMessage[]) => Promise<any>) {
   ipcRenderer.on('init-avatar', async (_event, id,name, avatarSettingIn,needWizard,user) => {
-    console.log('preload onInitAvatar:',id,name, avatarSettingIn,needWizard,user);
+    // console.log('preload onInitAvatar:',id,name, avatarSettingIn,needWizard,user);
     avatarId = id;
     avatarSetting = avatarSettingIn
     userName = user;
@@ -181,7 +176,7 @@ export async function sendSocket(mes: AsMessage[]) {
     let retry = 3
     while (retry > 0) {
       try {
-        console.log('sendSocket',nextMes);
+        // console.log('sendSocket',nextMes);
         await socket.emitWithAck('asMessage', nextMes)
         return
       } catch (e) {
@@ -201,7 +196,6 @@ export async function sendSocket(mes: AsMessage[]) {
  */
 export function onUpdateLlm( callback: (bag: AsMessage[]) => Promise<any>) {
   ipcRenderer.on('update-llm', async (_event, bags:AsMessage[]) => {
-    // console.log('preload onUpdateLlm:', bags);
     await callback(bags);
     const com = bags.filter(t => (t.asRole === 'human' || t.asRole === 'bot') && t.asContext === 'surface');
     await sendSocket(com)
@@ -210,7 +204,6 @@ export function onUpdateLlm( callback: (bag: AsMessage[]) => Promise<any>) {
 
 export function onMainAlert( callback: (task:AlertTask) => void) {
   ipcRenderer.on('mainAlert', async (_event, task) => {
-    console.log('preload mainAlert:',task);
     callback(task);
   });
 }
@@ -221,7 +214,6 @@ export function onSocketState( callback: (state:boolean) => void) {
 
 export function onTestIdle(callback: (mes: string) => any) {
   ipcRenderer.on('test-idle', (_event, mes) => {
-    console.log('preload onTestIdle:', mes);
     callback(mes);
   });
 }
@@ -243,7 +235,6 @@ export async function getAvatarConfig(id: string) {
     const av = await ipcRenderer.invoke('getAvatarConfig', id) as AvatarSetting | undefined;
     return av || defaultAvatarSetting[0].data;
   } catch (e) {
-    console.log(e);
     return defaultAvatarSetting[0].data;
   }
 }
@@ -253,20 +244,22 @@ export async function getAvatarConfigList(): Promise<{templateId: string, name: 
     const av = await ipcRenderer.invoke('getAvatarConfigList') as {templateId: string, name: string}[] | undefined;
     return av || [];
   } catch (e) {
-    console.log(e);
     return [];
   }
 }
 
 export async function setSysConfig(conf: SysConfig) {
+  sysConfig = conf;
   await ipcRenderer.invoke('setSysConfig', conf);
 }
 
 export async function getSysConfig(): Promise<SysConfig> {
   try {
+    if (sysConfig && sysConfig?.version) {
+      return sysConfig;
+    }
     sysConfig = await ipcRenderer.invoke('getSysConfig') as any | undefined;
-  } catch (e) {
-    console.log('getSysConfig error', e);
+  } catch (_) {
     sysConfig = defaultSysSetting;  //  TODO エラー時の回復としてあまりよくない。。
   }
   return sysConfig;
@@ -302,8 +295,7 @@ export async function getCurrentAvatarList(): Promise<{id: string, name: string,
       templateId: string
     }[] | undefined;
     return av || [];
-  } catch (e) {
-    console.log(e);
+  } catch (_) {
     return [];
   }
 }
@@ -333,7 +325,6 @@ export async function readDocument(fileName: string) {
   return [];
 }
 export async function readDocMedia(fileUrl: string) {
-  // console.log('readDocList');
   return await ipcRenderer.invoke('readDocMedia',fileUrl) as string;
 }
 
@@ -352,7 +343,6 @@ export async function answerMainAlert(id:string,reply:AlertReply,btn: string) {
   return await ipcRenderer.invoke('answerMainAlert',id,reply,btn)
 }
 export async function readMcpResource(name:string,url:string) {
-  console.log('preload readMcpResource in', name,url);
   return await ipcRenderer.invoke('readMcpResource',avatarId,userName,name,url) as McpResource;
 }
 
@@ -409,12 +399,6 @@ export async function importAvatar() {
   return await ipcRenderer.invoke('importAvatar');
 }
 
-// export async function receiveExtConversation(messages: AsMessage[]) {
-//   console.log('receiveExtConversation in', messages,avatarId);
-//   await ipcRenderer.invoke('ReceiveExtConversation', avatarId, messages);
-// }
-
 export async function openBrowser(url:string) {
-  console.log('openBrowser in', url);
   return await ipcRenderer.invoke('openBrowser', url);
 }

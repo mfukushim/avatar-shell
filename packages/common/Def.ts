@@ -229,7 +229,7 @@ const AlertTaskSchema = Schema.Struct({
 export type AlertTask = typeof AlertTaskSchema.Type
 
 
-const McpServerDef = Schema.Struct({
+const McpStdioServerDef = Schema.Struct({
   command: Schema.NonEmptyString,
   args: Schema.mutable(Schema.NonEmptyArray(Schema.NonEmptyString)),
   env: Schema.optional(Schema.Record({
@@ -237,6 +237,17 @@ const McpServerDef = Schema.Struct({
     value: Schema.NonEmptyString,
   })),
 });
+
+const McpStreamHttpServerDef = Schema.Struct({
+  type: Schema.NonEmptyString,
+  url: Schema.NonEmptyString,
+  note: Schema.optional(Schema.String),
+});
+
+const McpServerDef = Schema.Union(
+  McpStdioServerDef.pipe(Schema.attachPropertySignature("kind", "stdio")),
+  McpStreamHttpServerDef.pipe(Schema.attachPropertySignature("kind", "streamHttp")),
+);
 
 const McpToolInfo = Schema.Struct({
   name: Schema.mutable(Schema.String),
@@ -330,6 +341,11 @@ const websocketSchema = Schema.Struct({
 
 export const webSocketMutableSchema = Schema.mutable(websocketSchema)
 
+const ExperimentalSchema = Schema.mutable(Schema.Struct({
+  mcpUi: Schema.Boolean,
+  mcpUiTemplate: Schema.String,
+}));
+
 
 /**
  * SysConfig  ======================
@@ -339,6 +355,7 @@ export const SysConfigSchema = Schema.Struct({
   generators: generatorsConfigSetChema,
   mcpServers: mcpServerListSchema,
   websocket: websocketSchema,
+  experimental: ExperimentalSchema,
   configVersion: Schema.Number,
 });
 
@@ -349,6 +366,7 @@ export const sysConfigMutableSchema = Schema.mutable(Schema.Struct({
   generators: generatorsMutableConfigSetChema,
   mcpServers: mcpServerMutableListSchema,
   websocket: webSocketMutableSchema,
+  experimental: ExperimentalSchema,
   configVersion: Schema.mutable(Schema.Number),
 }));
 

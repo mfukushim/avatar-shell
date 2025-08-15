@@ -76,7 +76,13 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //   //  TODO 過去文脈のときの生画像は送るべきか。。。
         // }
       }
-      return []
+      // return [] //  TODO claudeは空を受け付けない ダミーを今は入れる でも本質的にはどうしよう。。
+      return [
+        {
+          type: 'text',
+          text: '',
+        }as Anthropic.Messages.ContentBlockParam
+      ]
     })
   }
 
@@ -199,7 +205,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
   execFuncCall(responseOut: Anthropic.Messages.ContentBlock[], avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
-  }, Error, DocService | McpService> {
+  }, Error, DocService | McpService|ConfigService> {
     const funcCalls = responseOut.flatMap(b => {
       if (b.type === 'tool_use') {
         return [b];
@@ -254,10 +260,10 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
                 from: avatarState.Name,
               };
               const nextId = short.generate();
-              let llmOut: (Anthropic.Messages.TextBlockParam|Anthropic.Messages.ImageBlockParam|undefined) // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
+              let llmOut: (Anthropic.Messages.TextBlockParam|Anthropic.Messages.ImageBlockParam)[] = [] // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
               if (a2.type === 'text') {
                 content.text = a2.text;
-                llmOut = a2
+                llmOut = [a2]
               } else if (a2.type === 'image') {
                 const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
                 const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
@@ -265,27 +271,30 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
                 content.mediaUrl = mediaUrl;
                 content.mimeType = 'image/png';
                 //  縮小した画像をLLMには送る
-                llmOut = {
+                llmOut = [{
                   type: 'image',
                   source: {
                     type: 'base64',
                     media_type: content.mimeType,
                     data: b1.toString('base64'),
                   },
-                } as Anthropic.Messages.ImageBlockParam;
+                }] as Anthropic.Messages.ImageBlockParam[];
               } else if (a2.type === 'resource') {
-                //  TODO resourceはuriらしい
-                content.mediaUrl = a2.uri;
+                //  TODO resourceはuriらしい resourceはLLMに回さないらしい
+                //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
+                content.innerId = a.id
+                content.mediaUrl = a2.resource.uri;
+                content.mimeType = a2.resource.mimeType
+                if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
+                  console.log('to save html');
+                  //  TODO なんで型があってないんだろう。。
+                  yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
+                }
               }
               //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
               return [{
                 toolOneRes: llmOut,
                 toolId:a.id,  //  todo ちょっとツール集約がおかしい
-                // llmOut: {
-                //   type: 'tool_result',
-                //   tool_use_id: a.id,
-                //   content: [llmOut],
-                // } as Anthropic.Messages.ToolResultBlockParam,
                 mes: {
                   id: nextId,
                   tick: dayjs().valueOf(),
@@ -351,7 +360,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.succeed(new ClaudeTextGenerator(sysConfig, settings as ClaudeTextSettings | undefined));
   }
 
-  override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Messages.ContentBlock[], void, ConfigService | McpService> {
+  override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Messages.ContentBlock[], Error, ConfigService | McpService> {
     const it = this;
     //  it.prevContextsの末尾がuserの場合、マージする TODO テキストレベルでのマージが必要か?
     let contents = this.prevContexts || []
@@ -388,6 +397,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     }
     return Effect.gen(this, function* () {
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
+      console.log('tools:', tools);
       // it.prevContexts.push(inputContext);
       console.log('claude :', contents.map(value => JSON.stringify(value,null,2).slice(0,250)).join('\n'));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
@@ -421,7 +431,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       // state.clearStreamingText(avatarState)
       console.log(message.content);
       return message.content;
-    }).pipe(Effect.catchIf(a => a instanceof Error, _ => Effect.succeed([])));
+    }) //.pipe(Effect.catchIf(a => a instanceof Error, _ => Effect.succeed([])));
   }
 
 

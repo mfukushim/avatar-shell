@@ -60,9 +60,6 @@ const doOpen = async () => {
   }
   tabSelect.value = 'general';
   version.value = await getVersion();
-  //  TODO
-  // defaultAvatar.value =list.find(value => value.id === config.defaultAvatar.id)
-
   show.value = true;
 };
 
@@ -237,9 +234,34 @@ const handleClick = (event: MouseEvent) => {
   }
 };
 
+const disableImportSys = ref(false);
+const disableImportAvatar = ref(false);
+const disableExportAvatar = ref(false);
+const disableExportSysConfig = ref(false);
+
 const importSys = async () => {
+  disableImportSys.value = true;
   await importSysConfig()
   await doOpen()
+  disableImportSys.value = false;
+}
+
+const exportSys = async () => {
+  disableExportSysConfig.value = true;
+  await exportSysConfig()
+  disableExportSysConfig.value = false;
+}
+
+const importAvatarBtn = async () => {
+  disableImportAvatar.value = true
+  await importAvatar()
+  disableImportAvatar.value = false
+}
+
+const exportAvatarBtn = async (templateId:string) => {
+  disableExportAvatar.value = true
+  await exportAvatar(templateId)
+  disableExportAvatar.value = false
 }
 
 onMounted(async () => {
@@ -279,6 +301,7 @@ onBeforeUnmount(() => {
                   <q-tab name="mcp" icon="extension" :label="t('mcpSettings')" />
                   <q-tab name="websocket" icon="rss_feed" :label="t('avatarCommunication')" />
                   <q-tab name="importExport" icon="import_export" :label="t('importExport')" />
+                  <q-tab name="experimental" icon="science" :label="t('experimental')" />
                   <q-tab name="license" icon="info_outline" :label="t('license')" />
                 </q-tabs>
               </template>
@@ -495,14 +518,21 @@ onBeforeUnmount(() => {
                                  placeholder="{from} said, &quot;{body}&quot;"
                                  :label="t('templateImportExtTalk')"
                         />
-                        <!--
-                                                <q-input class="col-6" v-model.number="edit.websocket.autoSendTextNumber"
-                                                         type="number"
-                                                         label="外部会話のみで返答生成する会話数" />
-                                                <q-toggle class="col-6"
-                                                          v-model="edit.websocket.manualSend"
-                                                          label="外部会話のみで返答を生成しない" />
-                        -->
+                      </q-card-section>
+                    </q-card>
+                  </q-tab-panel>
+                  <q-tab-panel name="experimental">
+                    <div class="text-h6 q-mb-md">{{ t('experimental') }}</div>
+                    <q-card>
+                      <q-card-section class="row">
+                        <q-toggle
+                          :label="t('useMcpUi')"
+                          v-model="edit.experimental.mcpUi" class="col-6" />
+                        <q-input class="col-6"
+                                 v-model="edit.experimental.mcpUiTemplate"
+                                 placeholder="user select, &quot;{body}&quot;"
+                                 :label="t('mcpUiSelectTemplate')"
+                        />
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>
@@ -512,19 +542,19 @@ onBeforeUnmount(() => {
                       <q-card-section class="row">
                         {{t('importSysInfo')}}
                         <q-space/>
-                        <q-btn @click="importSys">{{t('importSys')}}</q-btn>
+                        <q-btn @click="importSys" :disable="disableImportSys">{{t('importSys')}}</q-btn>
                       </q-card-section>
                       <q-card-section class="row">
                         {{t('exportSysInfo')}}
                         <q-space/>
-                        <q-btn @click="exportSysConfig">{{t('exportSys')}}</q-btn>
+                        <q-btn @click="exportSys" :disable="disableExportSysConfig">{{t('exportSys')}}</q-btn>
                       </q-card-section>
                     </q-card>
                     <q-card class="q-ma-md">
                       <q-card-section class="row">
                         {{t('importAvatarInfo')}}
                         <q-space/>
-                        <q-btn @click="importAvatar">{{t('importAvatar')}}</q-btn>
+                        <q-btn @click="importAvatarBtn"  :disable="disableImportAvatar">{{t('importAvatar')}}</q-btn>
                       </q-card-section>
                       <q-card-section class="row q-px-md">
                         {{t('exportAvatarInfo')}}
@@ -533,7 +563,7 @@ onBeforeUnmount(() => {
                                   :options="avatarList"
                                   emit-value
                                   map-options class="q-px-sm" />
-                        <q-btn @click="exportAvatar(exportAvatarTemplateId)" :disable="exportAvatarTemplateId==''">{{t('exportAvatar')}}</q-btn>
+                        <q-btn @click="exportAvatarBtn(exportAvatarTemplateId)" :disable="exportAvatarTemplateId=='' || disableExportAvatar">{{t('exportAvatar')}}</q-btn>
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>

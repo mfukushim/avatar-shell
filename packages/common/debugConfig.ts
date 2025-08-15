@@ -55,6 +55,7 @@ export const debugSysConfig: SysConfig = {
         "bs_pass":process.env.VITE_TR_bs_pass as string,
         "bs_handle":process.env.VITE_TR_bs_handle as string,
       },
+      kind:'stdio',
     },
     "slack": {
       "command": "npx",
@@ -66,8 +67,13 @@ export const debugSysConfig: SysConfig = {
         "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string,
         "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string,
         "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
-      }
+      },
+      kind:'stdio',
     }
+  },
+  experimental:{
+    mcpUi:true,
+    mcpUiTemplate:"user select '{body}'"
   },
   websocket: {
     useServer: true,
