@@ -15,11 +15,11 @@ import sharp from 'sharp';
 export type LlmInputContent = any
 
 export abstract class LlmBaseGenerator extends ContextGenerator {
-  abstract execLlm(inputContext: LlmInputContent, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService>
+  abstract execLlm(inputContext: LlmInputContent, avatarState: AvatarState): Effect.Effect<GeneratorOutput, Error, ConfigService | McpService | DocService>
 
-  abstract toAnswerOut(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<AsOutput[], Error, DocService>
+  abstract toAnswerOut(responseOut: GeneratorOutput, state: AvatarState): Effect.Effect<AsOutput[], Error, DocService>
 
-  abstract execFuncCall(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<{
+  abstract execFuncCall(responseOut: GeneratorOutput, state: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
   }, Error, DocService | McpService|ConfigService>
@@ -37,7 +37,6 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
           const taskData = yield* b;
           console.log('llmIn:', JSON.stringify(taskData).slice(0, 200));
           const outputLlm = yield* state.execLlm(taskData, avatarState);
-          console.log('llmOut:', outputLlm.map(a => JSON.stringify(a).slice(0, 200)).join('\n'));
           //  確定実行分を結果出力に回す。ツール実行分をMCP実行し、結果を再実行に回す
           const outText = yield* state.toAnswerOut(outputLlm, avatarState);
           // const nextContexts = outContents.flatMap(value => value.llmMes)
@@ -186,12 +185,12 @@ export abstract class EmptyLlmGenerator extends LlmBaseGenerator {
     });
   }
 
-  execLlm(inputContext: any, avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService> {
+  execLlm(inputContext: any, avatarState: AvatarState): Effect.Effect<GeneratorOutput, Error, ConfigService | McpService> {
     console.log('empty execLlm:');
     return Effect.succeed([]);
   }
 
-  toAnswerOut(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  toAnswerOut(responseOut: GeneratorOutput, state: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     console.log('empty toAnswerOut:');
     return Effect.succeed([
       AsOutput.makeOutput(AsMessage.makeMessage({
@@ -200,7 +199,7 @@ export abstract class EmptyLlmGenerator extends LlmBaseGenerator {
       }, 'talk', 'bot','outer'), {provider: this.genName, model: this.model, isExternal: false})]);
   }
 
-  execFuncCall(responseOut: GeneratorOutput[], state: AvatarState): Effect.Effect<{
+  execFuncCall(responseOut: GeneratorOutput, state: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
   }, Error, DocService | McpService> {

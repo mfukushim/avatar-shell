@@ -251,6 +251,18 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
       });
     }
 
+    function saveNativeLog(pathTag:string,tag:string,data:any) {
+      return Effect.gen(function*() {
+        const dir = path.join(docBasePath, 'contents', 'native');
+        const exist = yield* fs.exists(dir);
+        if (!exist) {
+          yield* fs.makeDirectory(dir, {recursive: true});
+        }
+        const s = JSON.stringify({tag,data})
+        yield* fs.writeFileString(path.join(docBasePath, 'contents', 'native',`${pathTag}.json`), `${s},\n`, {flag: 'a'});
+      })
+    }
+
 
     return {
       readDocList,
@@ -259,6 +271,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
       readDocMedia,
       saveMcpUiMedia,
       addLog,
+      saveNativeLog
     };
   }),
   dependencies: [NodeFileSystem.layer],

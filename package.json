@@ -47,7 +47,7 @@
     "vitest": "^3.1.4"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.57.0",
+    "@anthropic-ai/sdk": "^0.60.0",
     "@app/main": "*",
     "@effect/cluster": "^0.46.0",
     "@effect/experimental": "^0.54.0",
@@ -70,7 +70,7 @@
     "expand-template": "^2.0.3",
     "graphql": "^16.11.0",
     "graphql-ws": "^5.16.2",
-    "openai": "^5.12.0",
+    "openai": "^5.12.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.3",
     "short-uuid": "^5.2.0",
