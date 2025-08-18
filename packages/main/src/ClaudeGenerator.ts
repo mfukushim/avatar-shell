@@ -1,4 +1,4 @@
-import {ContextGenerator, GeneratorTask} from './ContextGenerator.js';
+import {GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Effect, Option} from 'effect';
 import {AsMessage, AsMessageContent, AsOutput, SysConfig} from '../../common/Def.js';
@@ -22,7 +22,8 @@ import Anthropic from '@anthropic-ai/sdk';
 export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
-  protected contextCache: Map<string, Anthropic.Messages.ContentBlockParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
+  protected contextCache: Map<string, Anthropic.Messages.MessageParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
+  // protected contextCache: Map<string, Anthropic.Messages.ContentBlockParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected prevContexts: Anthropic.Messages.MessageParam[] = [];
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
@@ -77,18 +78,19 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //   //  TODO 過去文脈のときの生画像は送るべきか。。。
         // }
       }
-      console.log('contentToNative:', JSON.stringify(message),);
-      if(message.innerId) {
-        const out = it.contextCache.get(message.innerId)
-        return out? [out]:[]
-      }
+      // console.log('contentToNative:', JSON.stringify(message),);
+      // if(message.innerId) {
+      //   const out = it.contextCache.get(message.innerId)
+      //   return out? [out]:[]
+      // }
       // return [] //  TODO claudeは空を受け付けない ダミーを今は入れる でも本質的にはどうしよう。。
-      return [
-        {
-          type: 'text',
-          text: '',
-        }as Anthropic.Messages.ContentBlockParam
-      ]
+      return yield *Effect.fail(new Error('as to native error'))
+      // return [
+      //   {
+      //     type: 'text',
+      //     text: '',
+      //   }as Anthropic.Messages.ContentBlockParam
+      // ]
     })
   }
 
@@ -102,9 +104,74 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
       //  TODO 自動サマライズする サマライズ用の指定のLLMとかあるだろうし、勝手にやるとまずいかも
 
     }
-    inContext = inContext.slice(-contextSize).filter(value => ContextGenerator.matchContextType(value.content.mimeType, ClaudeBaseGenerator.generatorInfo.inputContextTypes));
+    inContext = inContext.slice(-contextSize) //.filter(value => ContextGenerator.matchContextType(value.content.mimeType, ClaudeBaseGenerator.generatorInfo.inputContextTypes));
     console.log('new inContext len:', inContext.length);
-    const mergeContents = this.joinRole(inContext);
+    return Effect.forEach(inContext, mes => {
+      const b = it.contextCache.get(mes.id);
+      if(b) {
+        console.log(b);
+        return Effect.succeed([
+          {
+            role: b.role,
+            content: Array.isArray(b.content) ? b.content.map(value => {
+              //  TODO
+              if (value.type === 'tool_result') {
+                console.log('value.content:', value.content);
+                return {
+                  type:'tool_result',
+                  tool_use_id: value.tool_use_id,
+                  content: Array.isArray(value.content) ? value.content.map(value1 => {
+                    if (value1.type === 'text') {
+                      return {
+                        type: 'text',
+                        text: value1.text,
+                      } as Anthropic.Messages.TextBlockParam;
+                    }
+                    if (value1.type === 'image') {
+                      if(value1.source.type === 'base64') {
+                        return {
+                          type: 'image',
+                          source: {
+                            type: 'base64',
+                            media_type: value1.source.media_type,
+                            data: value1.source.data,
+                          }
+                        } as Anthropic.Messages.ImageBlockParam;
+                      }
+                      return {
+                            type: 'image',
+                            source:{
+                              type: 'url',
+                              url: value1.source.url,
+                            }
+                      }
+                    }
+                  }):value.content
+                };
+              }
+              return value;
+            }):b.content
+          } as Anthropic.Messages.MessageParam,
+        ]);
+      }
+      if (mes.content.text) {
+        const c = [{
+          type: 'text',
+          text: mes.content.text,
+        } as Anthropic.Messages.ContentBlockParam];
+        const m:Anthropic.Messages.MessageParam = {
+          role: mes.asRole === 'bot'? 'assistant':'user',
+          content: c,
+        }
+        return Effect.succeed([m]);
+      }
+      return Effect.succeed([])
+//      return Effect.fail(new Error('context not found'));
+    }).pipe(Effect.andThen(a => {
+      this.prevContexts = a.flat()
+    }))
+    // const mergeContents = this.joinRole(inContext);
+/*
     return Effect.forEach(mergeContents, a => {
         return Effect.forEach(a.contents, a1 => {
           return it.contentToNative(a1,false)
@@ -144,6 +211,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     }).pipe(Effect.andThen(a => {
       this.prevContexts = a.flat();
     }));
+*/
   }
 
 
@@ -237,8 +305,9 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         innerId: innerId,
         toolData: funcCalls.map(value => value),
       };
-      state.contextCache.set(innerId,funcCalls[0])  //  TODO ここは直すべき
-      next.push(AsOutput.makeOutput(AsMessage.makeMessage(req, 'physics', 'toolIn','inner'),
+      const mes1 = AsMessage.makeMessage(req, 'physics', 'toolIn','inner');
+      state.contextCache.set(mes1.id,funcCall)  //  TODO ここは直すべき
+      next.push(AsOutput.makeOutput(mes1,
         {
           provider: state.genName,
           model: state.model,
@@ -335,6 +404,9 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
           role: 'user',
           content: content
         } as Anthropic.Messages.MessageParam;
+        state.contextCache.set(toLlm[0].mes[0].id,nextTask) //  TODO
+        console.log('cache add:',toLlm[0].mes[0].id,nextTask);
+
         task = Option.some(nextTask);
         //  func call結果(native付き)
         const mes = toLlm.flatMap(v => v.mes);
@@ -424,8 +496,8 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
                 type:'text',
                 text: JSON.stringify(a2.resource),
               }; // TODO resourceはまだClaudeのtool結果としては戻さない? jsonをテキスト化して送ってみる?
-              state.contextCache.set(content.innerId,llmOut)
-              console.log('cache add:',content.innerId,llmOut);
+              // state.contextCache.set(content.innerId,llmOut)
+              // console.log('cache add:',content.innerId,llmOut);
             } else {
               llmOut = undefined
             }
@@ -522,7 +594,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.gen( function* () {
       yield *DocService.saveNativeLog(it.logTag,'textExecLlm_context',contents);
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
-      console.log('tools:', tools);
+      console.log('tools:', tools.length);
       console.log('claude :', contents.map(value => JSON.stringify(value,null,2).slice(0,250)).join('\n'));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',

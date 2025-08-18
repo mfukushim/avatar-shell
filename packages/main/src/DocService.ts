@@ -204,7 +204,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
 
     function saveMcpUiMedia(uri: string, text: string) {
       //  速度を対応するためにテンポラリにメモリキャッシュしてもよいかも
-      console.log('saveMcpUiMedia', uri, text);
+      console.log('saveMcpUiMedia', uri);
       if (!text || !uri) {
         return Effect.fail(new Error('no data'));
       }
