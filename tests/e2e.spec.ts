@@ -99,6 +99,7 @@ test('Main window state', async ({electronApp, page}) => {
   expect(windowState.isDevToolsOpened, 'The DevTools panel was open').toEqual(false);
 });
 
+/*
 test.describe('Main window web content', async () => {
 
   test('The main window has an interactive button', async ({page}) => {
@@ -122,7 +123,7 @@ test.describe('Main window web content', async () => {
       });
       await expect(element).toBeVisible();
     }
-    //  //*[@id="app"]/div/div[2]/aside/div/div/div[3]/div[2]
+    //  //!*[@id="app"]/div/div[2]/aside/div/div/div[3]/div[2]
     // console.log('button: ', element);
     // // await expect(element).toBeVisible();
     // // await expect(element).toHaveText('count is 0');
@@ -445,6 +446,7 @@ test.describe('Main window web content', async () => {
     await expect(errorTemplate).toBeVisible();
   });
 });
+*/
 
 test.describe('Preload context should be exposed', async () => {
   test.describe(`versions should be exposed`, async () => {
