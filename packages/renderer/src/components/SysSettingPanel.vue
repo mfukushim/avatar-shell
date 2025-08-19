@@ -178,7 +178,7 @@ const saveAndClose = async () => {
     );
     const setting = Schema.decodeUnknownEither(SysConfigSchema)(edit.value);
     if (Either.isRight(setting)) {
-      console.log('edit:', JSON.stringify(setting.right));
+      // console.log('edit:', JSON.stringify(setting.right));
       await setSysConfig(setting.right);
       show.value = false;
       return;

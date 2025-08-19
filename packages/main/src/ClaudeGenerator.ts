@@ -1,9 +1,9 @@
-import {ContextGenerator, GeneratorTask} from './ContextGenerator.js';
+import {GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Effect, Option} from 'effect';
 import {AsMessage, AsMessageContent, AsOutput, SysConfig} from '../../common/Def.js';
 import {DocService} from './DocService.js';
-import {McpService} from './McpService.js';
+import {McpService, ToolCallParam} from './McpService.js';
 import {ConfigService} from './ConfigService.js';
 import {
   ClaudeTextSettings,
@@ -22,7 +22,8 @@ import Anthropic from '@anthropic-ai/sdk';
 export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
-  //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
+  protected contextCache: Map<string, Anthropic.Messages.MessageParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
+  // protected contextCache: Map<string, Anthropic.Messages.ContentBlockParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected prevContexts: Anthropic.Messages.MessageParam[] = [];
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
@@ -39,6 +40,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
 
   constructor(sysConfig: SysConfig, settings?: ClaudeTextSettings) {
     super();
+    this.logTag = `Claude_${dayjs().unix()}`;
     this.claudeSettings = settings;
     this.anthropic = new Anthropic({
       apiKey: sysConfig.generators.anthropic.apiKey,
@@ -76,13 +78,19 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //   //  TODO 過去文脈のときの生画像は送るべきか。。。
         // }
       }
+      // console.log('contentToNative:', JSON.stringify(message),);
+      // if(message.innerId) {
+      //   const out = it.contextCache.get(message.innerId)
+      //   return out? [out]:[]
+      // }
       // return [] //  TODO claudeは空を受け付けない ダミーを今は入れる でも本質的にはどうしよう。。
-      return [
-        {
-          type: 'text',
-          text: '',
-        }as Anthropic.Messages.ContentBlockParam
-      ]
+      return yield *Effect.fail(new Error('as to native error'))
+      // return [
+      //   {
+      //     type: 'text',
+      //     text: '',
+      //   }as Anthropic.Messages.ContentBlockParam
+      // ]
     })
   }
 
@@ -96,9 +104,74 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
       //  TODO 自動サマライズする サマライズ用の指定のLLMとかあるだろうし、勝手にやるとまずいかも
 
     }
-    inContext = inContext.slice(-contextSize).filter(value => ContextGenerator.matchContextType(value.content.mimeType, ClaudeBaseGenerator.generatorInfo.inputContextTypes));
+    inContext = inContext.slice(-contextSize) //.filter(value => ContextGenerator.matchContextType(value.content.mimeType, ClaudeBaseGenerator.generatorInfo.inputContextTypes));
     console.log('new inContext len:', inContext.length);
-    const mergeContents = this.joinRole(inContext);
+    return Effect.forEach(inContext, mes => {
+      const b = it.contextCache.get(mes.id);
+      if(b) {
+        console.log('cached:',mes.id,b);
+        return Effect.succeed([
+          {
+            role: b.role,
+            content: Array.isArray(b.content) ? b.content.map(value => {
+              //  TODO
+              if (value.type === 'tool_result') {
+                console.log('value.content:', value.content);
+                return {
+                  type:'tool_result',
+                  tool_use_id: value.tool_use_id,
+                  content: Array.isArray(value.content) ? value.content.map(value1 => {
+                    if (value1.type === 'text') {
+                      return {
+                        type: 'text',
+                        text: value1.text,
+                      } as Anthropic.Messages.TextBlockParam;
+                    }
+                    if (value1.type === 'image') {
+                      if(value1.source.type === 'base64') {
+                        return {
+                          type: 'image',
+                          source: {
+                            type: 'base64',
+                            media_type: value1.source.media_type,
+                            data: value1.source.data,
+                          }
+                        } as Anthropic.Messages.ImageBlockParam;
+                      }
+                      return {
+                            type: 'image',
+                            source:{
+                              type: 'url',
+                              url: value1.source.url,
+                            }
+                      }
+                    }
+                  }):value.content
+                };
+              }
+              return value;
+            }):b.content
+          } as Anthropic.Messages.MessageParam,
+        ]);
+      }
+      if (mes.content.text) {
+        const c = [{
+          type: 'text',
+          text: mes.content.text,
+        } as Anthropic.Messages.ContentBlockParam];
+        const m:Anthropic.Messages.MessageParam = {
+          role: mes.asRole === 'bot'? 'assistant':'user',
+          content: c,
+        }
+        return Effect.succeed([m]);
+      }
+      return Effect.succeed([])
+//      return Effect.fail(new Error('context not found'));
+    }).pipe(Effect.andThen(a => {
+      this.prevContexts = a.flat()
+    }))
+    // const mergeContents = this.joinRole(inContext);
+/*
     return Effect.forEach(mergeContents, a => {
         return Effect.forEach(a.contents, a1 => {
           return it.contentToNative(a1,false)
@@ -138,6 +211,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     }).pipe(Effect.andThen(a => {
       this.prevContexts = a.flat();
     }));
+*/
   }
 
 
@@ -167,8 +241,8 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     });
   }
 
-  toAnswerOut(responseOut: Anthropic.Messages.ContentBlock[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
-    const outText = responseOut.flatMap(b => {
+  toAnswerOut(responseOut: Anthropic.Message, avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+    const outText = responseOut.content.flatMap(b => {
       if (b.type === 'text') {
         return [b.text];
       }
@@ -187,7 +261,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
             text: outText,
           }],
         };
-        state.prevContexts.push(addPrevious);  //  テキストについてはgeminiが言った言葉を過去文脈に追加していく
+        // state.prevContexts.push(addPrevious);  //  テキストについてはgeminiが言った言葉を過去文脈に追加していく
         out.push(AsOutput.makeOutput(AsMessage.makeMessage({
             from: avatarState.Name,
             text: outText,
@@ -202,11 +276,11 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     });
   }
 
-  execFuncCall(responseOut: Anthropic.Messages.ContentBlock[], avatarState: AvatarState): Effect.Effect<{
+  execFuncCall(responseOut: Anthropic.Message, avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<LlmInputContent>
   }, Error, DocService | McpService|ConfigService> {
-    const funcCalls = responseOut.flatMap(b => {
+    const funcCalls = responseOut.content.flatMap(b => {
       if (b.type === 'tool_use') {
         return [b];
       }
@@ -224,11 +298,16 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         role: 'assistant',
         content: funcCalls,
       };
-      state.prevContexts.push(funcCall);  //  1件のリクエストの追記
-      next.push(AsOutput.makeOutput(AsMessage.makeMessage({
-          from: avatarState.Name,
-          toolData: funcCalls.map(value => value),
-        }, 'physics', 'toolIn','inner'),
+      // state.prevContexts.push(funcCall);  //  1件のリクエストの追記
+      const innerId = short.generate();
+      const req = {
+        from: avatarState.Name,
+        innerId: innerId,
+        toolData: funcCalls.map(value => value),
+      };
+      const mes1 = AsMessage.makeMessage(req, 'physics', 'toolIn','inner');
+      state.contextCache.set(mes1.id,funcCall)  //  TODO ここは直すべき
+      next.push(AsOutput.makeOutput(mes1,
         {
           provider: state.genName,
           model: state.model,
@@ -236,109 +315,235 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         }));
       console.log('funcCalls:', funcCalls);
       const toLlm = yield* Effect.forEach(funcCalls, a => {
-        return Effect.gen(function* () {
-          const toolRes = yield* McpService.callFunction(avatarState, a,'claudeText').pipe(Effect.catchAll(e => {
-            console.log('tool error:', e); //  tool denyの件もここに来る TODO denyと他エラーを分けたほうがよい
-            return Effect.succeed({
-              call_id: a.id,
-              toLlm: {
-                content: [
-                  {
-                    type: 'text',
-                    text: `tool can not use.`,
-                  },
-                ],
-              },
-            });
-          }));
-
-          console.log('toolRes:'); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
-          //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
-          return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, a2 => {
-            return Effect.gen(function* () {
-              const content: any = {
-                from: avatarState.Name,
-              };
-              const nextId = short.generate();
-              let llmOut: (Anthropic.Messages.TextBlockParam|Anthropic.Messages.ImageBlockParam)[] = [] // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
-              if (a2.type === 'text') {
-                content.text = a2.text;
-                llmOut = [a2]
-              } else if (a2.type === 'image') {
-                const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
-                const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
-                // a2.data = b1.toString('base64'); //  TODO 上書き更新にしている
-                content.mediaUrl = mediaUrl;
-                content.mimeType = 'image/png';
-                //  縮小した画像をLLMには送る
-                llmOut = [{
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: content.mimeType,
-                    data: b1.toString('base64'),
-                  },
-                }] as Anthropic.Messages.ImageBlockParam[];
-              } else if (a2.type === 'resource') {
-                //  TODO resourceはuriらしい resourceはLLMに回さないらしい
-                //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
-                content.innerId = a.id
-                content.mediaUrl = a2.resource.uri;
-                content.mimeType = a2.resource.mimeType
-                if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
-                  console.log('to save html');
-                  //  TODO なんで型があってないんだろう。。
-                  yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
-                }
-              }
-              //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
-              return [{
-                toolOneRes: llmOut,
-                toolId:a.id,  //  todo ちょっとツール集約がおかしい
-                mes: {
-                  id: nextId,
-                  tick: dayjs().valueOf(),
-                  asClass: 'physics', //  TODO ちょっと姑息だがtextだったらsystemにする。それ以外imageとかはtalkにする 後で一貫性について検討要
-                  asRole: 'toolOut',
-                  asContext:'inner',
-                  isRequestAction: false,
-                  content: content,
-                } as AsMessage,
-              }];
-            }).pipe(Effect.catchAll(_ => Effect.succeed([])));
-          }).pipe(Effect.andThen(a => a.flat()));
-
-        });
-      }).pipe(Effect.andThen(a => a.flat()));
+        return state.execOneFuncCall(avatarState, a)
+        // return Effect.gen(function* () {
+        //   const toolRes = yield* McpService.callFunction(avatarState, a,'claudeText').pipe(Effect.catchAll(e => {
+        //     console.log('tool error:', e); //  tool denyの件もここに来る TODO denyと他エラーを分けたほうがよい
+        //     return Effect.succeed({
+        //       call_id: a.id,
+        //       toLlm: {
+        //         content: [
+        //           {
+        //             type: 'text',
+        //             text: `tool can not use.`,
+        //           },
+        //         ],
+        //       },
+        //     });
+        //   }));
+        //
+        //   console.log('toolRes:'); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
+        //   //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
+        //   return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, a2 => {
+        //     return Effect.gen(function* () {
+        //       const content: any = {
+        //         from: avatarState.Name,
+        //       };
+        //       const nextId = short.generate();
+        //       let llmOut: (Anthropic.Messages.TextBlockParam|Anthropic.Messages.ImageBlockParam)[] = [] // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
+        //       if (a2.type === 'text') {
+        //         content.text = a2.text;
+        //         llmOut = [a2]
+        //       } else if (a2.type === 'image') {
+        //         const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
+        //         const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
+        //         // a2.data = b1.toString('base64'); //  TODO 上書き更新にしている
+        //         content.mediaUrl = mediaUrl;
+        //         content.mimeType = 'image/png';
+        //         //  縮小した画像をLLMには送る
+        //         llmOut = [{
+        //           type: 'image',
+        //           source: {
+        //             type: 'base64',
+        //             media_type: content.mimeType,
+        //             data: b1.toString('base64'),
+        //           },
+        //         }] as Anthropic.Messages.ImageBlockParam[];
+        //       } else if (a2.type === 'resource') {
+        //         //  TODO resourceはuriらしい resourceはLLMに回さないらしい
+        //         //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
+        //         content.innerId = a.id
+        //         content.mediaUrl = a2.resource.uri;
+        //         content.mimeType = a2.resource.mimeType
+        //         if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
+        //           console.log('to save html');
+        //           //  TODO なんで型があってないんだろう。。
+        //           yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
+        //         }
+        //       }
+        //       //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
+        //       return [{
+        //         toolOneRes: llmOut,
+        //         toolId:a.id,  //  todo ちょっとツール集約がおかしい
+        //         mes: {
+        //           id: nextId,
+        //           tick: dayjs().valueOf(),
+        //           asClass: 'physics', //  TODO ちょっと姑息だがtextだったらsystemにする。それ以外imageとかはtalkにする 後で一貫性について検討要
+        //           asRole: 'toolOut',
+        //           asContext:'inner',
+        //           isRequestAction: false,
+        //           content: content,
+        //         } as AsMessage,
+        //       }];
+        //     }).pipe(Effect.catchAll(_ => Effect.succeed([])));
+        //   }).pipe(Effect.andThen(a => a.flat()));
+        //
+        // });
+      })  //.pipe(Effect.andThen(a => a.flat()));
+      //  Claudeはtool_useに対してかならず対のtool_resultが必要
       //  TODO gptは複数のtool生成結果を次の1回の実行で受け取る。 AsMessageは1メッセージ1コンテンツである。
       //   つまりAsMessageは複数作られる その最初のAsMessageにのみ1件のgpt行きタスクがあり、他のasMessageには含まれない この対応関係はAsMessageを主体とするのかは決めないし、メッセージ再現時にその関係性を厳密には保たない
       let task = Option.none<Anthropic.Messages.MessageParam>();
       if (toLlm.length > 0) {
         //  次に回すタスク
+        const content = [{
+          type: 'tool_result',
+          tool_use_id: toLlm[0].toolId,
+          content: toLlm.flatMap(a => a.toolRes),
+        } as Anthropic.Messages.ToolResultBlockParam];
         const nextTask = {
           role: 'user',
-          content: [{
-            type: 'tool_result',
-            tool_use_id: toLlm[0].toolId,
-            content: toLlm.flatMap(a => a.toolOneRes),
-          } as Anthropic.Messages.ToolResultBlockParam]
+          content: content
         } as Anthropic.Messages.MessageParam;
+        state.contextCache.set(toLlm[0].mes[0].id,nextTask) //  TODO
+        console.log('cache add:',toLlm[0].mes[0].id,nextTask);
+
         task = Option.some(nextTask);
         //  func call結果(native付き)
-        next.push(AsOutput.makeOutput(toLlm[0].mes, {
+        const mes = toLlm.flatMap(v => v.mes);
+        next.push(AsOutput.makeOutput(mes[0], {
           provider: state.genName,
           model: state.model,
           isExternal: false,
         }, [nextTask]));
         //  func call結果(AsMessageのみ)
-        next.push(...toLlm.slice(1).map(a =>
-          AsOutput.makeOutput(a.mes, {
+        mes.slice(1).forEach(a =>
+          next.push(AsOutput.makeOutput(a, {
             provider: state.genName,
             model: state.model,
             isExternal: false,
-          })));
+          })))
+        // next.push(...toLlm.slice(1).map(a =>
+        //   AsOutput.makeOutput(a.mes, {
+        //     provider: state.genName,
+        //     model: state.model,
+        //     isExternal: false,
+        //   })));
       }
       return {output: next, nextTask: task};
+    });
+  }
+
+  execOneFuncCall(avatarState: AvatarState, a: ToolCallParam) {
+    const state = this;
+    const toolId = a.id;
+    return Effect.gen(function* () {
+      const toolRes = yield* McpService.callFunction(avatarState, a,'claudeText').pipe(Effect.catchAll(e => {
+        console.log('tool error:', e); //  tool denyの件もここに来る TODO denyと他エラーを分けたほうがよい
+        return Effect.succeed({
+          call_id: toolId,
+          toLlm: {
+            content: [
+              {
+                type: 'text',
+                text: `tool can not use.`,
+              },
+            ],
+          },
+        });
+      }));
+
+      console.log('toolRes:'); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
+      //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
+      return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, (a2,idx) => {
+        return Effect.gen(function* () {
+          const content: any = {
+            from: avatarState.Name,
+          };
+          const nextId = short.generate();
+          let llmOut: Anthropic.Messages.ContentBlockParam|undefined = undefined // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
+          if (a2.type === 'text') {
+            content.text = a2.text;
+            llmOut = {
+              type:'text',
+              text: a2.text
+            }
+            // llmOut = a2
+          } else if (a2.type === 'image') {
+            const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
+            const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
+            // a2.data = b1.toString('base64'); //  TODO 上書き更新にしている
+            content.mediaUrl = mediaUrl;
+            content.mimeType = 'image/png';
+            //  縮小した画像をLLMには送る
+            llmOut = {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: content.mimeType,
+                data: b1.toString('base64'),
+              },
+            } as Anthropic.Messages.ImageBlockParam;
+          } else if (a2.type === 'resource') {
+            //  TODO resourceはuriらしい resourceはLLMに回さないらしい
+            //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
+            content.innerId =`${a.id}_${idx}`
+            content.mediaUrl = a2.resource.uri;
+            content.mimeType = a2.resource.mimeType
+            if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
+              console.log('to save html');
+              //  TODO なんで型があってないんだろう。。
+              yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
+            }
+            //  MCP-UI対応に uriがui:でないものだけ送る
+            if (!a2.resource.uri.startsWith('ui:')) {
+              llmOut = {
+                type:'text',
+                text: JSON.stringify(a2.resource),
+              }; // TODO resourceはまだClaudeのtool結果としては戻さない? jsonをテキスト化して送ってみる?
+              // state.contextCache.set(content.innerId,llmOut)
+              // console.log('cache add:',content.innerId,llmOut);
+            } else {
+              //  claudeはtool_useに対してかならず対のtool_resultを必要とする
+              llmOut = {
+                type:'text',
+                text:`Executed, ${a2.resource.uri}` // とりあえずダミーとしてui:uriを返す
+              }
+            }
+          }
+          //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
+          return {
+            toolOneRes: llmOut,
+            // toolId:a.id,  //  todo ちょっとツール集約がおかしい
+            mes: {
+              id: nextId,
+              tick: dayjs().valueOf(),
+              asClass: 'physics', //  TODO ちょっと姑息だがtextだったらsystemにする。それ以外imageとかはtalkにする 後で一貫性について検討要
+              asRole: 'toolOut',
+              asContext:'inner',
+              isRequestAction: false,
+              content: content,
+            } as AsMessage,
+          };
+        })  //.pipe(Effect.catchAll(_ => Effect.succeed([])));
+      }).pipe(Effect.andThen(a => {
+        //  TODO
+        const toolRes:Anthropic.Messages.ContentBlockParam[] = []
+        const mes:AsMessage[] = []
+        a.forEach(value => {
+          if (value.toolOneRes) {
+            toolRes.push(value.toolOneRes)
+          }
+          if (value.mes) {
+            mes.push(value.mes)
+          }
+        })
+        return {
+          toolId:toolId,
+          toolRes,
+          mes
+        }
+      }));
     });
   }
 
@@ -360,7 +565,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.succeed(new ClaudeTextGenerator(sysConfig, settings as ClaudeTextSettings | undefined));
   }
 
-  override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Messages.ContentBlock[], Error, ConfigService | McpService> {
+  override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Message, Error, ConfigService | McpService |DocService> {
     const it = this;
     //  it.prevContextsの末尾がuserの場合、マージする TODO テキストレベルでのマージが必要か?
     let contents = this.prevContexts || []
@@ -395,15 +600,14 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     } else {
       contents.push(inputContext);
     }
-    return Effect.gen(this, function* () {
+    return Effect.gen( function* () {
+      yield *DocService.saveNativeLog(it.logTag,'textExecLlm_context',contents);
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
-      console.log('tools:', tools);
-      // it.prevContexts.push(inputContext);
+      console.log('tools:', tools.length);
       console.log('claude :', contents.map(value => JSON.stringify(value,null,2).slice(0,250)).join('\n'));
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',
         messages: contents,
-        // messages: it.prevContexts,
         tools: tools.map(a => {
           return {
             name: a.name,
@@ -428,9 +632,14 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           return new Error(`claude error:${error}`);
         },
       });
-      // state.clearStreamingText(avatarState)
-      console.log(message.content);
-      return message.content;
+      console.log(message);
+      yield *DocService.saveNativeLog(it.logTag,'textExecLlm_out',message);
+
+      it.prevContexts.push({
+        role: 'assistant',
+        content: message.content,
+      }) //  直に送らず不要分の削除がいるらしい
+      return message;
     }) //.pipe(Effect.catchIf(a => a instanceof Error, _ => Effect.succeed([])));
   }
 

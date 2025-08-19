@@ -22,6 +22,7 @@ import {
   ResponseInputItem, ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
+  Response,
 } from 'openai/resources/responses/responses';
 import {TimeoutException} from 'effect/Cause';
 import {z} from 'zod';
@@ -154,7 +155,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
     }));
   }
 
-  toAnswerOut(responseOut: GeneratorOutput[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  toAnswerOut(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     const it = this;
     return Effect.gen(function* () {
       const textOut = responseOut.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
@@ -189,7 +190,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
     });
   }
 
-  execFuncCall(responseOut: GeneratorOutput[], avatarState: AvatarState): Effect.Effect<{
+  execFuncCall(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<ResponseInputItem[]>
   }, Error, DocService | McpService| ConfigService> {
@@ -322,7 +323,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
   }
 
-  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], Error, ConfigService | McpService> {
+  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState){
     const it = this;
     // console.log('openAi execLlm input:', inputContext);
     return Effect.gen(this, function* () {
@@ -335,8 +336,10 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
           parameters: value.inputSchema,
         };
       }) as OpenAI.Responses.Tool[];
+      // console.log('openAi execLlm toolsIn:', toolsIn.map(value => JSON.stringify(value)).join('\n'));
       it.prevContexts.push(...inputContext);
-      console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
+      yield *DocService.saveNativeLog(it.logTag,'oa textExecLlm_context',it.prevContexts);
+      // console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: it.prevContexts,
@@ -400,7 +403,7 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
   }
 
-  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<ResponseOutputItem[], Error, ConfigService | McpService> {
+  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput, Error, ConfigService | McpService> {
     const body: ResponseCreateParamsNonStreaming = {
       model: this.model,
       input: inputContext,
@@ -408,9 +411,7 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
       // store:true,
     };
     return Effect.tryPromise({
-      try: () => {
-        return this.openai.responses.create(body);
-      },
+      try: () => this.openai.responses.create(body),
       catch: error => {
         const e = error as APIError;
         // console.log('error:', e.message);
@@ -421,12 +422,12 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
       Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
       Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
       Effect.andThen(a => {
-        return a.output.flat();
+        return a//.output.flat(); //  TODO 厳密には WithRequestID<Response>
       }),
     );
   }
 
-  override toAnswerOut(responseOut: GeneratorOutput[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  override toAnswerOut(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     //  画像だけをアウトプットにする
     return Effect.forEach(responseOut.filter(b => b.type === 'image_generation_call'), (b: ResponseOutputItem.ImageGenerationCall) => {
       const mime = 'image/png';
@@ -479,7 +480,7 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
     this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
   }
 
-  execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput[], Error, ConfigService | McpService> {
+  execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput, Error, ConfigService | McpService> {
     let text = inputContext.flatMap(value => {
       if (value.type === 'message') {
         if (typeof value.content === 'string') {
@@ -515,13 +516,14 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
       Effect.timeout('1 minute'),
       Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
       Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
-      Effect.andThen(a => a.choices),
+      // Effect.andThen(a => a.choices),
     );
   }
 
-  override toAnswerOut(responseOut: ChatCompletion.Choice[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  override toAnswerOut(responseOut: any, avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     //  Voiceとして呼んだ場合は音声しか取り出さない
-    const snd = responseOut[0].message.audio?.data;
+    //  TODO openAiのvoiceはまだResponse非対応
+    const snd = (responseOut as ChatCompletion).choices[0].message.audio?.data;
     if (snd) {
       // console.log('outImages:', snd.slice(0, 100));
       const id = short.generate();

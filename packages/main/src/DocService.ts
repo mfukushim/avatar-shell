@@ -172,7 +172,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
           );
         }
         const matchUi = regMcpUiUrl.exec(mediaUrl);
-        console.log('mediaUrl', mediaUrl, matchUi);
+        // console.log('mediaUrl', mediaUrl, matchUi);
         if (matchUi) {
           return yield* Ref.get(mediaCache).pipe(
             Effect.andThen(a => HashMap.get(a, mediaUrl)),
@@ -204,7 +204,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
 
     function saveMcpUiMedia(uri: string, text: string) {
       //  速度を対応するためにテンポラリにメモリキャッシュしてもよいかも
-      console.log('saveMcpUiMedia', uri, text);
+      console.log('saveMcpUiMedia', uri);
       if (!text || !uri) {
         return Effect.fail(new Error('no data'));
       }
@@ -251,6 +251,18 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
       });
     }
 
+    function saveNativeLog(pathTag:string,tag:string,data:any) {
+      return Effect.gen(function*() {
+        const dir = path.join(docBasePath, 'contents', 'native');
+        const exist = yield* fs.exists(dir);
+        if (!exist) {
+          yield* fs.makeDirectory(dir, {recursive: true});
+        }
+        const s = JSON.stringify({tag,data})
+        yield* fs.writeFileString(path.join(docBasePath, 'contents', 'native',`${pathTag}.json`), `${s},\n`, {flag: 'a'});
+      })
+    }
+
 
     return {
       readDocList,
@@ -259,6 +271,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
       readDocMedia,
       saveMcpUiMedia,
       addLog,
+      saveNativeLog
     };
   }),
   dependencies: [NodeFileSystem.layer],

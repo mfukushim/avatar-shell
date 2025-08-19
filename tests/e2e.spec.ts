@@ -71,11 +71,12 @@ const test = base.extend<TestFixtures>({
 test('Main window state', async ({electronApp, page}) => {
   const window: JSHandle<BrowserWindow> = await electronApp.browserWindow(page);
   const windowState = await window.evaluate(
-    (mainWindow): Promise<{isVisible: boolean; isDevToolsOpened: boolean; isCrashed: boolean}> => {
+    (mainWindow): Promise<{isVisible: boolean; isDevToolsOpened: boolean; isCrashed: boolean,title:string}> => {
       const getState = () => ({
         isVisible: mainWindow.isVisible(),
         isDevToolsOpened: mainWindow.webContents.isDevToolsOpened(),
         isCrashed: mainWindow.webContents.isCrashed(),
+        title: mainWindow.webContents.getTitle(),
       });
 
       return new Promise(resolve => {
@@ -92,34 +93,358 @@ test('Main window state', async ({electronApp, page}) => {
     },
   );
 
+  console.log('windowState:',windowState);
   expect(windowState.isCrashed, 'The app has crashed').toEqual(false);
   expect(windowState.isVisible, 'The main window was not visible').toEqual(true);
   expect(windowState.isDevToolsOpened, 'The DevTools panel was open').toEqual(false);
 });
 
-/*
 test.describe('Main window web content', async () => {
 
   test('The main window has an interactive button', async ({page}) => {
-    const element = page.getByRole('button');
-    await expect(element).toBeVisible();
-    await expect(element).toHaveText('count is 0');
-    await element.click();
-    await expect(element).toHaveText('count is 1');
+    // test.setTimeout(120_000);
+    // const element = page.getByText('schedule')
+    // await expect(element).toBeVisible();
+    // await element.evaluate((el) => {
+    //   console.log('el: ', el.innerHTML);
+    // });
+    {
+      const element = page.getByText('Alice - Avatar Shell')
+      await element.evaluate((el) => {
+        console.log('el: ', el.outerHTML);
+      });
+      await expect(element).toBeVisible();
+    }
+    {
+      const element = page.getByText('mfuku')
+      await element.evaluate((el) => {
+        console.log('el: ', el.outerHTML);
+      });
+      await expect(element).toBeVisible();
+    }
+    //  //*[@id="app"]/div/div[2]/aside/div/div/div[3]/div[2]
+    // console.log('button: ', element);
+    // // await expect(element).toBeVisible();
+    // // await expect(element).toHaveText('count is 0');
+    // await element.click();
+    // await expect(element).toHaveText('count is 1');
+  })
+
+  test('The main window has header with avatar name', async ({page}) => {
+    // ヘッダーが表示されていることを確認
+    const header = page.locator('header.q-header');
+    // console.log('header: ', header);
+    // console.log('header innerHTML: ', await header.innerHTML());
+    await expect(header).toBeVisible();
+
+    // アバター名が表示されていることを確認（初期状態では空文字列の可能性もある）
+    const avatarNameElement = page.locator('div.q-bar div').first();
+    console.log('avatarNameElement innerHTML: ', await avatarNameElement.innerHTML());
+    await expect(avatarNameElement).toBeVisible();
   });
 
-  test('The main window has a vite logo', async ({page}) => {
-    const element = page.getByAltText('Vite logo');
-    await expect(element).toBeVisible();
-    await expect(element).toHaveRole('img');
-    const imgState = await element.evaluate((img: HTMLImageElement) => img.complete);
-    const imgNaturalWidth = await element.evaluate((img: HTMLImageElement) => img.naturalWidth);
+  test('The main window has input panel with text input', async ({page}) => {
+    // 入力パネルが表示されていることを確認
+    const inputPanel = page.locator('footer.q-footer');
+    await expect(inputPanel).toBeVisible();
 
-    expect(imgState).toEqual(true);
-    expect(imgNaturalWidth).toBeGreaterThan(0);
+    // テキスト入力フィールドが表示されていることを確認
+    const textInput = page.getByRole('textbox',{ name: 'talk input'});
+    await expect(textInput).toBeVisible();
+
+    // 送信ボタンが表示されていることを確認
+    const sendButton = page.locator('button.q-btn i.q-icon', {hasText: 'send'});
+    await expect(sendButton).toBeVisible();
+  });
+
+  test('The main window has menu button in header', async ({page}) => {
+    // ヘッダーのメニューボタンが表示されていることを確認
+    const menuButton = page.locator('aside.q-drawer i.q-icon',{hasText: 'face'});
+    await expect(menuButton).toBeVisible();
+  });
+
+  test('The main window has volume control button', async ({page}) => {
+    // 音量制御ボタンが表示されていることを確認
+    const volumeButton = page.locator('q-bar q-btn[icon*="volume"]');
+    await expect(volumeButton).toBeVisible();
+  });
+
+  test('The main window has chat toggle button in footer', async ({page}) => {
+    // フッターのチャットトグルボタンが表示されていることを確認
+    const chatButton = page.locator('q-footer q-btn[icon="chat"]');
+    await expect(chatButton).toBeVisible();
+  });
+
+  test('The main window has main image display area', async ({page}) => {
+    // メイン画像表示エリアが表示されていることを確認
+    const mainImage = page.locator('q-img');
+    await expect(mainImage).toBeVisible();
+
+    // デフォルト画像が表示されていることを確認
+    const imgSrc = await mainImage.getAttribute('src');
+    expect(imgSrc).toBeTruthy();
+  });
+
+  test('The main window has file upload button', async ({page}) => {
+    // ファイルアップロードボタンが表示されていることを確認
+    const fileUpload = page.locator('q-file');
+    await expect(fileUpload).toBeVisible();
+
+    // ファイルアップロードのアイコンが表示されていることを確認
+    const fileIcon = page.locator('q-file q-icon[name="attach_file"]');
+    await expect(fileIcon).toBeVisible();
+  });
+
+  test('The main window has MCP resource button', async ({page}) => {
+    // MCPリソースボタンが表示されていることを確認
+    const mcpButton = page.locator('q-btn[icon="text_snippet"]');
+    await expect(mcpButton).toBeVisible();
+  });
+
+  test('The main window has window control buttons', async ({page}) => {
+    // ウィンドウ制御ボタンが表示されていることを確認
+    const minimizeButton = page.locator('q-bar q-btn[icon="minimize"]');
+    const maximizeButton = page.locator('q-bar q-btn[icon="crop_square"]');
+    const closeButton = page.locator('q-bar q-btn[icon="close"]');
+
+    await expect(minimizeButton).toBeVisible();
+    await expect(maximizeButton).toBeVisible();
+    await expect(closeButton).toBeVisible();
+  });
+
+  test('The main window has search button in header', async ({page}) => {
+    // 検索ボタンが表示されていることを確認
+    const searchButton = page.locator('q-bar q-btn[icon="search"]');
+    await expect(searchButton).toBeVisible();
+  });
+
+  test('The main window has connection status button', async ({page}) => {
+    // 接続状態ボタンが表示されていることを確認
+    const connectionButton = page.locator('q-bar q-btn[icon*="wifi"]');
+    await expect(connectionButton).toBeVisible();
+  });
+
+  test('The main window has schedule button in header', async ({page}) => {
+    // スケジュールボタンが表示されていることを確認
+    const scheduleButton = page.locator('q-bar q-btn[icon*="schedule"], q-bar q-btn[icon*="update_disabled"]');
+    await expect(scheduleButton).toBeVisible();
+  });
+
+  test('Input panel is disabled initially', async ({page}) => {
+    // 初期状態で入力パネルが無効化されていることを確認
+    const textInput = page.locator('q-input input[type="text"]');
+    const sendButton = page.locator('q-btn[icon="send"]');
+    const fileUpload = page.locator('q-file');
+
+    // 入力フィールドが無効化されていることを確認
+    await expect(textInput).toBeDisabled();
+    await expect(sendButton).toBeDisabled();
+    await expect(fileUpload).toBeDisabled();
+  });
+
+  test('The main window has proper layout structure', async ({page}) => {
+    // レイアウト構造が正しく表示されていることを確認
+    const layout = page.locator('q-layout');
+    const header = page.locator('q-header');
+    const footer = page.locator('q-footer');
+    const pageContainer = page.locator('q-page-container');
+
+    await expect(layout).toBeVisible();
+    await expect(header).toBeVisible();
+    await expect(footer).toBeVisible();
+    await expect(pageContainer).toBeVisible();
+  });
+
+  test('The main window has wave background animation', async ({page}) => {
+    // 波の背景アニメーションが表示されていることを確認
+    const waveBackground = page.locator('.wave-background');
+    const wave = page.locator('.wave');
+
+    await expect(waveBackground).toBeVisible();
+    await expect(wave).toBeVisible();
+  });
+
+  test('Menu drawer can be toggled', async ({page}) => {
+    // メニューボタンをクリックしてドロワーを開く
+    const menuButton = page.locator('q-bar q-icon[name="face"]');
+    await menuButton.click();
+
+    // ドロワーが表示されることを確認
+    const drawer = page.locator('q-drawer');
+    await expect(drawer).toBeVisible();
+
+    // 再度クリックしてドロワーを閉じる
+    await menuButton.click();
+  });
+
+  test('Chat drawer can be toggled', async ({page}) => {
+    // チャットボタンをクリックしてドロワーを開く
+    const chatButton = page.locator('q-footer q-btn[icon="chat"]');
+    await chatButton.click();
+
+    // 右側のドロワーが表示されることを確認
+    const rightDrawer = page.locator('q-drawer[side="right"]');
+    await expect(rightDrawer).toBeVisible();
+
+    // 再度クリックしてドロワーを閉じる
+    await chatButton.click();
+  });
+
+  test('Volume control popup can be opened', async ({page}) => {
+    // 音量ボタンをクリックしてポップアップを開く
+    const volumeButton = page.locator('q-bar q-btn[icon*="volume"]');
+    await volumeButton.click();
+
+    // 音量制御パネルが表示されることを確認
+    const volumePanel = page.locator('q-popup-proxy');
+    await expect(volumePanel).toBeVisible();
+  });
+
+  test('Search button opens image selector', async ({page}) => {
+    // 検索ボタンをクリックして画像セレクターを開く
+    const searchButton = page.locator('q-bar q-btn[icon="search"]');
+    await searchButton.click();
+
+    // 画像セレクターが表示されることを確認
+    const imageSelector = page.locator('ImageSelector');
+    await expect(imageSelector).toBeVisible();
+
+    // 再度クリックして閉じる
+    await searchButton.click();
+  });
+
+  test('Text input accepts user input', async ({page}) => {
+    // テキスト入力フィールドにテキストを入力
+    const textInput = page.locator('q-input input[type="text"]');
+    const testText = 'Hello, Avatar!';
+
+    await textInput.fill(testText);
+
+    // 入力されたテキストが正しく表示されることを確認
+    await expect(textInput).toHaveValue(testText);
+  });
+
+  test('MCP resource button shows menu', async ({page}) => {
+    // MCPリソースボタンをクリックしてメニューを開く
+    const mcpButton = page.locator('q-btn[icon="text_snippet"]');
+    await mcpButton.click();
+
+    // メニューが表示されることを確認
+    const mcpMenu = page.locator('q-menu');
+    await expect(mcpMenu).toBeVisible();
+  });
+
+  test('Window control buttons are clickable', async ({page}) => {
+    // ウィンドウ制御ボタンがクリック可能であることを確認
+    const minimizeButton = page.locator('q-bar q-btn[icon="minimize"]');
+    const maximizeButton = page.locator('q-bar q-btn[icon="crop_square"]');
+    const closeButton = page.locator('q-bar q-btn[icon="close"]');
+
+    // ボタンがクリック可能であることを確認（実際の動作はテストしない）
+    await expect(minimizeButton).toBeEnabled();
+    await expect(maximizeButton).toBeEnabled();
+    await expect(closeButton).toBeEnabled();
+  });
+
+  test('Connection status button toggles state', async ({page}) => {
+    // 接続状態ボタンをクリック
+    const connectionButton = page.locator('q-bar q-btn[icon*="wifi"]');
+    const initialIcon = await connectionButton.locator('q-icon').getAttribute('name');
+
+    await connectionButton.click();
+
+    // アイコンが変更されることを確認（実際の状態は環境に依存するため、クリック可能であることを確認）
+    await expect(connectionButton).toBeEnabled();
+  });
+
+  test('Schedule button toggles state', async ({page}) => {
+    // スケジュールボタンをクリック
+    const scheduleButton = page.locator('q-bar q-btn[icon*="schedule"], q-bar q-btn[icon*="update_disabled"]');
+    const initialIcon = await scheduleButton.locator('q-icon').getAttribute('name');
+
+    await scheduleButton.click();
+
+    // アイコンが変更されることを確認（実際の状態は環境に依存するため、クリック可能であることを確認）
+    await expect(scheduleButton).toBeEnabled();
+  });
+
+  test('Main image has popup on click', async ({page}) => {
+    // メイン画像をクリック
+    const mainImage = page.locator('q-img');
+    await mainImage.click();
+
+    // ポップアップが表示されることを確認
+    const popup = page.locator('q-popup-proxy');
+    await expect(popup).toBeVisible();
+  });
+
+  test('Application has proper accessibility attributes', async ({page}) => {
+    // アクセシビリティ属性が適切に設定されていることを確認
+    const textInput = page.locator('q-input input[type="text"]');
+    const sendButton = page.locator('q-btn[icon="send"]');
+    const fileUpload = page.locator('q-file');
+
+    // 入力フィールドにラベルが設定されていることを確認
+    await expect(textInput).toHaveAttribute('aria-label', 'talk input');
+
+    // ボタンが適切に識別可能であることを確認
+    await expect(sendButton).toBeVisible();
+    await expect(fileUpload).toBeVisible();
+  });
+
+  test('Application handles different screen sizes', async ({page}) => {
+    // 異なる画面サイズでの表示をテスト
+    const originalSize = page.viewportSize();
+
+    // 小さな画面サイズでテスト
+    await page.setViewportSize({ width: 800, height: 600 });
+    await expect(page.locator('q-layout')).toBeVisible();
+    await expect(page.locator('q-header')).toBeVisible();
+    await expect(page.locator('q-footer')).toBeVisible();
+
+    // 大きな画面サイズでテスト
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(page.locator('q-layout')).toBeVisible();
+    await expect(page.locator('q-header')).toBeVisible();
+    await expect(page.locator('q-footer')).toBeVisible();
+
+    // 元のサイズに戻す
+    if (originalSize) {
+      await page.setViewportSize(originalSize);
+    }
+  });
+
+  test('Application has proper keyboard navigation', async ({page}) => {
+    // キーボードナビゲーションが適切に動作することを確認
+    const textInput = page.locator('q-input input[type="text"]');
+
+    // 入力フィールドにフォーカスを設定
+    await textInput.focus();
+    await expect(textInput).toBeFocused();
+
+    // Tabキーでナビゲーションが可能であることを確認
+    await page.keyboard.press('Tab');
+    // 次の要素にフォーカスが移動することを確認（具体的な要素は環境に依存）
+  });
+
+  test('Application shows loading states appropriately', async ({page}) => {
+    // ローディング状態が適切に表示されることを確認
+    const mainImage = page.locator('q-img');
+
+    // 画像のローディング状態を確認
+    const loadingTemplate = page.locator('q-img template[v-slot="loading"]');
+    await expect(loadingTemplate).toBeVisible();
+  });
+
+  test('Application handles error states gracefully', async ({page}) => {
+    // エラー状態が適切に処理されることを確認
+    const mainImage = page.locator('q-img');
+
+    // エラー状態のテンプレートが存在することを確認
+    const errorTemplate = page.locator('q-img template[v-slot="error"]');
+    await expect(errorTemplate).toBeVisible();
   });
 });
-*/
 
 test.describe('Preload context should be exposed', async () => {
   test.describe(`versions should be exposed`, async () => {

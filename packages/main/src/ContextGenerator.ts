@@ -12,6 +12,10 @@ export type GeneratorTask = any
 export type GeneratorOutput = any
 
 export abstract class ContextGenerator {
+  protected logTag:string
+  constructor() {
+    this.logTag = this.constructor.name;
+  }
 
   abstract getGeneratorInfo():ContextGeneratorInfo
 
