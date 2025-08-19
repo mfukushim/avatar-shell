@@ -550,7 +550,8 @@ export class AvatarState {
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない
 
-      const filteredContext = context.filter(value => value.asContext !== 'outer' && (!value.content.mimeType || !value.content.mimeType.startsWith('text')));
+      const filteredContext = context.filter(value => value.asContext !== 'outer');
+      // const filteredContext = context.filter(value => value.asContext !== 'outer' && (!value.content.mimeType || !value.content.mimeType.startsWith('text')));
 
       console.log('execScheduler in:', message);
       const out = yield* state.execGenerator(daemon.generator, [message], filteredContext);

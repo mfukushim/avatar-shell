@@ -109,7 +109,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     return Effect.forEach(inContext, mes => {
       const b = it.contextCache.get(mes.id);
       if(b) {
-        console.log(b);
+        console.log('cached:',mes.id,b);
         return Effect.succeed([
           {
             role: b.role,
@@ -390,6 +390,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
         //
         // });
       })  //.pipe(Effect.andThen(a => a.flat()));
+      //  Claudeはtool_useに対してかならず対のtool_resultが必要
       //  TODO gptは複数のtool生成結果を次の1回の実行で受け取る。 AsMessageは1メッセージ1コンテンツである。
       //   つまりAsMessageは複数作られる その最初のAsMessageにのみ1件のgpt行きタスクがあり、他のasMessageには含まれない この対応関係はAsMessageを主体とするのかは決めないし、メッセージ再現時にその関係性を厳密には保たない
       let task = Option.none<Anthropic.Messages.MessageParam>();
@@ -463,7 +464,11 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
           let llmOut: Anthropic.Messages.ContentBlockParam|undefined = undefined // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず
           if (a2.type === 'text') {
             content.text = a2.text;
-            llmOut = a2
+            llmOut = {
+              type:'text',
+              text: a2.text
+            }
+            // llmOut = a2
           } else if (a2.type === 'image') {
             const mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, avatarState.TemplateId);
             const b1 = yield* state.shrinkImage(Buffer.from(a2.data, 'base64').buffer, state.claudeSettings?.inWidth);
@@ -499,7 +504,11 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
               // state.contextCache.set(content.innerId,llmOut)
               // console.log('cache add:',content.innerId,llmOut);
             } else {
-              llmOut = undefined
+              //  claudeはtool_useに対してかならず対のtool_resultを必要とする
+              llmOut = {
+                type:'text',
+                text:`Executed, ${a2.resource.uri}` // とりあえずダミーとしてui:uriを返す
+              }
             }
           }
           //  todo func callで呼び出したコールは入力文脈としてコンテキストには追加しない方向ではないか? なのでpreviousContentには追加しない
@@ -623,7 +632,6 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           return new Error(`claude error:${error}`);
         },
       });
-      // state.clearStreamingText(avatarState)
       console.log(message);
       yield *DocService.saveNativeLog(it.logTag,'textExecLlm_out',message);
 

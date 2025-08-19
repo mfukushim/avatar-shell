@@ -172,7 +172,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
           );
         }
         const matchUi = regMcpUiUrl.exec(mediaUrl);
-        console.log('mediaUrl', mediaUrl, matchUi);
+        // console.log('mediaUrl', mediaUrl, matchUi);
         if (matchUi) {
           return yield* Ref.get(mediaCache).pipe(
             Effect.andThen(a => HashMap.get(a, mediaUrl)),

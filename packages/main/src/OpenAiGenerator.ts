@@ -155,10 +155,10 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
     }));
   }
 
-  toAnswerOut(responseOut: Response, avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  toAnswerOut(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     const it = this;
     return Effect.gen(function* () {
-      const textOut = responseOut.output.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
+      const textOut = responseOut.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
         return AsOutput.makeOutput(AsMessage.makeMessage({
             innerId: b.id,
             from: avatarState.Name,
@@ -167,7 +167,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
           }, it.openAiSettings?.toClass || 'talk', it.openAiSettings?.toRole, 'surface'),
           {provider: it.genName, model: it.model, isExternal: false}, [b]);
       });
-      const imageOut = yield* Effect.forEach(responseOut.output.filter(b => b.type === 'image_generation_call'), (b: ResponseOutputItem.ImageGenerationCall) => {
+      const imageOut = yield* Effect.forEach(responseOut.filter(b => b.type === 'image_generation_call'), (b: ResponseOutputItem.ImageGenerationCall) => {
         return Effect.gen(function* () {
           const mime = 'image/png';
           const mediaUrl = yield* DocService.saveDocMedia(b.id, mime, b.result, avatarState.TemplateId);
@@ -190,13 +190,13 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
     });
   }
 
-  execFuncCall(responseOut: Response, avatarState: AvatarState): Effect.Effect<{
+  execFuncCall(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<{
     output: AsOutput[],
     nextTask: Option.Option<ResponseInputItem[]>
   }, Error, DocService | McpService| ConfigService> {
     const it = this;
     const next: AsOutput[] = [];
-    return Effect.forEach(responseOut.output.filter(b => b.type === 'function_call'), a1 => {
+    return Effect.forEach(responseOut.filter(b => b.type === 'function_call'), a1 => {
       //  ツールの実行と実行結果 実行前情報なので依頼としてiteratorに回す
       return Effect.gen(function* () {
         //  ツール依頼 実行後情報なのでここで追加する nativeはその前の
@@ -323,7 +323,7 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
   }
 
-  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState): Effect.Effect<GeneratorOutput, Error, ConfigService | McpService> {
+  override execLlm(inputContext: ResponseInputItem[], avatarState: AvatarState){
     const it = this;
     // console.log('openAi execLlm input:', inputContext);
     return Effect.gen(this, function* () {
@@ -336,8 +336,10 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
           parameters: value.inputSchema,
         };
       }) as OpenAI.Responses.Tool[];
+      // console.log('openAi execLlm toolsIn:', toolsIn.map(value => JSON.stringify(value)).join('\n'));
       it.prevContexts.push(...inputContext);
-      console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
+      yield *DocService.saveNativeLog(it.logTag,'oa textExecLlm_context',it.prevContexts);
+      // console.log('openAi execLlm input:', it.prevContexts.map(a => JSON.stringify(a).slice(0, 300)));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: it.prevContexts,
@@ -378,8 +380,8 @@ export class openAiTextGenerator extends OpenAiBaseGenerator {
       //  outListは1件のはず
       return Chunk.filter(collect, a => a.type === 'response.completed').pipe(
         Chunk.toReadonlyArray,
-      ).map(a => a.response); //  TODO 厳密には WithRequestID<Response>
-    }) //.pipe(Effect.andThen(a => Effect.succeed(a.flat())));
+      ).map(a => a.response.output);
+    }).pipe(Effect.andThen(a => Effect.succeed(a.flat())));
   }
 }
 
@@ -425,9 +427,9 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
     );
   }
 
-  override toAnswerOut(responseOut: Response, avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
+  override toAnswerOut(responseOut: ResponseOutputItem[], avatarState: AvatarState): Effect.Effect<AsOutput[], Error, DocService> {
     //  画像だけをアウトプットにする
-    return Effect.forEach(responseOut.output.filter(b => b.type === 'image_generation_call'), (b: ResponseOutputItem.ImageGenerationCall) => {
+    return Effect.forEach(responseOut.filter(b => b.type === 'image_generation_call'), (b: ResponseOutputItem.ImageGenerationCall) => {
       const mime = 'image/png';
       return DocService.saveDocMedia(b.id, mime, b.result, avatarState.TemplateId).pipe(
         Effect.andThen(mediaUrl => {

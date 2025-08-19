@@ -262,7 +262,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
 
           console.log('toolRes:'); //  ,JSON.stringify(toolRes) JSON.stringify(a1)
           //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
-          return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, a2 => {
+          return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, (a2,idx) => {
             return Effect.gen(function* () {
               const content: any = {
                 from: avatarState.Name,
@@ -280,8 +280,33 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                 //  TODO 一旦GPTでは画像情報はtoolから与えない
                 llmOut = a2;
               } else if (a2.type === 'resource') {
-                //  TODO resourceはuriらしい
-                content.mediaUrl = a2.uri;
+                //  TODO resourceはuriらしい resourceはLLMに回さないらしい
+                //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
+                content.innerId =`${a.id}_${idx}`
+                content.mediaUrl = a2.resource.uri;
+                content.mimeType = a2.resource.mimeType
+                if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
+                  console.log('to save html');
+                  //  TODO なんで型があってないんだろう。。
+                  yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
+                }
+                //  MCP-UI対応に uriがui:でないものだけ送る
+                if (!a2.resource.uri.startsWith('ui:')) {
+                  llmOut = {
+                    type:'text',
+                    text: JSON.stringify(a2.resource),
+                  }; // TODO resourceはまだClaudeのtool結果としては戻さない? jsonをテキスト化して送ってみる?
+                  // state.contextCache.set(content.innerId,llmOut)
+                  // console.log('cache add:',content.innerId,llmOut);
+                } else {
+                  //  claudeはtool_useに対してかならず対のtool_resultを必要とする
+                  llmOut = {
+                    type:'text',
+                    text:`Executed, ${a2.resource.uri}` // とりあえずダミーとしてui:uriを返す
+                  }
+                }
+                // //  TODO resourceはuriらしい
+                // content.mediaUrl = a2.uri;
               }
               //  todo geminiは計算結果をまとめるタイプか、別にするタイプか?
               //  ツール実行結果なのでここで追加

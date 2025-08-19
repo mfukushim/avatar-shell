@@ -37,11 +37,14 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
           const taskData = yield* b;
           console.log('llmIn:', JSON.stringify(taskData).slice(0, 200));
           const outputLlm = yield* state.execLlm(taskData, avatarState);
+          console.log('outputLlm:', JSON.stringify(outputLlm).slice(0, 200));
           //  確定実行分を結果出力に回す。ツール実行分をMCP実行し、結果を再実行に回す
           const outText = yield* state.toAnswerOut(outputLlm, avatarState);
+          console.log('outText:', outText.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
           // const nextContexts = outContents.flatMap(value => value.llmMes)
           ansList.push(...outText.flatMap(value => value.mes));
           yield* DocService.addLog(outText, avatarState);
+          console.log('generateContext a:', ansList.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
           //  MCP結果はさらにLLMへの依頼戻しとしてiteratorに回す
           const {output, nextTask} = yield* state.execFuncCall(outputLlm, avatarState);
           console.log('outFunc:', output.map(a => JSON.stringify(a).slice(0, 200)).join('\n'));
@@ -57,7 +60,7 @@ export abstract class LlmBaseGenerator extends ContextGenerator {
       Effect.tapError(() => state.clearStreamingText(avatarState)),
       Effect.catchAll(e => {
         console.log('llm error:', e);
-        return Effect.fail(new Error(`${e}`));
+        return state.clearStreamingText(avatarState).pipe(Effect.andThen(() => Effect.fail(new Error(`${e}`))));
       }),
       Effect.andThen(() => ansList),
     );
