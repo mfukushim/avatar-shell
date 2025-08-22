@@ -1,12 +1,6 @@
-import {
-  AvatarSetting,
-  type MutableSysConfig,
-  type SysConfigMutable,
-} from './Def.js';
-import {type GeneratorsMutableConfigSet} from './DefGenerators.js';
 
 
-export const defaultGenerators: GeneratorsMutableConfigSet = {
+export const defaultGenerators = {
   openAiText: {apiKey: '', model: ''},
   openAiImage: {model: ''},
   openAiVoice: {model: '', voice: ''},
@@ -14,18 +8,10 @@ export const defaultGenerators: GeneratorsMutableConfigSet = {
   gemini: {apiKey: '', model: ''},
   geminiImage: {model: ''},
   geminiVoice: {model: '', voice: ''},
-  // voiceVox: {url: '', custom: {}},
-  // openAiText: {apiKey: '', model: 'gpt-4.1-mini'},
-  // openAiImage: {model: 'gpt-4.1-mini'},
-  // openAiVoice: {model: 'gpt-4o-audio-preview', voice: 'alloy'},
-  // anthropic: {apiKey: '', model: 'claude-3-7-sonnet-latest'},
-  // gemini: {apiKey: '', model: ''},
-  // geminiImage: {model: 'gemini-2.0-flash-preview-image-generation'},
-  // geminiVoice: {model: 'gemini-2.5-flash-preview-tts', voice: 'Kore'},
   // voiceVox: {url: 'http://192.168.100.100:50021', custom: {}},
 };
 
-export const defaultSysSetting: SysConfigMutable = {
+export const defaultSysSetting = {
   defaultAvatarId: 'aa',
   generators: defaultGenerators,
   mcpServers: {},
@@ -37,14 +23,12 @@ export const defaultSysSetting: SysConfigMutable = {
     useServer: true,
     serverPort: undefined,
     textTemplate: '{from} said, "{body}"',
-    // autoSendTextNumber:3,
-    // manualSend:false,
   },
   configVersion: 1
 };
 
 
-export const defaultAvatarSetting: {id: string, data: AvatarSetting}[] = [
+export const defaultAvatarSetting = [
   {
     id: 'aa',
     data: {
@@ -80,145 +64,10 @@ export const defaultAvatarSetting: {id: string, data: AvatarSetting}[] = [
       },
       daemons: [],
       configVersion:1,
-    } as AvatarSetting,
+    },
   }];
 
-export const tutorialAvatarSetting: AvatarSetting =
-  {
-    templateId: 'aa',
-
-    general: {
-      name: 'Alice',
-      // useLlm: 'geminiText',
-      mainLlmSetting: {
-        previousContextSize: 0,
-        useContextType: ['text', 'image'],
-      },
-      useSocket: true,
-      remoteServer: undefined,
-      maxGeneratorUseCount: 40
-    },
-    mcp: {
-    },
-    daemons: [
-      {
-        'id': 'aaa',
-        'name': 'mainLLM',
-        'isEnabled': true,
-        'trigger': {'triggerType': 'IfContextExists', 'condition': {
-            asClass: 'talk',
-            asRole: 'human',
-          }},
-        'exec': {
-          generator: 'geminiText',
-          directTrigger: true,
-          // templateGeneratePrompt: '{body}',
-          setting: {
-            toClass: 'talk',
-            toRole: 'bot',
-            toContext: 'surface'
-          },
-        },
-      },
-      {
-        id: 'aaab',
-        name: 'StartupTalk',
-        isEnabled: true,
-        trigger: {'triggerType': 'Startup', condition: {}},
-        exec: {
-          generator: 'geminiText',
-          directTrigger: false,
-          templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
-          setting: {
-            toClass: 'talk',
-            toRole: 'bot',
-            toContext: 'surface'
-          },
-        },
-      },
-      {
-        id: 'aaac',
-        name: 'Voice',
-        isEnabled: true,
-        trigger: {
-          triggerType: 'IfContextExists', condition: {
-            asClass: 'talk',
-            asRole: 'bot',
-          },
-        },
-        exec: {
-          generator: 'geminiVoice',
-          directTrigger: true,
-          setting: {
-            toClass: 'daemon',
-            toRole: 'bot',
-            toContext: 'outer'
-          },
-        },
-      },
-      {
-        id: '77ndZPy3UXHkjot7wu7d4U',
-        name: 'StartupPict',
-        isEnabled: true,
-        trigger: {'triggerType': 'Startup', condition: {}},
-        exec: {
-          generator: 'geminiImage',
-          directTrigger: false,
-          templateGeneratePrompt: 'Generate a anime-style drawing of a girl saying hello',
-          setting: {
-            toClass: 'daemon',
-            toRole: 'bot',
-            toContext: 'outer'
-          },
-        },
-      },
-      {
-        id: 'aaad',
-        name: 'idleSummary',
-        isEnabled: true,
-        trigger: {
-          triggerType: 'TalkAfterMin', condition: {
-            min: 3,
-          },
-        },
-        exec: {
-          generator: 'geminiText',
-          directTrigger: false,
-          templateGeneratePrompt: 'Please respond by summarizing the conversation so far and showing your understanding.',
-          setting: {
-            // previousContextSize: 20,
-            toClass: 'daemon',
-            toRole: 'bot',
-            toContext: 'inner'
-          },
-        },
-      },
-      {
-        id: 'aaae',
-        name: 'idleSummaryImage',
-        isEnabled: true,
-        trigger: {
-          triggerType: 'TalkAfterMin', condition: {
-            min: 3,
-          },
-        },
-        exec: {
-          generator: 'geminiImage',
-          directTrigger: false,
-          templateGeneratePrompt: 'Create a diagram that summarizes the conversation so far.',
-          setting: {
-            previousContextSize: 4,
-            toClass: 'daemon',
-            toRole: 'bot',
-            toContext: 'outer'
-          },
-        },
-      },
-    ],
-    configVersion:1,
-  } as AvatarSetting;
-
-export const emptyAvatarSetting: AvatarSetting =
+export const tutorialAvatarSetting =
   {
     templateId: 'aa',
 
@@ -351,14 +200,10 @@ export const emptyAvatarSetting: AvatarSetting =
       },
     ],
     configVersion:1,
-  } as AvatarSetting;
-
-export const emptyAvatarConfig: Record<string, AvatarSetting> = {
-  aa: emptyAvatarSetting,
-};
+  };
 
 
-export const defaultMutableSetting: MutableSysConfig = {
+export const defaultMutableSetting = {
   volume: 1,
   winX: 100,
   winY: 100,

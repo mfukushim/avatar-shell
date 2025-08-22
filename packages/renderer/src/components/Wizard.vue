@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
       </q-carousel-slide>
     </q-carousel>
       <div class="row">
-        <q-btn class="col-1 q-ma-lg bg-white" @click="exit">{{ t('wizard.buttons.exit') }}</q-btn>
+        <q-btn class="col-1 q-ma-lg bg-white" data-testid="end-wizard" @click="exit">{{ t('wizard.buttons.exit') }}</q-btn>
         <q-btn class="col-1 q-ma-lg bg-white" v-if="slide>0 && slide !== 5" @click="prev">{{ t('wizard.buttons.prev') }}</q-btn>
         <q-space/>
         <q-btn class="col-1 q-ma-lg bg-white" @click="next">
