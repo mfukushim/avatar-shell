@@ -10,7 +10,12 @@ import {
   SysConfigSchema,
 } from '../../common/Def.js';
 import {app, dialog} from 'electron';
-import {defaultAvatarSetting, defaultMutableSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
+import {
+  defaultAvatarSetting,
+  defaultMutableSetting,
+  defaultSysSetting,
+  emptyAvatarConfig,
+} from '../../common/DefaultSetting.js';
 import short from 'short-uuid';
 import path from 'node:path';
 import {fileURLToPath} from 'url';
@@ -34,12 +39,10 @@ const debugWrite = process.env.VITE_LOCAL_DEBUG === '2';
 
 const isViTest = process.env.VITEST === 'true';
 
-const playWrightConfigFile = process.argv.slice(2).find(arg => arg.startsWith('--setting='))?.split('=')[1];
+const playWright = process.argv.slice(2).find(arg => arg.startsWith('--playWright='))?.split('=')[1];
 
 if (debug) {
   debugConfigFile = '../../common/debugConfig.js'
-} else if(playWrightConfigFile) {
-  debugConfigFile = `../../common/${playWrightConfigFile}`;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,42 +54,30 @@ const debugPath = app ? path.join(app.getPath('userData'), 'docs') : `${__pwd}/t
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    const store = app ? new Store(debug ? {} : {
-      encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
-    }) : undefined;
-
     let sysData:SysConfig;
     let avatarData:Record<string, AvatarSetting>;
-    let mutableSetting: Ref.Ref<MutableSysConfig>;
-    if (import.meta.env.DEV) {
-      if (isViTest) {
-        sysData = vitestSysConfig;
-      } else if (debugConfigFile) {
-        sysData = yield* Effect.tryPromise(() => {
-          return import(debugConfigFile);
-        }).pipe(Effect.andThen(a => a.debugSysConfig as SysConfig));
-        console.log('sysData:', sysData);
-      } else {
-        sysData = store?.get('sysConfig') as SysConfig || defaultSysSetting;
-      }
-      if (isViTest) {
-        avatarData = vitestAvatarConfig;
-      } else if (debugConfigFile) {
-        avatarData = yield* Effect.tryPromise(() => {
-          return import(debugConfigFile);
-        }).pipe(Effect.andThen(a => a.debugAvatarConfig));
-        console.log('sysData:', sysData);
-      } else {
-        avatarData = (store?.get('avatarConfig') as {
-          id: string,
-          data: AvatarSetting
-        }[] || defaultAvatarSetting).reduce((previousValue, currentValue) => {
-          previousValue[currentValue.id] = currentValue.data;
-          return previousValue;
-        }, {} as Record<string, AvatarSetting>);
-      }
-      mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
-    } else {
+    let mutableSetting: Ref.Ref<MutableSysConfig> =  yield *Ref.make(defaultMutableSetting);
+    let store:Store|undefined = undefined
+
+    if (debugConfigFile) {
+      sysData = yield* Effect.tryPromise(() => {
+        return import(debugConfigFile);
+      }).pipe(Effect.andThen(a => a.defaultSysSetting as SysConfig));
+      console.log('sysData:', sysData);
+      avatarData = yield* Effect.tryPromise(() => {
+        return import(debugConfigFile);
+      }).pipe(Effect.andThen(a => a.defaultAvatarSetting as Record<string, AvatarSetting>));
+      console.log('avatarData:', avatarData);
+    } else if (isViTest) {
+      sysData = vitestSysConfig;
+      avatarData = vitestAvatarConfig;
+    } else if (playWright) {
+      sysData = defaultSysSetting
+      avatarData = emptyAvatarConfig;
+    } else if(app) {
+      store = new Store(debug ? {} : {
+        encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
+      });
       sysData = store?.get('sysConfig') as SysConfig || defaultSysSetting;
       avatarData = (store?.get('avatarConfig') as {
         id: string,
@@ -95,8 +86,15 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
         previousValue[currentValue.id] = currentValue.data;
         return previousValue;
       }, {} as Record<string, AvatarSetting>);
-      mutableSetting = yield* Ref.make(store?.get('mutableSetting') as MutableSysConfig || defaultMutableSetting);
+      mutableSetting = yield* Ref.make(store.get('mutableSetting') as MutableSysConfig);
+    } else {
+      sysData = defaultSysSetting;
+      avatarData = defaultAvatarSetting.reduce((previousValue, currentValue) => {
+        previousValue[currentValue.id] = currentValue.data;
+        return previousValue;
+      }, {} as Record<string, AvatarSetting>);
     }
+
     const fs = yield* FileSystem.FileSystem;
 
     const sysConfig: SubscriptionRef.SubscriptionRef<SysConfig> = yield* SubscriptionRef.make(sysData);
@@ -360,6 +358,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     }
 
     function needWizard() {
+      if (playWright) return Effect.succeed(playWright === 'wiz');
       if (!store) return Effect.succeed(true);
       //  最低限正常に動くアバターつまりLLM定義済みのアバターが存在していればfalse 存在していなければtrue
       return avatarConfigs.get.pipe(

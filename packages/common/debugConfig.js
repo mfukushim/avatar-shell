@@ -1,12 +1,9 @@
-// import {AvatarSetting, MutableSysConfig, SysConfig} from '../packages/common/Def.js';
-import {AvatarSetting, MutableSysConfig, SysConfig} from './Def.js';
-
-export const debugSysConfig: SysConfig = {
+export const defaultSysSetting = {
 
   defaultAvatarId: 'abcd3',
   generators: {
     openAiText: {
-      apiKey: process.env.VITE_OPENAI_API_KEY as string,
+      apiKey: process.env.VITE_OPENAI_API_KEY,
       model: 'gpt-4.1-mini',
     },
     openAiImage: {
@@ -17,11 +14,11 @@ export const debugSysConfig: SysConfig = {
       voice: 'alloy',
     },
     anthropic: {
-      apiKey: process.env.VITE_CLAUDE_API_KEY as string,
+      apiKey: process.env.VITE_CLAUDE_API_KEY,
       model: 'claude-3-7-sonnet-latest',
     },
     gemini: {
-      apiKey: process.env.VITE_GEMINI_API_KEY as string,
+      apiKey: process.env.VITE_GEMINI_API_KEY,
       model: 'gemini-2.5-flash',
     },
     geminiImage: {
@@ -44,16 +41,16 @@ export const debugSysConfig: SysConfig = {
         '@mfukushim/map-traveler-mcp',
       ],
       'env': {
-        "GoogleMapApi_key": process.env.VITE_TR_GoogleMapApi_key as string,
-        "ServerLog":process.env.VITE_TR_ServerLog as string,
-        "MT_TURSO_URL":process.env.VITE_TR_MT_TURSO_URL as string,
-        "MT_TURSO_TOKEN":process.env.VITE_TR_MT_TURSO_TOKEN as string,
-        "pixAi_key":process.env.VITE_TR_pixAi_key as string,
-        "rembg_path":process.env.VITE_TR_rembg_path as string,
-        "image_width":process.env.VITE_TR_image_width as string,
-        "bs_id":process.env.VITE_TR_bs_id as string,
-        "bs_pass":process.env.VITE_TR_bs_pass as string,
-        "bs_handle":process.env.VITE_TR_bs_handle as string,
+        "GoogleMapApi_key": process.env.VITE_TR_GoogleMapApi_key,
+        "ServerLog":process.env.VITE_TR_ServerLog,
+        "MT_TURSO_URL":process.env.VITE_TR_MT_TURSO_URL,
+        "MT_TURSO_TOKEN":process.env.VITE_TR_MT_TURSO_TOKEN,
+        "pixAi_key":process.env.VITE_TR_pixAi_key,
+        "rembg_path":process.env.VITE_TR_rembg_path,
+        "image_width":process.env.VITE_TR_image_width,
+        "bs_id":process.env.VITE_TR_bs_id,
+        "bs_pass":process.env.VITE_TR_bs_pass,
+        "bs_handle":process.env.VITE_TR_bs_handle,
       },
       kind:'stdio',
     },
@@ -64,9 +61,9 @@ export const debugSysConfig: SysConfig = {
         "@modelcontextprotocol/server-slack"
       ],
       "env": {
-        "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string,
-        "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string,
-        "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
+        "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN,
+        "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID,
+        "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS
       },
       kind:'stdio',
     }
@@ -84,7 +81,7 @@ export const debugSysConfig: SysConfig = {
 };
 
 
-export const testAvatarConfigMi: AvatarSetting = {
+export const testAvatarConfigMi = {
   templateId: 'abcd1',
   general: {
     'name': 'Mi',
@@ -227,7 +224,7 @@ export const testAvatarConfigMi: AvatarSetting = {
   ],
   configVersion: 1,
 };
-export const testAvatarConfigMiAnt: AvatarSetting = {
+export const testAvatarConfigMiAnt = {
   templateId: 'abcd3',
   'general': {
     'name': 'Mu',
@@ -301,7 +298,7 @@ export const testAvatarConfigMiAnt: AvatarSetting = {
   configVersion: 1,
 };
 
-export const testAvatarConfigMaid: AvatarSetting = {
+export const testAvatarConfigMaid = {
   templateId: 'abcd2',
   'general': {
     'name': 'MarMaid',
@@ -320,13 +317,13 @@ export const testAvatarConfigMaid: AvatarSetting = {
   configVersion: 1,
 };
 
-export const debugAvatarConfig: Record<string, AvatarSetting> = {
+export const defaultAvatarSetting = {
   abcd1: testAvatarConfigMi,
   abcd2: testAvatarConfigMaid,
   abcd3: testAvatarConfigMiAnt,
 };
 
-export const debugMutableSetting: MutableSysConfig = {
+export const debugMutableSetting = {
   volume: 1,
   winX: 100,
   winY: 100,

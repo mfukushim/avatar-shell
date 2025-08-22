@@ -167,7 +167,7 @@ const docPreview = async (item: {label: string, file: string}) => {
 </script>
 
 <template>
-  <div class="row">
+  <div class="row" data-testid="image-selector">
     <div v-if="docList.length === 0" class="q-pa-sm">
       No log
     </div>
