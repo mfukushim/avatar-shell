@@ -20,7 +20,9 @@
   "scripts": {
     "build": "npm run build -ws --if-present",
     "compile": "npm run build && electron-builder build --config electron-builder.mjs",
-    "test": "npx playwright test ./tests/e2e.spec.ts",
+    "test_ci": "npx playwright test ./tests/e2e_ci.spec.ts",
+    "test_main": "npx playwright test ./tests/e2e_main.spec.ts",
+    "test_2": "npx playwright test ./tests/e2e2.spec.ts",
     "start": "node packages/dev-mode.js",
     "start:debug1": "cross-env VITE_LOCAL_DEBUG=1 node packages/dev-mode.js",
     "start:debug2": "cross-env VITE_LOCAL_DEBUG=2 node packages/dev-mode.js",

@@ -99,16 +99,9 @@ test('Main window state', async ({electronApp, page}) => {
   expect(windowState.isDevToolsOpened, 'The DevTools panel was open').toEqual(false);
 });
 
-/*
 test.describe('Main window web content', async () => {
 
   test('The main window has an interactive button', async ({page}) => {
-    // test.setTimeout(120_000);
-    // const element = page.getByText('schedule')
-    // await expect(element).toBeVisible();
-    // await element.evaluate((el) => {
-    //   console.log('el: ', el.innerHTML);
-    // });
     {
       const element = page.getByText('Alice - Avatar Shell')
       await element.evaluate((el) => {
@@ -123,12 +116,6 @@ test.describe('Main window web content', async () => {
       });
       await expect(element).toBeVisible();
     }
-    //  //!*[@id="app"]/div/div[2]/aside/div/div/div[3]/div[2]
-    // console.log('button: ', element);
-    // // await expect(element).toBeVisible();
-    // // await expect(element).toHaveText('count is 0');
-    // await element.click();
-    // await expect(element).toHaveText('count is 1');
   })
 
   test('The main window has header with avatar name', async ({page}) => {
@@ -166,47 +153,47 @@ test.describe('Main window web content', async () => {
 
   test('The main window has volume control button', async ({page}) => {
     // 音量制御ボタンが表示されていることを確認
-    const volumeButton = page.locator('q-bar q-btn[icon*="volume"]');
+    const volumeButton = page.locator('div.q-bar button.q-btn[icon*="volume"]');
     await expect(volumeButton).toBeVisible();
   });
 
   test('The main window has chat toggle button in footer', async ({page}) => {
     // フッターのチャットトグルボタンが表示されていることを確認
-    const chatButton = page.locator('q-footer q-btn[icon="chat"]');
+    const chatButton = page.locator('footer.q-footer button.q-btn[icon="chat"]');
     await expect(chatButton).toBeVisible();
   });
 
   test('The main window has main image display area', async ({page}) => {
     // メイン画像表示エリアが表示されていることを確認
-    const mainImage = page.locator('q-img');
+    const mainImage = page.locator('div.q-img');
     await expect(mainImage).toBeVisible();
 
-    // デフォルト画像が表示されていることを確認
-    const imgSrc = await mainImage.getAttribute('src');
+    // デフォルト画像が表示されていることを確認（内部のimg要素から取得）
+    const imgSrc = await mainImage.locator('img').getAttribute('src');
     expect(imgSrc).toBeTruthy();
   });
 
   test('The main window has file upload button', async ({page}) => {
     // ファイルアップロードボタンが表示されていることを確認
-    const fileUpload = page.locator('q-file');
+    const fileUpload = page.locator('div.q-file');
     await expect(fileUpload).toBeVisible();
 
     // ファイルアップロードのアイコンが表示されていることを確認
-    const fileIcon = page.locator('q-file q-icon[name="attach_file"]');
+    const fileIcon = page.locator('div.q-file i.q-icon[name="attach_file"]');
     await expect(fileIcon).toBeVisible();
   });
 
   test('The main window has MCP resource button', async ({page}) => {
     // MCPリソースボタンが表示されていることを確認
-    const mcpButton = page.locator('q-btn[icon="text_snippet"]');
+    const mcpButton = page.locator('button.q-btn[icon="text_snippet"]');
     await expect(mcpButton).toBeVisible();
   });
 
   test('The main window has window control buttons', async ({page}) => {
     // ウィンドウ制御ボタンが表示されていることを確認
-    const minimizeButton = page.locator('q-bar q-btn[icon="minimize"]');
-    const maximizeButton = page.locator('q-bar q-btn[icon="crop_square"]');
-    const closeButton = page.locator('q-bar q-btn[icon="close"]');
+    const minimizeButton = page.locator('div.q-bar button.q-btn[icon="minimize"]');
+    const maximizeButton = page.locator('div.q-bar button.q-btn[icon="crop_square"]');
+    const closeButton = page.locator('div.q-bar button.q-btn[icon="close"]');
 
     await expect(minimizeButton).toBeVisible();
     await expect(maximizeButton).toBeVisible();
@@ -245,10 +232,10 @@ test.describe('Main window web content', async () => {
 
   test('The main window has proper layout structure', async ({page}) => {
     // レイアウト構造が正しく表示されていることを確認
-    const layout = page.locator('q-layout');
-    const header = page.locator('q-header');
-    const footer = page.locator('q-footer');
-    const pageContainer = page.locator('q-page-container');
+    const layout = page.locator('div.q-layout');
+    const header = page.locator('header.q-header');
+    const footer = page.locator('footer.q-footer');
+    const pageContainer = page.locator('div.q-page-container');
 
     await expect(layout).toBeVisible();
     await expect(header).toBeVisible();
@@ -267,11 +254,11 @@ test.describe('Main window web content', async () => {
 
   test('Menu drawer can be toggled', async ({page}) => {
     // メニューボタンをクリックしてドロワーを開く
-    const menuButton = page.locator('q-bar q-icon[name="face"]');
+    const menuButton = page.locator('div.q-bar i.q-icon[name="face"]');
     await menuButton.click();
 
     // ドロワーが表示されることを確認
-    const drawer = page.locator('q-drawer');
+    const drawer = page.locator('aside.q-drawer');
     await expect(drawer).toBeVisible();
 
     // 再度クリックしてドロワーを閉じる
@@ -280,11 +267,11 @@ test.describe('Main window web content', async () => {
 
   test('Chat drawer can be toggled', async ({page}) => {
     // チャットボタンをクリックしてドロワーを開く
-    const chatButton = page.locator('q-footer q-btn[icon="chat"]');
+    const chatButton = page.locator('footer.q-footer button.q-btn[icon="chat"]');
     await chatButton.click();
 
     // 右側のドロワーが表示されることを確認
-    const rightDrawer = page.locator('q-drawer[side="right"]');
+    const rightDrawer = page.locator('aside.q-drawer[side="right"]');
     await expect(rightDrawer).toBeVisible();
 
     // 再度クリックしてドロワーを閉じる
@@ -293,17 +280,17 @@ test.describe('Main window web content', async () => {
 
   test('Volume control popup can be opened', async ({page}) => {
     // 音量ボタンをクリックしてポップアップを開く
-    const volumeButton = page.locator('q-bar q-btn[icon*="volume"]');
+    const volumeButton = page.locator('div.q-bar button.q-btn[icon*="volume"]');
     await volumeButton.click();
 
     // 音量制御パネルが表示されることを確認
-    const volumePanel = page.locator('q-popup-proxy');
+    const volumePanel = page.locator('div.q-popup-proxy');
     await expect(volumePanel).toBeVisible();
   });
 
   test('Search button opens image selector', async ({page}) => {
     // 検索ボタンをクリックして画像セレクターを開く
-    const searchButton = page.locator('q-bar q-btn[icon="search"]');
+    const searchButton = page.locator('div.q-bar button.q-btn[icon="search"]');
     await searchButton.click();
 
     // 画像セレクターが表示されることを確認
@@ -327,19 +314,19 @@ test.describe('Main window web content', async () => {
 
   test('MCP resource button shows menu', async ({page}) => {
     // MCPリソースボタンをクリックしてメニューを開く
-    const mcpButton = page.locator('q-btn[icon="text_snippet"]');
+    const mcpButton = page.locator('button.q-btn[icon="text_snippet"]');
     await mcpButton.click();
 
     // メニューが表示されることを確認
-    const mcpMenu = page.locator('q-menu');
+    const mcpMenu = page.locator('div.q-menu');
     await expect(mcpMenu).toBeVisible();
   });
 
   test('Window control buttons are clickable', async ({page}) => {
     // ウィンドウ制御ボタンがクリック可能であることを確認
-    const minimizeButton = page.locator('q-bar q-btn[icon="minimize"]');
-    const maximizeButton = page.locator('q-bar q-btn[icon="crop_square"]');
-    const closeButton = page.locator('q-bar q-btn[icon="close"]');
+    const minimizeButton = page.locator('div.q-bar button.q-btn[icon="minimize"]');
+    const maximizeButton = page.locator('div.q-bar button.q-btn[icon="crop_square"]');
+    const closeButton = page.locator('div.q-bar button.q-btn[icon="close"]');
 
     // ボタンがクリック可能であることを確認（実際の動作はテストしない）
     await expect(minimizeButton).toBeEnabled();
@@ -349,8 +336,8 @@ test.describe('Main window web content', async () => {
 
   test('Connection status button toggles state', async ({page}) => {
     // 接続状態ボタンをクリック
-    const connectionButton = page.locator('q-bar q-btn[icon*="wifi"]');
-    const initialIcon = await connectionButton.locator('q-icon').getAttribute('name');
+    const connectionButton = page.locator('div.q-bar button.q-btn[icon*="wifi"]');
+    const initialIcon = await connectionButton.locator('i.q-icon').getAttribute('name');
 
     await connectionButton.click();
 
@@ -360,8 +347,8 @@ test.describe('Main window web content', async () => {
 
   test('Schedule button toggles state', async ({page}) => {
     // スケジュールボタンをクリック
-    const scheduleButton = page.locator('q-bar q-btn[icon*="schedule"], q-bar q-btn[icon*="update_disabled"]');
-    const initialIcon = await scheduleButton.locator('q-icon').getAttribute('name');
+    const scheduleButton = page.locator('div.q-bar button.q-btn[icon*="schedule"], div.q-bar button.q-btn[icon*="update_disabled"]');
+    const initialIcon = await scheduleButton.locator('i.q-icon').getAttribute('name');
 
     await scheduleButton.click();
 
@@ -371,19 +358,19 @@ test.describe('Main window web content', async () => {
 
   test('Main image has popup on click', async ({page}) => {
     // メイン画像をクリック
-    const mainImage = page.locator('q-img');
+    const mainImage = page.locator('div.q-img');
     await mainImage.click();
 
     // ポップアップが表示されることを確認
-    const popup = page.locator('q-popup-proxy');
+    const popup = page.locator('div.q-popup-proxy');
     await expect(popup).toBeVisible();
   });
 
   test('Application has proper accessibility attributes', async ({page}) => {
     // アクセシビリティ属性が適切に設定されていることを確認
-    const textInput = page.locator('q-input input[type="text"]');
-    const sendButton = page.locator('q-btn[icon="send"]');
-    const fileUpload = page.locator('q-file');
+    const textInput = page.locator('div.q-input input[type="text"]');
+    const sendButton = page.locator('button.q-btn[icon="send"]');
+    const fileUpload = page.locator('div.q-file');
 
     // 入力フィールドにラベルが設定されていることを確認
     await expect(textInput).toHaveAttribute('aria-label', 'talk input');
@@ -399,9 +386,9 @@ test.describe('Main window web content', async () => {
 
     // 小さな画面サイズでテスト
     await page.setViewportSize({ width: 800, height: 600 });
-    await expect(page.locator('q-layout')).toBeVisible();
-    await expect(page.locator('q-header')).toBeVisible();
-    await expect(page.locator('q-footer')).toBeVisible();
+    await expect(page.locator('div.q-layout')).toBeVisible();
+    await expect(page.locator('header.q-header')).toBeVisible();
+    await expect(page.locator('footer.q-footer')).toBeVisible();
 
     // 大きな画面サイズでテスト
     await page.setViewportSize({ width: 1920, height: 1080 });
@@ -430,23 +417,22 @@ test.describe('Main window web content', async () => {
 
   test('Application shows loading states appropriately', async ({page}) => {
     // ローディング状態が適切に表示されることを確認
-    const mainImage = page.locator('q-img');
+    const mainImage = page.locator('div.q-img');
 
     // 画像のローディング状態を確認
-    const loadingTemplate = page.locator('q-img template[v-slot="loading"]');
+    const loadingTemplate = page.locator('div.q-img template[v-slot="loading"]');
     await expect(loadingTemplate).toBeVisible();
   });
 
   test('Application handles error states gracefully', async ({page}) => {
     // エラー状態が適切に処理されることを確認
-    const mainImage = page.locator('q-img');
+    const mainImage = page.locator('div.q-img');
 
     // エラー状態のテンプレートが存在することを確認
-    const errorTemplate = page.locator('q-img template[v-slot="error"]');
+    const errorTemplate = page.locator('div.q-img template[v-slot="error"]');
     await expect(errorTemplate).toBeVisible();
   });
 });
-*/
 
 test.describe('Preload context should be exposed', async () => {
   test.describe(`versions should be exposed`, async () => {

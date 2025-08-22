@@ -27,11 +27,20 @@ import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
 import dayjs from 'dayjs';
 
+let debugConfigFile:string|undefined = undefined;
 
 const debug = process.env.VITE_LOCAL_DEBUG === '1';
 const debugWrite = process.env.VITE_LOCAL_DEBUG === '2';
 
 const isViTest = process.env.VITEST === 'true';
+
+const playWrightConfigFile = process.argv.slice(2).find(arg => arg.startsWith('--setting='))?.split('=')[1];
+
+if (debug) {
+  debugConfigFile = '../../common/debugConfig.js'
+} else if(playWrightConfigFile) {
+  debugConfigFile = `../../common/${playWrightConfigFile}`;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,15 +55,15 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
     }) : undefined;
 
-    let sysData;
-    let avatarData;
+    let sysData:SysConfig;
+    let avatarData:Record<string, AvatarSetting>;
     let mutableSetting: Ref.Ref<MutableSysConfig>;
     if (import.meta.env.DEV) {
       if (isViTest) {
         sysData = vitestSysConfig;
-      } else if (debug) {
+      } else if (debugConfigFile) {
         sysData = yield* Effect.tryPromise(() => {
-          return import('../../common/debugConfig.js');
+          return import(debugConfigFile);
         }).pipe(Effect.andThen(a => a.debugSysConfig as SysConfig));
         console.log('sysData:', sysData);
       } else {
@@ -62,9 +71,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }
       if (isViTest) {
         avatarData = vitestAvatarConfig;
-      } else if (debug) {
+      } else if (debugConfigFile) {
         avatarData = yield* Effect.tryPromise(() => {
-          return import('../../common/debugConfig.js');
+          return import(debugConfigFile);
         }).pipe(Effect.andThen(a => a.debugAvatarConfig));
         console.log('sysData:', sysData);
       } else {
