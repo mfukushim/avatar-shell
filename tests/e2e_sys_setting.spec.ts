@@ -1,10 +1,8 @@
-import type {ElectronApplication, JSHandle, Page} from 'playwright';
+import type {ElectronApplication, Page} from 'playwright';
 import {_electron as electron} from 'playwright';
 import {expect, test} from '@playwright/test';
-import type {BrowserWindow} from 'electron';
 import {globSync} from 'glob';
 import {platform} from 'node:process';
-import {createHash} from 'node:crypto';
 
 process.env.PLAYWRIGHT_TEST = 'true';
 
