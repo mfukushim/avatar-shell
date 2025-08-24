@@ -153,7 +153,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-dialog v-model="show" persistent full-width>
+  <q-dialog v-model="show" data-testid="dialog-avatar-setting" persistent full-width>
     <q-card style="width: 1000px;min-height: 600px">
       <q-card-section>
         <div class="text-h6">{{$t('avatarTemplateEdit')}} - {{ editingSettings?.general.name }}</div>
@@ -369,7 +369,7 @@ onMounted(async () => {
 <q-card-section class="row">
   <q-input type="textarea" :model-value="errorMes" readonly class="col-grow" style="height: 60px"/>
   <div v-if="saving">reset and saving...</div>
-  <q-btn flat :label="$t('close')" @click="saveAndClose" />
+  <q-btn flat :label="$t('close')" @click="saveAndClose" data-testid="avatar-save-close"/>
 </q-card-section>
     </q-card>
   </q-dialog>
