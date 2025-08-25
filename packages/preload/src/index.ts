@@ -86,7 +86,6 @@ function makeSocket() {
  */
 export function onInitAvatar(callback: (name:string,needWizard:boolean,userName?:string) => Promise<any>,socketCallback:(bags:AsMessage[]) => Promise<any>) {
   ipcRenderer.on('init-avatar', async (_event, id,name, avatarSettingIn,needWizard,user) => {
-    // console.log('preload onInitAvatar:',id,name, avatarSettingIn,needWizard,user);
     avatarId = id;
     avatarSetting = avatarSettingIn
     userName = user;

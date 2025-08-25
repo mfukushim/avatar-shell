@@ -276,7 +276,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <q-icon name="settings" size="30px" class="q-pa-sm" @click="doOpen">
+  <q-icon name="settings" size="30px" class="q-pa-sm" @click="doOpen" data-testid="sys-setting-btn" >
     <q-dialog v-model="show" full-width persistent>
       <q-card style="width: 1000px;min-height: 600px;">
         <q-card-section>
@@ -323,7 +323,8 @@ onBeforeUnmount(() => {
                                   :options="avatarList"
                                   :label="t('defaultAvatar')"
                                   emit-value
-                                  map-options />
+                                  map-options
+                                  data-testid="default-avatar-select" />
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>
@@ -356,26 +357,30 @@ onBeforeUnmount(() => {
                             <q-input v-model="edit.generators.openAiText.apiKey"
                                      type="text"
                                      placeholder="sk-"
-                                     :label="t('apiKey')" />
+                                     :label="t('apiKey')"
+                                     data-testid="openai-api-key" />
                             <q-input v-model="edit.generators.openAiText.model"
                                      type="text"
                                      placeholder="gpt-4.1-mini"
-                                     :label="t('textModel')" />
+                                     :label="t('textModel')"
+                                     data-testid="openai-model" />
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.openAiImage.model"
                                      type="text"
                                      placeholder="gpt-4.1-mini"
-                                     :label="t('imageModel')" />
+                                     :label="t('imageModel')"
+                                     data-testid="openai-image-model" />
                             <div class="q-px-md text-caption">{{t('openaiImageNotice')}}</div>
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.openAiVoice.model"
                                      type="text"
                                      placeholder="gpt-4o-audio-preview"
-                                     :label="t('voiceModel')" />
-                            <q-input v-model="edit.generators.openAiVoice.voice" type="text" placeholder="alloy" :label="t('voice')" />
-                            <q-input v-model.number="edit.generators.openAiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" />
+                                     :label="t('voiceModel')"
+                                     data-testid="openai-voice-model" />
+                            <q-input v-model="edit.generators.openAiVoice.voice" type="text" placeholder="alloy" :label="t('voice')" data-testid="openai-voice-voice" />
+                            <q-input v-model.number="edit.generators.openAiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" data-testid="openai-voice-cutoff" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>
@@ -385,33 +390,37 @@ onBeforeUnmount(() => {
                             <q-input v-model="edit.generators.anthropic.apiKey"
                                      type="text"
                                      placeholder="sk-"
-                                     :label="t('apiKey')" />
+                                     :label="t('apiKey')"
+                                     data-testid="anthropic-api-key" />
                             <q-input v-model="edit.generators.anthropic.model"
                                      type="text"
                                      placeholder="claude-3-7-sonnet-latest"
-                                     :label="t('textModel')" />
+                                     :label="t('textModel')"
+                                     data-testid="anthropic-model" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>
                       <q-tab-panel name="google">
                         <q-card>
                           <q-card-section>
-                            <q-input v-model="edit.generators.gemini.apiKey" type="text" :label="t('apiKey')" />
-                            <q-input v-model="edit.generators.gemini.model" type="text" placeholder="gemini-2.5-flash" :label="t('textModel')" />
+                            <q-input v-model="edit.generators.gemini.apiKey" type="text" :label="t('apiKey')" data-testid="gemini-api-key" />
+                            <q-input v-model="edit.generators.gemini.model" type="text" placeholder="gemini-2.5-flash" :label="t('textModel')" data-testid="gemini-model" />
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.geminiImage.model"
                                      type="text"
                                      placeholder="gemini-2.0-flash-preview-image-generation"
-                                     :label="t('imageModel')" />
+                                     :label="t('imageModel')"
+                                     data-testid="gemini-image-model" />
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.geminiVoice.model"
                                      type="text"
                                      placeholder="gemini-2.5-flash-preview-tts"
-                                     :label="t('voiceModel')" />
-                            <q-input v-model="edit.generators.geminiVoice.voice" type="text" placeholder="Kore" :label="t('voice')" />
-                            <q-input v-model.number="edit.generators.geminiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" />
+                                     :label="t('voiceModel')"
+                                     data-testid="gemini-voice-model" />
+                            <q-input v-model="edit.generators.geminiVoice.voice" type="text" placeholder="Kore" :label="t('voice')" data-testid="gemini-voice-voice" />
+                            <q-input v-model.number="edit.generators.geminiVoice.cutoffTextLimit" type="number" placeholder="200" :label="t('voiceCutoffTextLimit')" data-testid="gemini-voice-cutoff" />
                           </q-card-section>
                         </q-card>
 
@@ -443,7 +452,7 @@ onBeforeUnmount(() => {
                   <q-tab-panel name="mcp">
                     <div class="text-h6 q-mb-md">{{ t('mcpSettings') }}</div>
                     <div class="q-pa-md">
-                      <q-btn icon="add" @click="addMcp">{{ t('addMcpDef') }}</q-btn>
+                      <q-btn icon="add" @click="addMcp" data-testid="mcp-add-btn">{{ t('addMcpDef') }}</q-btn>
                     </div>
                     <q-tabs
                       v-model="tabMcp"
@@ -470,6 +479,7 @@ onBeforeUnmount(() => {
                               class="q-mb-sm"
                               debounce="1000"
                               @change="tabMcp = server.id"
+                              data-testid="mcp-id-input"
                             />
                             {{ t('onlyAlphaNum') }}
                           </q-card-section>
@@ -482,10 +492,11 @@ onBeforeUnmount(() => {
                               :label="t('mcpJson')"
                               placeholder='{command:"npx",args:["-y","@mfukushim/map-traveler-mcp"],env:{"token":"abc"}}'
                               class="q-mb-sm"
+                              data-testid="mcp-json-input"
                             />
                           </q-card-section>
                           <q-card-actions>
-                            <q-btn icon="delete" @click="deleteMcp(server.id)">{{ t('delete') }}</q-btn>
+                            <q-btn icon="delete" @click="deleteMcp(server.id)" data-testid="mcp-delete-btn">{{ t('delete') }}</q-btn>
                           </q-card-actions>
                         </q-card>
                       </q-tab-panel>
@@ -497,7 +508,8 @@ onBeforeUnmount(() => {
                       <q-card-section class="row">
                         <q-toggle
                           :label="t('startSocketIoServer')"
-                          v-model="edit.websocket.useServer" class="col-6" />
+                          v-model="edit.websocket.useServer" class="col-6"
+                          data-testid="ws-use-server" />
                         <q-input
                           filled
                           dense
@@ -506,6 +518,7 @@ onBeforeUnmount(() => {
                           placeholder="mcp1"
                           class="q-mb-sm col-5 q-mx-md"
                           :disable="!edit.websocket.useServer"
+                          data-testid="ws-port-input"
                         />
                         <div class="text-red">{{ t('noteSecurityCom') }}</div>
                       </q-card-section>
@@ -517,6 +530,7 @@ onBeforeUnmount(() => {
                                  v-model="edit.websocket.textTemplate"
                                  placeholder="{from} said, &quot;{body}&quot;"
                                  :label="t('templateImportExtTalk')"
+                                 data-testid="ws-text-template"
                         />
                       </q-card-section>
                     </q-card>
@@ -527,11 +541,13 @@ onBeforeUnmount(() => {
                       <q-card-section class="row">
                         <q-toggle
                           :label="t('useMcpUi')"
-                          v-model="edit.experimental.mcpUi" class="col-6" />
+                          v-model="edit.experimental.mcpUi" class="col-6"
+                          data-testid="exp-mcpui-toggle" />
                         <q-input class="col-6"
                                  v-model="edit.experimental.mcpUiTemplate"
                                  placeholder="user select, &quot;{body}&quot;"
                                  :label="t('mcpUiSelectTemplate')"
+                                 data-testid="exp-mcpui-template"
                         />
                       </q-card-section>
                     </q-card>
@@ -542,19 +558,19 @@ onBeforeUnmount(() => {
                       <q-card-section class="row">
                         {{t('importSysInfo')}}
                         <q-space/>
-                        <q-btn @click="importSys" :disable="disableImportSys">{{t('importSys')}}</q-btn>
+                        <q-btn @click="importSys" :disable="disableImportSys" data-testid="import-sys-btn">{{t('importSys')}}</q-btn>
                       </q-card-section>
                       <q-card-section class="row">
                         {{t('exportSysInfo')}}
                         <q-space/>
-                        <q-btn @click="exportSys" :disable="disableExportSysConfig">{{t('exportSys')}}</q-btn>
+                        <q-btn @click="exportSys" :disable="disableExportSysConfig" data-testid="export-sys-btn">{{t('exportSys')}}</q-btn>
                       </q-card-section>
                     </q-card>
                     <q-card class="q-ma-md">
                       <q-card-section class="row">
                         {{t('importAvatarInfo')}}
                         <q-space/>
-                        <q-btn @click="importAvatarBtn"  :disable="disableImportAvatar">{{t('importAvatar')}}</q-btn>
+                        <q-btn @click="importAvatarBtn"  :disable="disableImportAvatar" data-testid="import-avatar-btn">{{t('importAvatar')}}</q-btn>
                       </q-card-section>
                       <q-card-section class="row q-px-md">
                         {{t('exportAvatarInfo')}}
@@ -562,8 +578,9 @@ onBeforeUnmount(() => {
                         <q-select v-model="exportAvatarTemplateId"
                                   :options="avatarList"
                                   emit-value
-                                  map-options class="q-px-sm" />
-                        <q-btn @click="exportAvatarBtn(exportAvatarTemplateId)" :disable="exportAvatarTemplateId=='' || disableExportAvatar">{{t('exportAvatar')}}</q-btn>
+                                  map-options class="q-px-sm"
+                                  data-testid="export-avatar-select" />
+                        <q-btn @click="exportAvatarBtn(exportAvatarTemplateId)" :disable="exportAvatarTemplateId=='' || disableExportAvatar" data-testid="export-avatar-btn">{{t('exportAvatar')}}</q-btn>
                       </q-card-section>
                     </q-card>
                   </q-tab-panel>
@@ -599,7 +616,7 @@ onBeforeUnmount(() => {
         <q-card-actions align="right" class="text-primary">
           {{ errorMes }}
           <div v-if="saving">saving and restart...</div>
-          <q-btn flat :label="t('close')" @click="saveAndClose" />
+          <q-btn flat :label="t('close')" @click="saveAndClose" data-testid="save-and-close-btn" />
         </q-card-actions>
       </q-card>
     </q-dialog>

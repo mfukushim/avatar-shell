@@ -70,7 +70,7 @@ test('Wizard dialog appears and can be completed', async () => {
 
   // 最下部のボタン行の最後のボタンが「次へ/保存/完了」に相当するのでそれを使う
   const nextBtn = dialog.locator('div.row >> button.q-btn').last();
-  const endBtn = dialog.getByTestId('end-wizard').locator('button.q-btn');
+  const endBtn = dialog.getByTestId('end-wizard');
 
   // slide 0 -> 1
   await nextBtn.click();

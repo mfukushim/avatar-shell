@@ -74,7 +74,6 @@ onMounted(async () => {
 
 <template>
   <q-icon name="manage_accounts" size="30px" class="q-pa-sm" @click="open">
-
     <q-dialog v-model="show">
       <q-card style="width: 1000px">
         <q-card-section>
@@ -82,18 +81,44 @@ onMounted(async () => {
         </q-card-section>
 
         <q-card-section class="q-pa-md q-ma-sm">
-          <q-select v-model="selectAvatar" :options="avatarConfigList" :label="t('editAvatarTemplate')">
+          <q-select
+            v-model="selectAvatar"
+            :options="avatarConfigList"
+            :label="t('editAvatarTemplate')"
+            data-testid="avatar-select"
+          >
             <template v-slot:after>
-              <q-btn icon="edit" :label="t('edit')" @click="settingOpen" :disable="!selectAvatar"/>
+              <q-btn
+                icon="edit"
+                :label="t('edit')"
+                @click="settingOpen"
+                :disable="!selectAvatar"
+                data-testid="avatar-edit-btn"
+              />
             </template>
           </q-select>
         </q-card-section>
 
         <q-card-actions align="right" class="q-pa-md q-ma-sm text-primary">
-          <q-btn :label="t('copyAndAdd')" @click="copyOpen" icon="add"></q-btn>
-          <q-btn :label="t('delete')" icon="delete" @click="deleteAvatarTemplate" :disable="!selectAvatar || avatarConfigList.length <= 1 || avatars.find(value => value.templateId === selectAvatar.value) !== undefined"></q-btn>
+          <q-btn
+            :label="t('copyAndAdd')"
+            @click="copyOpen"
+            icon="add"
+            data-testid="avatar-copy-btn"
+          />
+          <q-btn
+            :label="t('delete')"
+            icon="delete"
+            @click="deleteAvatarTemplate"
+            :disable="!selectAvatar || avatarConfigList.length <= 1 || avatars.find(value => value.templateId === selectAvatar.value) !== undefined"
+            data-testid="avatar-delete-btn"
+          />
           <q-space/>
-          <q-btn :label="t('close')" @click="show = false"></q-btn>
+          <q-btn
+            :label="t('close')"
+            @click="show = false"
+            data-testid="avatar-close-btn"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -104,8 +129,8 @@ onMounted(async () => {
           {{message}}
         </q-card-section>
         <q-card-actions>
-          <q-btn @click="doDelete">{{ t('delete') }}</q-btn>
-          <q-btn @click="dialogClose">{{ t('cancel') }}</q-btn>
+          <q-btn @click="doDelete" data-testid="avatar-delete-confirm-btn">{{ t('delete') }}</q-btn>
+          <q-btn @click="dialogClose" data-testid="avatar-delete-cancel-btn">{{ t('cancel') }}</q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -115,7 +140,7 @@ onMounted(async () => {
           {{message}}
         </q-card-section>
         <q-card-actions>
-          <q-btn @click="dialogClose">{{ t('ok') }}</q-btn>
+          <q-btn @click="dialogClose" data-testid="avatar-alert-ok-btn">{{ t('ok') }}</q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>
