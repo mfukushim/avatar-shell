@@ -113,6 +113,20 @@ test.describe('AvatarSettingSelectPanel dialog', () => {
     // console.log('sel:',sel)
     await selectDialog.getByTestId('avatar-delete-btn').click();
 
+    const confirmDialog = page
+      .locator('.q-dialog')
+      .filter({ has: page.getByTestId('avatar-delete-confirm-btn') })
+      .first();
+    await expect(confirmDialog).toBeVisible();
+    await confirmDialog.getByTestId('avatar-delete-confirm-btn').click();
+
+    const doneDialog = page
+      .locator('.q-dialog')
+      .filter({ has: page.getByTestId('avatar-alert-ok-btn') })
+      .first();
+    await expect(doneDialog).toBeVisible();
+    await doneDialog.getByTestId('avatar-alert-ok-btn').click();
+
     // 確認ダイアログが閉じる（増分が戻る）
     await expect(page.locator('.q-dialog')).toHaveCount(before);
   });
