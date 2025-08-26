@@ -28,7 +28,7 @@ describe('McpService', () => {
   });
 
   it('reset_getMcpServerInfos', async () => {
-    //  vitest --run --testNamePattern=init McpService.unit.spec.ts
+    //  vitest --run --testNamePattern=reset_getMcpServerInfos McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
       return yield *McpService.getMcpServerInfos()
@@ -36,7 +36,7 @@ describe('McpService', () => {
       Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
       runPromise
     );
-    console.log(res);
+    console.log(JSON.stringify(res,null,2));
     expect(Array.isArray(res)).toBeTruthy()
     expect(res[0].id === 'traveler').toBeTruthy()
   });
@@ -90,6 +90,30 @@ describe('McpService', () => {
     console.log(JSON.stringify(res));
     expect(typeof res === 'object').toBe(true)
     expect(res.call_id).toEqual('tips');
+    expect(res.toLlm !== undefined).toBeTruthy();
+  });
+
+  it('callFunction_settings', async () => {
+    //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
+
+    const res = await Effect.gen(function* () {
+      console.log('b');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      yield* McpService.reset(vitestSysConfig);
+      console.log('c');
+      return yield* McpService.callFunction(avatarState, {
+        name: 'traveler_get_setting',
+        id: 'get_setting',
+        input: { }
+      },'emptyText');
+    }).pipe(
+      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise
+    );
+
+    console.log(JSON.stringify(res,null,2));
+    expect(typeof res === 'object').toBe(true)
+    expect(res.call_id).toEqual('get_setting');
     expect(res.toLlm !== undefined).toBeTruthy();
   });
 

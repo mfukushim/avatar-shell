@@ -118,7 +118,11 @@ export const AsMessageContentSchema = Schema.partial(
     isExternal: Schema.Boolean,
   }));
 
+const AsMessageContentSchemaMutable = Schema.mutable(AsMessageContentSchema);
+
 export type AsMessageContent = typeof AsMessageContentSchema.Type
+
+export type AsMessageContentMutable = typeof AsMessageContentSchemaMutable.Type
 
 export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
   id: Schema.String,
@@ -229,7 +233,7 @@ const AlertTaskSchema = Schema.Struct({
 export type AlertTask = typeof AlertTaskSchema.Type
 
 
-const McpStdioServerDef = Schema.Struct({
+export const McpStdioServerDef = Schema.Struct({
   command: Schema.NonEmptyString,
   args: Schema.mutable(Schema.NonEmptyArray(Schema.NonEmptyString)),
   env: Schema.optional(Schema.Record({
@@ -238,15 +242,15 @@ const McpStdioServerDef = Schema.Struct({
   })),
 });
 
-const McpStreamHttpServerDef = Schema.Struct({
+export const McpStreamHttpServerDef = Schema.Struct({
   type: Schema.NonEmptyString,
   url: Schema.NonEmptyString,
   note: Schema.optional(Schema.String),
 });
 
 const McpServerDef = Schema.Union(
-  McpStdioServerDef.pipe(Schema.attachPropertySignature("kind", "stdio")),
-  McpStreamHttpServerDef.pipe(Schema.attachPropertySignature("kind", "streamHttp")),
+  McpStdioServerDef, //.pipe(Schema.attachPropertySignature("kind", "stdio")),
+  McpStreamHttpServerDef, //.pipe(Schema.attachPropertySignature("kind", "streamHttp")),
 );
 
 const McpToolInfo = Schema.Struct({
@@ -306,7 +310,7 @@ export type MainLlmSchema = typeof MainLlmSchema.Type
 export const MainLlmList = MainLlmSchema.literals;
 
 export const mcpServerListSchema = Schema.Record({
-  key: Schema.NonEmptyString.pipe(Schema.pattern(/^[a-z0-9]+$/), Schema.filter(v => !v.includes('_') || 'Cannot contain _')),
+  key: Schema.NonEmptyString.pipe(Schema.pattern(/^[a-z][a-z0-9]+$/), Schema.filter(v => !v.includes('_') || 'Cannot contain _')),
   value: McpServerDef,
 });
 export type McpServerList = typeof mcpServerListSchema.Type

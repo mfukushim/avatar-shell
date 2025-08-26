@@ -54,7 +54,7 @@ export default {
   voiceCutoffTextLimit:'音声再生切り捨て長さ(未指定時 150)',
   addMcpDef:'MCPを追加',
   mcpName: 'MCP設定名',
-  onlyAlphaNum:'(半角英数字のみ)',
+  onlyAlphaNum:'(半角小文字英数字のみ)',
   mcpJson:'MCP定義JSON',
   avatarCom:'アバター間通信',
   startSocketIoServer:'ローカルsocket.ioサーバーを起動する',

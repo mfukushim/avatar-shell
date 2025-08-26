@@ -143,7 +143,7 @@ const saveAndClose = async () => {
     //  mcp
     //    mcp idが重複しないこと、設定記述があればjson書式であること、一部設定値があれば両方の値があること、すべて空欄なら展開しないこと
     //  mcp設定バリデート/設定
-    console.log('mcpConfig:', mcpConfig.value);
+    // console.log('mcpConfig:', mcpConfig.value);
     const idList = mcpConfig.value.map(v => v.id);
     console.log('idList:', idList);
     const idSet = new Set(idList);
@@ -154,6 +154,10 @@ const saveAndClose = async () => {
     const mcpOut: Record<string, McpServerDef> = {};
     for (const mcp of mcpConfig.value) {
       if (mcp.id && mcp.id.length > 0 && mcp.body && mcp.body.length > 0) {
+        if(!mcpRegex.test(mcp.id))  {
+          errorMes.value = `mcp name "${mcp.id}" only alphanumeric characters are allowed`;
+          return;
+        }
         try {
           mcpOut[mcp.id] = JSON.parse(mcp.body);
         } catch (e) {
@@ -163,7 +167,7 @@ const saveAndClose = async () => {
         }
       }
     }
-    console.log('mcp:', mcpOut);
+    // console.log('mcp:', mcpOut);
     edit.value.mcpServers = mcpOut;
     //  websocket
 
@@ -172,10 +176,10 @@ const saveAndClose = async () => {
     } catch (e) {
       edit.value.websocket.serverPort = undefined;
     }
-    console.log(
-      'edit:',
-      JSON.stringify(edit.value),
-    );
+    // console.log(
+    //   'edit:',
+    //   JSON.stringify(edit.value),
+    // );
     const setting = Schema.decodeUnknownEither(SysConfigSchema)(edit.value);
     if (Either.isRight(setting)) {
       // console.log('edit:', JSON.stringify(setting.right));
@@ -186,7 +190,7 @@ const saveAndClose = async () => {
     const e = ParseResult.ArrayFormatter.formatErrorSync(setting.left);
     errorMes.value = e.map(e => `${e.path.join(' > ')} : ${e.message}`).join(', ');
     //  TODO エラー時にLLMと音声読み上げが有効ならローカル言語化と音声読み上げを行う
-    console.log(e);
+    // console.log(e);
   } finally {
     saving.value = false;
   }
@@ -272,6 +276,12 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClick);
 });
 
+const mcpRegex = /^[a-z][a-z0-9]*$/;
+
+const mcpNameValidate = [
+  // (val:string) => (val && val.length > 0) || 'Please type mcp name',
+  (val:string) => (val && mcpRegex.test(val)) || 'Only lowercase alphanumeric characters are allowed',
+]
 
 </script>
 
@@ -476,14 +486,14 @@ onBeforeUnmount(() => {
                               v-model="server.id"
                               :label="t('mcpName')"
                               placeholder="mcp1"
+                              :hint="t('onlyAlphaNum')"
                               class="q-mb-sm"
                               debounce="1000"
+                              lazy-rules
                               @change="tabMcp = server.id"
+                              :rules="mcpNameValidate"
                               data-testid="mcp-id-input"
                             />
-                            {{ t('onlyAlphaNum') }}
-                          </q-card-section>
-                          <q-card-section>
                             <q-input
                               filled
                               dense

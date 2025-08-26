@@ -57,7 +57,6 @@ export const vitestSysConfig: SysConfig = {
         "bs_pass":process.env.VITE_TR_bs_pass as string,
         "bs_handle":process.env.VITE_TR_bs_handle as string,
       },
-      kind:'stdio',
     },
     "slack": {
       "command": "npx",
@@ -70,7 +69,6 @@ export const vitestSysConfig: SysConfig = {
         "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string || 'aaa',
         "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
       },
-      kind:'stdio',
     }
   },
   experimental:{
@@ -111,7 +109,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "get_traveler_view_info": {"enable": true, "allow": "ask"},
         "get_traveler_location": {"enable": true, "allow": "ask"},
         "tips": {"enable": true, "allow": "any"},
-        "get_setting": {"enable": true, "allow": "ask"},
+        "get_setting": {"enable": true, "allow": "any"},
         "get_traveler_info": {"enable": true, "allow": "ask"},
         "set_traveler_info": {"enable": true, "allow": "ask"},
         "start_traveler_journey": {"enable": true, "allow": "ask"},

@@ -21,6 +21,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select', mes: AsMessage): void
   (e: 'playVoice', mes: AsMessage): void
+  (e: 'clearRunningMarks'): void
 }>();
 
 const text = ref('');
@@ -129,6 +130,7 @@ const scrollBottom = async () => {
 };
 
 const stopAvatarBtn = async () => {
+  emit('clearRunningMarks');
   await stopAvatar();
 }
 
@@ -166,7 +168,7 @@ const imageCache = ref<Record<string, string>>({});
           <q-markdown :no-blockquote="false" v-if="item.content.text" :src="item.content.text" />
           <q-img v-if="getItemType(item) == 'image'" :src="imageCache[item.id]" @click="pickItem(item)" />
           <q-icon v-if="getItemType(item) == 'audio'" size="32px" name="play_circle" @click="playSound(item)" />
-          <div v-if="getItemType(item) == 'toolCall'">{{ JSON.stringify(item.content.toolData) }}</div>
+          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolCall' && item.content.toolData" :src="JSON.stringify(item.content.toolData)" />
         </div>
         <div v-else >
           {{item.content.text.slice(0,3)}}
