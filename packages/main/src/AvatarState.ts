@@ -272,7 +272,8 @@ export class AvatarState {
     if (sec > 0) {
       if (daemon.config.trigger.condition.isRepeatMin) {
         const interval = Duration.decode(`${sec} seconds`);
-        schedule = Schedule.fixed(interval);
+        schedule = Schedule.spaced(interval);
+        // schedule = Schedule.fixed(interval);
       } else {
         interval = Duration.decode(`${sec} seconds`);
       }
@@ -712,9 +713,9 @@ export class AvatarState {
             const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, img, it.templateId);
             return {
               ...mes,
-              asClass: 'daemon',
-              asRole: 'system',
-              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              // asClass: 'daemon',
+              // asRole: 'system',
+              // asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
               content: {
                 ...mes.content,
                 mediaBin: undefined,
@@ -724,9 +725,9 @@ export class AvatarState {
           } else if (mes.content.mediaBin && mes.content.mimeType?.startsWith('text/')) {
             return {
               ...mes,
-              asClass: 'daemon',
-              asRole: 'system',
-              asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+              // asClass: 'daemon',
+              // asRole: 'system',
+              // asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
               content: {
                 ...mes.content,
                 mediaBin: undefined,
@@ -822,6 +823,7 @@ export class AvatarState {
       .pipe(
         Effect.catchAll(e => {
           console.log('execGenerator error:', e);
+          it.sendRunningMark(message[0].id, false)
           this.showAlert(`execGenerator error:${e}`);
           return Effect.fail(e);
         }),

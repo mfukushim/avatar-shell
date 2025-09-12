@@ -54,7 +54,7 @@ export default {
   voiceCutoffTextLimit:'Text cutoff limit(default 150)',
   addMcpDef: 'Add MCP Definition',
   mcpName:'mcp setting name',
-  onlyAlphaNum: '(Only alphanumeric characters are allowed.)',
+  onlyAlphaNum: '(Only lowercase alphanumeric characters are allowed.)',
   mcpJson:'mcp definition json',
   avatarCom: 'Avatar Communication',
   startSocketIoServer: 'Start local Socket.io Server',

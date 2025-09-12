@@ -1,7 +1,7 @@
 import {GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Effect, Option} from 'effect';
-import {AsMessage, AsMessageContent, AsOutput, SysConfig} from '../../common/Def.js';
+import {AsMessage, AsMessageContent, AsMessageContentMutable, AsOutput, SysConfig} from '../../common/Def.js';
 import {DocService} from './DocService.js';
 import {McpService, ToolCallParam} from './McpService.js';
 import {ConfigService} from './ConfigService.js';
@@ -303,6 +303,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
       const req = {
         from: avatarState.Name,
         innerId: innerId,
+        toolName: funcCalls.map(value => value.name).join(','),
         toolData: funcCalls.map(value => value),
       };
       const mes1 = AsMessage.makeMessage(req, 'physics', 'toolIn','inner');
@@ -457,8 +458,9 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
       //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
       return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, (a2,idx) => {
         return Effect.gen(function* () {
-          const content: any = {
+          const content: AsMessageContentMutable = {
             from: avatarState.Name,
+            toolName:a.name
           };
           const nextId = short.generate();
           let llmOut: Anthropic.Messages.ContentBlockParam|undefined = undefined // = a2; //  todo 書式は基本的にMCPとClaudeは合っているはず

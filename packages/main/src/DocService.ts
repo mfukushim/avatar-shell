@@ -184,8 +184,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
             }),
           );
         }
-        return '';
-        // return yield* Effect.fail(new Error('no match media file'));
+        return '';  //  該当外メディアは仮に空文字にしておく
       }).pipe(Effect.catchAll(e => Effect.fail(new Error(`readDocMedia file error:${e}`))));
     }
 

@@ -34,7 +34,9 @@ describe("DocService", () => {
   it('readDocument', async () => {
     //  vitest --run --testNamePattern=readDocument DocService.unit.spec.ts
     const res = await Effect.gen(function* () {
-      return yield* DocService.readDocument(testTemplateId, 'aaaa_Mix_20250713220404.asdata');
+      const list = yield* DocService.readDocList(testTemplateId);
+      expect(list.length > 0).toBeTruthy()
+      return yield* DocService.readDocument(testTemplateId, list[0]);
     }).pipe(
       Effect.provide([DocServiceLive, NodeFileSystem.layer]),
       runPromise,
@@ -43,21 +45,6 @@ describe("DocService", () => {
     console.log(JSON.stringify(res, null, 2));
     expect(Array.isArray(res)).toBeTruthy();
   });
-
-  it('readDocMedia', async () => {
-    //  vitest --run --testNamePattern=readDocMedia DocService.unit.spec.ts
-    const mediaUrl = `file://${testTemplateId}/Mia_bbbb_20250604192321_2.png`;
-    const res = await Effect.gen(function* () {
-      return yield* DocService.readDocMedia(mediaUrl);
-    }).pipe(
-      Effect.provide([DocServiceLive,ConfigServiceLive, NodeFileSystem.layer]),
-      runPromise,
-    );
-
-    expect(typeof res === 'string').toBeTruthy();
-    console.log(res.slice(0,100));
-  });
-
   it('saveDocMedia', async () => {
     //  vitest --run --testNamePattern=saveDocMedia DocService.unit.spec.ts
 
@@ -77,6 +64,21 @@ describe("DocService", () => {
 
     expect(res).toMatch(new RegExp(`file://${testTemplateId}/test-id.png`));
   });
+
+  it('readDocMedia', async () => {
+    //  vitest --run --testNamePattern=readDocMedia DocService.unit.spec.ts
+    const mediaUrl = `file://${testTemplateId}/test-id.png`;
+    const res = await Effect.gen(function* () {
+      return yield* DocService.readDocMedia(mediaUrl);
+    }).pipe(
+      Effect.provide([DocServiceLive,ConfigServiceLive, NodeFileSystem.layer]),
+      runPromise,
+    );
+
+    expect(typeof res === 'string').toBeTruthy();
+    console.log(res.slice(0,100));
+  });
+
 
   it('addLog', async () => {
     //  vitest --run --testNamePattern=addLog DocService.unit.spec.ts
@@ -204,13 +206,12 @@ describe("DocService", () => {
     //  vitest --run --testNamePattern=invalid DocService.unit.spec.ts
     const invalidMediaUrl = 'invalid://url/format';
 
-    await expect(
-      Effect.gen(function* () {
-        return yield* DocService.readDocMedia(invalidMediaUrl);
-      }).pipe(
-        Effect.provide([DocServiceLive, ConfigServiceLive, NodeFileSystem.layer]),
-        runPromise,
-      )
-    ).rejects.toThrow('no match media file');
+    const res = await Effect.gen(function* () {
+      return yield* DocService.readDocMedia(invalidMediaUrl);
+    }).pipe(
+      Effect.provide([DocServiceLive, ConfigServiceLive, NodeFileSystem.layer]),
+      runPromise,
+    )
+    expect(res === '').toBeTruthy()
   });
 });

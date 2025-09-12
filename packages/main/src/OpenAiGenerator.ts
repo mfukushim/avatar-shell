@@ -1,7 +1,7 @@
 import {ContextGenerator, GeneratorOutput, GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Chunk, Effect, Option, Schedule, Stream} from 'effect';
-import {AsMessage, AsMessageContent, AsOutput, SysConfig} from '../../common/Def.js';
+import {AsMessage, AsMessageContent, AsMessageContentMutable, AsOutput, SysConfig} from '../../common/Def.js';
 import {DocService} from './DocService.js';
 import {McpService} from './McpService.js';
 import {ConfigService} from './ConfigService.js';
@@ -22,7 +22,6 @@ import {
   ResponseInputItem, ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
-  Response,
 } from 'openai/resources/responses/responses';
 import {TimeoutException} from 'effect/Cause';
 import {z} from 'zod';
@@ -203,6 +202,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
         const funcCall = AsMessage.makeMessage({
           innerId: `${a1.call_id}_in`,
           from: avatarState.Name,
+          toolName: a1.name,
           toolData: a1,
         }, 'physics', 'toolIn', 'inner');
         it.prevContexts.push(a1);
@@ -227,8 +227,9 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
         //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
         return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, a2 => {
           return Effect.gen(function* () {
-            const content: any = {
+            const content: AsMessageContentMutable = {
               from: avatarState.Name,
+              toolName: a1.name
             };
             const nextId = short.generate();
             let llmOut: any = a2;
@@ -246,7 +247,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
               llmOut = undefined;
             } else if (a2.type === 'resource') {
               //  TODO resourceはuriらしい
-              content.mediaUrl = a2.uri;
+              content.mediaUrl = a2.uri as string;
               //  TODO resourceはuriらしい resourceはLLMに回さないらしい
               // llmOut = undefined;
               //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
@@ -464,7 +465,7 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
   protected voice = 'alloy';
   protected cutoffTextLimit = 150;
 
-  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiBaseGenerator, Error> {
+  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<openAiVoiceGenerator, Error> {
     if (!sysConfig.generators.openAiText?.apiKey) {
       return Effect.fail(new Error('openAi API key is not set.'));
     }

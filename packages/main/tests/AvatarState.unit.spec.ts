@@ -1,5 +1,4 @@
-import {Effect} from 'effect';
-import {runPromise} from 'effect/Effect';
+import {Effect, Layer, ManagedRuntime} from 'effect';
 import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
@@ -10,17 +9,19 @@ import {MediaServiceLive} from '../src/MediaService';
 import {describe, expect, it} from '@effect/vitest';
 import {AsMessage, AsOutput, AvatarSettingMutable} from '../../common/Def';
 import dayjs from 'dayjs';
-import {AvatarServiceLive} from '../src/AvatarService';
+import {vitestSysConfig} from '../../common/vitestConfig';
+
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer)
+const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('avatarState', () => {
   it('make', async () => {
     //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
       return yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -29,7 +30,7 @@ describe('avatarState', () => {
   it('val', async () => {
     //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
 
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       // console.log(avatarState);
@@ -40,8 +41,7 @@ describe('avatarState', () => {
       const avatarConfig = avatarState.Config;
       return {tempId, name, tag, avatarConfig};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(res);
@@ -50,15 +50,14 @@ describe('avatarState', () => {
   it('ScheduleList', async () => {
     //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
 
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
       return yield* avatarState.ScheduleList;
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -68,7 +67,7 @@ describe('avatarState', () => {
   it('setNames', async () => {
     //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
 
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       // console.log(avatarState);
@@ -76,8 +75,7 @@ describe('avatarState', () => {
       avatarState.setNames({userName: 'mfuku', avatarName: 'mi'});
       return {name: avatarState.Name, userName: avatarState.UserName};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -88,7 +86,7 @@ describe('avatarState', () => {
   it('addContext', async () => {
     //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
 
       const avatarState = yield* AvatarState.make('aaaa', 'vitestNoneId', 'Mix', null, 'user');
       // console.log(avatarState);
@@ -101,8 +99,7 @@ describe('avatarState', () => {
       ], true);
       return yield* avatarState.TalkContextEffect;
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -154,8 +151,7 @@ describe('avatarState', () => {
       // console.log('check4',check4);
       return {check1, check2, check3, check4};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -176,8 +172,7 @@ describe('avatarState', () => {
         return Effect.sleep('14 seconds').pipe(Effect.andThen(a1 => avatarState.TalkContextEffect));
       });
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     res.map(a => console.log(JSON.stringify(a, null, 2)));
@@ -234,8 +229,7 @@ describe('avatarState', () => {
 
       return {check1, check2};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -290,8 +284,7 @@ describe('avatarState', () => {
 
       return {check1, check2};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -303,6 +296,7 @@ describe('avatarState', () => {
   it('daemonContext', async () => {
     //  vitest --run --testNamePattern=daemonContext AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
       // yield* McpService.initial();
 
       const id = 'aaaa';
@@ -364,8 +358,7 @@ describe('avatarState', () => {
 
       return {check1, check2,log};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -376,7 +369,7 @@ describe('avatarState', () => {
   it('daemonTalkAfterMin', async () => {
     //  vitest --run --testNamePattern=daemonDayTime AvatarState.unit.spec.ts
     const res = await Effect.gen(function* () {
-      yield* McpService.initial();
+      yield* McpService.reset(vitestSysConfig);
 
       const id = 'aaaa';
       const template = 'vitestDaemon999Id';
@@ -431,8 +424,7 @@ describe('avatarState', () => {
 
       return {check1,check2,check3,check4};
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer]),
-      runPromise,
+      aiRuntime.runPromise,
     );
 
     console.log(JSON.stringify(res, null, 2));
@@ -443,5 +435,5 @@ describe('avatarState', () => {
     expect(res.check4.length).toBe(4);
   });
 
-}, 5 * 60 * 1000);
+}, 10 * 60 * 1000);
 

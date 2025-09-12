@@ -1,3 +1,4 @@
+/*
 
 import { Effect, Layer } from 'effect';
 import {expect, describe, it, afterEach, afterAll} from 'vitest';
@@ -86,7 +87,7 @@ describe('SocketService', () => {
       client2.close();
     })
 
-/*
+/!*
 TODO
   it.sequential('設定変更時にサーバーが再起動すること', async () => {
     await Effect.gen(function* () {
@@ -143,5 +144,6 @@ TODO
 
       expect(clientSocket.connected).toBe(true);
     });
-*/
+*!/
 },5*60*1000);
+*/

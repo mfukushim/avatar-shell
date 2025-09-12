@@ -328,6 +328,7 @@ const handleUIAction = async (event: CustomEvent) => {
                  :area-height="rDrawerHeight"
                  @select="setAsMessageImage"
                  @play-voice="playVoice"
+                 @clear-running-marks="runningMarks=[]"
                  :force-update="forceUpdate"
                  :avatarName="avatarName"
                  :user-name="userName"

@@ -1,7 +1,7 @@
 import {ContextGenerator, GeneratorOutput, GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Chunk, Effect, Option, Schedule, Stream} from 'effect';
-import {AsMessage, AsMessageContent, AsOutput, SysConfig} from '../../common/Def.js';
+import {AsMessage, AsMessageContent, AsMessageContentMutable, AsOutput, SysConfig} from '../../common/Def.js';
 import {DocService} from './DocService.js';
 import {McpService} from './McpService.js';
 import {ConfigService} from './ConfigService.js';
@@ -242,6 +242,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
       state.prevContexts.push(funcCall);  //  1件のリクエストの追記
       next.push(AsOutput.makeOutput(AsMessage.makeMessage({
         from: avatarState.Name,
+        toolName: funcCalls.map(value => value.name).join(','),
         toolData: funcCalls.map(value => value),
       },'physics','toolIn','inner'),{
         provider: state.genName,
@@ -264,8 +265,9 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
           //  ここでツールが解析した結果のcontentを分離してAsMessageにする 理由として、表示側でコンテンツによって出力結果をフィルタしたいからだ ${toolRes.call_id}_out_0 はLLM付き _out_n は生成コンテンツごとの要素として表示とログに送る
           return yield* Effect.forEach((toolRes.toLlm as z.infer<typeof CallToolResultSchema>).content, (a2,idx) => {
             return Effect.gen(function* () {
-              const content: any = {
+              const content: AsMessageContentMutable = {
                 from: avatarState.Name,
+                toolName: a.name
               };
               const nextId = short.generate();
               let llmOut: any = a2;
