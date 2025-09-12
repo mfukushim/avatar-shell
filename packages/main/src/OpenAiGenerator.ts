@@ -22,7 +22,6 @@ import {
   ResponseInputItem, ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
-  Response,
 } from 'openai/resources/responses/responses';
 import {TimeoutException} from 'effect/Cause';
 import {z} from 'zod';
@@ -466,7 +465,7 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
   protected voice = 'alloy';
   protected cutoffTextLimit = 150;
 
-  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiBaseGenerator, Error> {
+  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<openAiVoiceGenerator, Error> {
     if (!sysConfig.generators.openAiText?.apiKey) {
       return Effect.fail(new Error('openAi API key is not set.'));
     }

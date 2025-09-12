@@ -1,13 +1,9 @@
-import {it, expect, describe, vi, beforeEach, afterEach} from '@effect/vitest';
+import {it, describe, vi, beforeEach, afterEach} from '@effect/vitest';
 import {Effect} from 'effect';
 import {runPromise} from 'effect/Effect';
-import {DocService, DocServiceLive} from '../src/DocService';
 import {NodeFileSystem} from '@effect/platform-node';
 import path from 'path';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {AsMessage, AsOutput} from '../../common/Def';
-import {AvatarState} from '../src/AvatarState';
-import {McpServiceLive} from '../src/McpService';
+import {ConfigServiceLive} from '../src/ConfigService';
 import {MediaService, MediaServiceLive} from '../src/MediaService';
 import * as fs from 'fs';
 
@@ -36,7 +32,7 @@ describe("MediaService", () => {
   });
 
   it('playSound', async () => {
-
+    //  TODO 今使ってないはず。。
     await Effect.gen(function* () {
       yield* MediaService.playSound(testSoundPath);
     }).pipe(

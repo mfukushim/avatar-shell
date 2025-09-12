@@ -115,7 +115,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "start_traveler_journey": {"enable": true, "allow": "ask"},
         "stop_traveler_journey": {"enable": true, "allow": "ask"},
         "set_avatar_prompt": {"enable": true, "allow": "ask"},
-        "reset_avatar_prompt": {"enable": true, "allow": "ask"}
+        "reset_avatar_prompt": {"enable": true, "allow": "no"}
       }
     },
     "slack": {

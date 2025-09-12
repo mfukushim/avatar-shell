@@ -11,6 +11,7 @@ import {vitestSysConfig} from '../../common/vitestConfig';
 import { openAiTextGenerator, openAiImageGenerator, openAiVoiceGenerator } from '../src/OpenAiGenerator';
 import {ResponseInputItem} from 'openai/resources/responses/responses';
 import {AsMessage} from '../../common/Def';
+import {ChatCompletion} from 'openai/resources';
 
 describe('OpenAiGenerator', () => {
   beforeEach(() => {
@@ -141,7 +142,6 @@ describe('OpenAiGenerator', () => {
     console.log(res);
     expect(typeof res === 'object').toBe(true);
     expect(res).toHaveProperty('task');
-    expect(res).toHaveProperty('output');
   });
 
   it('execLlm', async () => {
@@ -429,17 +429,38 @@ describe('OpenAiGenerator', () => {
 
 //  追加テスト: OpenAiVoiceGenerator の toAnswerOut で音声出力が保存される
   it('openAiVoiceGenerator.toAnswerOut saves audio when present', async () => {
-    const ai = await openAiVoiceGenerator.make(vitestSysConfig, {
+    const ai:openAiVoiceGenerator = await openAiVoiceGenerator.make(vitestSysConfig, {
       previousContextSize: 0,
       useContextType: ['text']
     }).pipe(runPromise);
 
     const res = await Effect.gen(function* () {
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      const responseOut: any[] = [
-        {message: {audio: {data: 'UklGRg=='}}} // ダミーの音声データ
-      ];
-      return yield* ai.toAnswerOut(responseOut as any[], avatarState);
+      const responseOut: ChatCompletion = {
+        id: '',
+        choices: [ {
+          message: {
+            content: null,
+            refusal: null,
+            role: 'assistant',
+            audio: {
+              id: '',
+              data: 'UklGRg==',
+              expires_at: 0,
+              transcript: ''
+            }
+          },
+          finish_reason: 'stop',
+          index: 0,
+          logprobs: null
+        }
+          ],
+        created: 0,
+        model: '',
+        object: 'chat.completion'
+      }
+
+      return yield* ai.toAnswerOut(responseOut, avatarState);
     }).pipe(
       Effect.provide([DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
       runPromise

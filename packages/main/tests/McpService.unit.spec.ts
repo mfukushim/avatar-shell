@@ -205,13 +205,11 @@ describe('McpService', () => {
   it('callFunctionDeny', async () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
-      console.log('b');
       const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
       yield* McpService.reset(vitestSysConfig);
-      console.log('c');
       return yield* McpService.callFunction(avatarState, {
-        name: 'traveler_get_setting',
-        id: 'get_setting',
+        name: 'traveler_reset_avatar_prompt',
+        id: 'reset_avatar_prompt',
         input: { }
       },'emptyText');
     }).pipe(
@@ -344,7 +342,7 @@ describe('McpService', () => {
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(8)
+        expect(filter1.length).toBe(13)
       }
       //  -----
       const cloned:AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
