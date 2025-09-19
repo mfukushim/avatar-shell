@@ -1,9 +1,16 @@
 import {GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Effect, Option} from 'effect';
-import {AsMessage, AsMessageContent, AsMessageContentMutable, AsOutput, SysConfig} from '../../common/Def.js';
+import {
+  AsMessage,
+  AsMessageContent,
+  AsMessageContentMutable,
+  AsOutput,
+  SysConfig,
+  ToolCallParam,
+} from '../../common/Def.js';
 import {DocService} from './DocService.js';
-import {McpService, ToolCallParam} from './McpService.js';
+import {McpService} from './McpService.js';
 import {ConfigService} from './ConfigService.js';
 import {
   ClaudeTextSettings,

@@ -7,7 +7,7 @@ import {
   AsMessage,
   AvatarSetting, type DaemonTriggerSchema, type McpInfo,
   type MutableSysConfig,
-  type SysConfig,
+  type SysConfig, type ToolCallParam,
 } from '../../common/Def.js';
 import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
@@ -227,6 +227,10 @@ export async function copyAvatarConfig(templateId: string):Promise<string> {
 
 export async function deleteAvatarConfig(templateId: string):Promise<string> {
   return await ipcRenderer.invoke('deleteAvatarConfig', templateId);
+}
+
+export async function callMcpTool(params: ToolCallParam):Promise<string> {
+  return await ipcRenderer.invoke('callMcpTool', avatarId, params);
 }
 
 export async function getAvatarConfig(id: string) {

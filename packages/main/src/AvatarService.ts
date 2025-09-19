@@ -22,15 +22,23 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function getTalkContext(avatarId: string) {
-      return avatars.pipe(
-        Ref.get, Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe(
+        // Ref.get, Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => a.TalkContextEffect))
+    }
+
+    function getAvatarState(avatarId: string) {
+      return avatars.pipe(
+        Ref.get,
+        Effect.andThen(HashMap.get(avatarId)),
+        Effect.catchAll( e => Effect.fail(new Error('getAvatarState no id'+e.message))))
     }
 
     function addExtTalkContext(avatarId: string,bags:AsMessage[]) {
       return Effect.gen(function*() {
-        const m = yield *Ref.get(avatars)
-        const state = yield *HashMap.get(m,avatarId)
+        // const m = yield *Ref.get(avatars)
+        // const state = yield *HashMap.get(m,avatarId)
+        const state = yield *getAvatarState(avatarId)
         yield *state.addContext(bags,true)
         yield* DocService.addLog(bags.map(value => (AsOutput.makeOutput(value,{
           provider:'emptyText', //  無効値を持たせたいが
@@ -41,17 +49,17 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function getScheduleList(avatarId: string) {
-      return avatars.pipe(
-        Ref.get, Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe(
+        // Ref.get, Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => a.ScheduleList),
         Effect.andThen(a => ({list:a,status:'ok'}) ),
-        Effect.catchTag("NoSuchElementException",() => Effect.succeed({status:'Wait a moment',list:[]}))
+        Effect.catchAll(() => Effect.succeed({status:'Wait a moment',list:[]}))
       )
     }
 
     function cancelSchedule(avatarId: string,id:string) {
-      return avatars.pipe(
-        Ref.get, Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe(
+        // Ref.get, Effect.andThen(HashMap.get(avatarId)),
         // Effect.tap(a => console.log('in cancelSchedule',a.TemplateId,a.Name)),
         Effect.andThen(a => a.cancelSchedule(id))
       )
@@ -85,8 +93,8 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function setNames(avatarId:string,setting:{userName?:string,avatarName?:string}) {
-      return avatars.pipe(
-        Ref.get, Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe(
+        // Ref.get, Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => a.setNames(setting))
       )
 
@@ -133,7 +141,8 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
 
     function askAvatar(avatarId: string, mes: AsMessage[]) {
       return Effect.gen(function*() {
-        const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
+        // const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
+        const state = yield *getAvatarState(avatarId)
         yield *state.addContext(mes)
         yield *state.rebuildIdle()
         return []
@@ -141,7 +150,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function findInPage(avatarId:string,text:string) {
-      return avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe(//Ref.get,Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => {
           if (a && a.BrowserWindow) {
             a.BrowserWindow.webContents.findInPage(text)
@@ -151,11 +160,12 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     }
 
     function stopAvatar(avatarId:string) {
-      return avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)),
+      return getAvatarState(avatarId).pipe( //Ref.get,Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => a.stopAvatar()))
     }
 
     return {
+      getAvatarState,
       makeAvatar,
       askAvatar,
       getTalkContext,

@@ -3,7 +3,7 @@ import {defineAsyncComponent, nextTick, onMounted, ref} from 'vue';
 import HeadPanel from './components/HeadPanel.vue';
 import InputPanel from './components/InputPanel.vue';
 import {
-  addExtTalkContext, answerMainAlert, doAskAi,
+  addExtTalkContext, answerMainAlert, callMcpTool, doAskAi,
   getAvatarConfigList,
   getCurrentAvatarList, getMcpServerInfos,
   getMediaUrl, getSysConfig, getUserName,
@@ -114,6 +114,7 @@ const showAsAlert = ref(false);
 
 const recentSoundId = ref('');
 
+const calledMcpUiName = ref('');
 const htmlResourceJson = ref<string | undefined>(undefined);
 
 const clickAlert = async (task: AlertTask, btn: string) => {
@@ -137,6 +138,7 @@ const setTimeline = async (tl0: AsMessage[]) => {
     const url = ui.content?.mediaUrl;
     if (url) {
       const text = await readDocMedia(url);
+      calledMcpUiName.value = ui.content?.toolName || ''
       htmlResourceJson.value = JSON.stringify({
         uri: url,
         mimeType: 'text/html',
@@ -144,6 +146,7 @@ const setTimeline = async (tl0: AsMessage[]) => {
       });
     }
   } else {
+    calledMcpUiName.value = ''
     htmlResourceJson.value = undefined;
     if (oneImage.length > 0) {
       await setAsMessageImage(oneImage[0]);
@@ -266,20 +269,61 @@ const saveImage = async () => {
 
 const handleUIAction = async (event: CustomEvent) => {
   console.log('Action2:', event.detail);
+  const sysConfig = await getSysConfig();
+  if (!sysConfig.experimental.mcpUi) {
+    return
+  }
   if (event.detail.type === 'tool') {
-    const sysConfig = await getSysConfig();
-    if (sysConfig.experimental.mcpUi) {
-      let inText = JSON.stringify(event.detail.payload);
-      if (sysConfig.experimental.mcpUiTemplate) {
-        inText = expand(sysConfig.experimental.mcpUiTemplate, {
-          body: inText,
-        });
-      }
-      console.log('inText', inText);
-      const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
-      await doAskAi([mes])
-      await sendMessageIn([mes]);
+    //  TODO toolを直起動にする
+    /*
+    payload: {
+      toolName: "get-weather",
+      params: {
+        city: "Tokyo",
+      },
+    },
+     */
+    const names = calledMcpUiName.value.split('_')
+    const toolName = names.length > 0 && event.detail?.payload?.toolName ? names[0] +'_'+event.detail.payload.toolName : ''
+    await callMcpTool({
+      id: '', //  TODO この扱いでよいか確認要
+      name: toolName,
+      input: event.detail?.payload?.params || {},
+    })
+    //  TODO ユーザがツールを使ったことを通知する必要はあるか?
+    // const mes = AsMessage.makeMessage({from: getUserName(), text: 'user selected'}, 'talk', 'human', 'surface')
+    // await doAskAi([mes])
+    // await sendMessageIn([mes]);
+  } else if(event.detail.type === 'intent') {
+    /*
+    payload: {
+      intent: "create-task",
+      params: {
+        title: "Buy groceries",
+        description: "Buy groceries for the week",
+      },
+    },
+     */
+    let inText = JSON.stringify(event.detail.payload);
+    if (sysConfig.experimental.mcpUiTemplate) {
+      inText = expand(sysConfig.experimental.mcpUiTemplate, {
+        body: inText,
+      });
     }
+    console.log('inText', inText);
+    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
+    await doAskAi([mes])
+    await sendMessageIn([mes]);
+  } else if(event.detail.type === 'notify') {
+    /*
+    payload: {
+      message: "cart-updated",
+    },
+     */
+    let inText = event.detail?.payload?.message
+    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
+    await doAskAi([mes])
+    await sendMessageIn([mes]);
   }
 };
 
