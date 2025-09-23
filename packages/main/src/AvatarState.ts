@@ -648,6 +648,10 @@ export class AvatarState {
     });
   }
 
+  /**
+   * Avatar frontendにメッセージを送る
+   * @param bag
+   */
   sendToWindow(bag: AsMessage[]) {
     if (this.window) {
       this.window.webContents.send('update-llm', bag);

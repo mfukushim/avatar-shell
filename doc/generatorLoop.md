@@ -7,18 +7,43 @@ stateDiagram-v2
   Generators: Generators (LLMs,voice gen)
 
   [*] --> Source:start up(wait user input mcp)
-  Source --> Generators: MCP responses, or user input
-  note left of Generators
+  [*] --> DaemonRule
+  DaemonRule --> Source: Daemon rule exec
+  note right of Generators
     previous context data
   end note
-  [*] --> DaemonRule
-  DaemonRule --> Generators: Daemon rule exec
-  Generators-->Source: MCP requests\n(if no MCP request,\n wait user input mcp)
-  Generators-->[*]: stop
-  note right of Generators
+  Source --> Generators: MCP responses, or user input
+  Generators-->McpResponseWait: MCP requests\n(if no MCP request,\n wait user input mcp)
+  note right of Source
     output context data(llm text or images)
   end note
+  state McpResponseWait {
+    [*] --> Mcp1Request
+    Mcp1Request --> Mcp1Response : Mcp1Exec
+    --
+    [*] --> Mcp2Request
+    Mcp2Request --> Mcp2Response : Mcp2Exec
+  }
+  McpResponseWait --> Source: MCP responses
+  note left of McpResponseWait
+    wait MCP responses set(with timeout)
+  end note
+  Source-->[*]: stop
 
+
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> DaemonRule
+  DaemonRule --> Generators: Daemon rule exec
+
+```
+```mermaid
+stateDiagram-v2
+  [*] --> McpResponseWait
+  McpResponseWait --> Source: MCP response wait
+  Source --> [*]: MCP response
 
 ```
 
