@@ -11,7 +11,7 @@ import {
   McpConfigList,
   type McpEnable,
   McpInfo, McpStdioServerDef, McpStreamHttpServerDef,
-  SysConfig,
+  SysConfig, ToolCallParam,
 } from '../../common/Def.js';
 import {
   BuildInMcpService,
@@ -27,11 +27,6 @@ import dayjs from 'dayjs';
 import {ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
 
 
-export interface ToolCallParam {
-  id: string,
-  name: string,
-  input: any,
-}
 
 
 export class McpService extends Effect.Service<McpService>()('avatar-shell/McpService', {
@@ -45,7 +40,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
 
     function reset(sysConfig: SysConfig) {
       return Effect.gen(function* () {
-        clientInfoList = yield* Effect.forEach(Object.entries(sysConfig.mcpServers), a1 => {
+        clientInfoList = yield *Effect.validateAll(Object.entries(sysConfig.mcpServers), a1 => {
           return Effect.gen(function* () {
             const client = new Client(
               {
@@ -88,7 +83,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
               buildIn: false,
             };
           });
-        });
+        })
         const buildInList = yield* BuildInMcpService.getDefines();
         clientInfoList.push(...buildInList);
       });
@@ -208,7 +203,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }
 
 
-    function callFunction(state: AvatarState, params: ToolCallParam, callGenerator: GeneratorProvider) {
+    function callFunction(state: AvatarState, params: ToolCallParam, callGenerator?: GeneratorProvider) {
       return Effect.gen(function* () {
         const names = params.name.split('_');  //  TODO 区切り文字を_にするなら プラグ名に_が含まれないようにする必要がある
         if (names.length < 2) return yield* Effect.fail(new Error('function name not found1'));
@@ -237,7 +232,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             //  TODO accept in sessionがまだ
           }
         }
-        if (find.buildIn) {
+        if (find.buildIn && callGenerator) {
           //  ビルドインの場合、id情報から直接BuildInMcpServiceを呼ぶ
           const res = yield *callBuildInTool(find.id, {
             name: find1.name,

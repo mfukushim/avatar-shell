@@ -16,7 +16,7 @@ import {BuildInMcpServiceLive} from './BuildInMcpService.js';
 import {MediaServiceLive} from './MediaService.js';
 import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {SocketServiceLive} from './SocketService.js';
-import {AlertReply, AsMessage, MutableSysConfig} from '../../common/Def.js';
+import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../common/Def.js';
 import electronLog from 'electron-log';
 
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive, MediaServiceLive,AvatarServiceLive,SocketServiceLive);
@@ -42,7 +42,7 @@ export async function initApp(initConfig: AppInitConfig) {
     .init(disallowMultipleAppInstance())
     .init(terminateAppOnLastWindowClose())
     .init(hardwareAccelerationMode({enable: false}))
-    .init(autoUpdater()) //  TODO デプロイの仕組みが通るまで一時オフ
+    // .init(autoUpdater()) //  TODO デプロイの仕組みが通るまで一時オフ
 
     // Install DevTools extension if needed
     // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
@@ -107,7 +107,6 @@ ipcMain.handle('readMcpResource', async (_,avatarId: string,userName:string,name
       if (a && a.contents) {
         const mesList = a.contents.flatMap(b => {
           if(b.mimeType === 'text/plain') {
-            const c = b.text as string
             return [AsMessage.makeMessage({
               from: userName,
               mediaBin: Buffer.from(b.text as string).buffer,
@@ -158,24 +157,13 @@ ipcMain.handle('getSysConfig', async (_) => await ConfigService.getSysConfig().p
 ipcMain.handle('setSysConfig', async (_, data) => {
   return await ConfigService.updateSysConfig(() => data).pipe(
     //  sys修正があったとき、現在存在するアバターのavatarConfigを強制更新する必要がある(avatarのMCP制約の更新のため)
-    Effect.andThen(a => McpService.reset(a)),
-    Effect.andThen(a => AvatarService.getCurrentAvatarList()),
+    Effect.andThen(a => McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal('MCP init1')))),
+    Effect.andThen(_ => AvatarService.getCurrentAvatarList()),
     Effect.andThen(a => Effect.forEach(Array.from(new Set(a.map(b => b.templateId))), templateId => {
       return ConfigService.getAvatarConfig(templateId).pipe(Effect.andThen(b => ConfigService.setAvatarConfig(templateId, b)))  //  TODO 強制更新
-/*
-      return ConfigService.updateAvatarConfigEffect(templateId, a => {
-        return McpService.updateAvatarMcpSetting(templateId).pipe(Effect.andThen(b => {
-          // console.log('update avatar mcp setting: ', b);
-          return Effect.succeed({
-            ...a,
-            mcp: b
-          })
-        }));
-      });
-*/
     })),
-    Effect.catchAll(showAlertIfFatal('setSysConfig'))
-    , aiRuntime.runPromise);
+    Effect.catchAll(showAlertIfFatal('setSysConfig')),
+    aiRuntime.runPromise);
 });
 
 ipcMain.handle('exportSysConfig',async (_) => {
@@ -221,7 +209,7 @@ ipcMain.handle('openBrowser', async (_, url: string) => {
 
 ipcMain.handle('getAvatarConfigMcpUpdate', async (_,templateId: string) => await ConfigService.getAvatarConfig(templateId).pipe(Effect.andThen(a => McpService.updateAvatarMcpSetting(a)),Effect.catchAll(showAlertIfFatal('getAvatarConfigMcpUpdate')), aiRuntime.runPromise));
 
-ipcMain.handle('getGeneratorList', async (event) => {
+ipcMain.handle('getGeneratorList', async (_) => {
   return await ConfigService.getGeneratorList().pipe(Effect.catchAll(showAlertIfFatal('getGeneratorList')), aiRuntime.runPromise);
 });
 
@@ -243,17 +231,23 @@ ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await Ava
 
 ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.stopAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('stopAvatar')), aiRuntime.runPromise));
 
+ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam) => {
+  return await AvatarService.getAvatarState(avatarId).pipe(
+    Effect.andThen(a => McpService.callFunction(a, params)),
+    Effect.catchAll(showAlertIfFatal('callMcpTool')), aiRuntime.runPromise);
+});
+
 
 app.on('ready', async () => {
   console.log('start app');
   await ConfigService.getSysConfig().pipe(
-    Effect.andThen(a =>  McpService.reset(a)),
+    Effect.andThen(a =>  McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal('MCP init0')))),
     Effect.andThen(a => {
       console.log('MCP init done');
       app.emit('second-instance');
       return Effect.succeed(a);
     }),
-    Effect.catchAll(showAlertIfFatal('MCP init')),
+    Effect.catchAll(showAlertIfFatal('ready init')),
     aiRuntime.runPromise)
 });
 

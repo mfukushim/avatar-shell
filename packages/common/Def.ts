@@ -496,3 +496,9 @@ export const SchedulerList =
   Schema.Array(DaemonConfigSchema)
 
 export type SchedulerList = typeof SchedulerList.Type
+
+export interface ToolCallParam {
+  id: string, //  idはfunc call時のユニークcall_id
+  name: string, //  nameは MCPの定義名_tool名
+  input: any,
+}
