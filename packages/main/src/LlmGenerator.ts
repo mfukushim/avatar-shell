@@ -10,6 +10,7 @@ import {
 } from '../../common/DefGenerators.js';
 import {MediaService} from './MediaService.js';
 import sharp from 'sharp';
+import {GenInner, GenOuter} from './GeneratorService.js';
 
 
 export type LlmInputContent = any

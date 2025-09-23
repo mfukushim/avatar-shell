@@ -27,7 +27,7 @@ export abstract class ContextGenerator {
 
   abstract generateContext(task:Option.Option<GeneratorTask>,avatarState:AvatarState): Effect.Effect<AsMessage[], Error, ConfigService|McpService|DocService|MediaService>
 
-  abstract generateContext2(current:GenInner,avatarState:AvatarState): Effect.Effect<GenOuter[], Error, ConfigService|McpService|DocService|MediaService>
+  // abstract generateContext2(current:GenInner,avatarState:AvatarState): Effect.Effect<GenOuter[], Error, ConfigService|McpService|DocService|MediaService>
 
   abstract getNativeContext():Effect.Effect<AsOutput[],void,ConfigService|McpService>
 

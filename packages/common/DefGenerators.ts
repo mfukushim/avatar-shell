@@ -75,6 +75,7 @@ export const GeneratorProviderSchema = Schema.Literal(
   // 'ollama',
   // 'voiceVox',
   // 'comfyUi',
+  'ollamaText',
   'pixAi',  //  TODO 確認
   'emptyText',
   'emptyImage',
@@ -96,6 +97,8 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toClass: Schema.optional(AsClassSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toContext:Schema.optional(AsContextLinesSchema),
+  host: Schema.String,
+  model: Schema.String,
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 

@@ -9,6 +9,7 @@ import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {ConfigService} from './ConfigService.js';
 import {GeneratorTask} from './ContextGenerator.js';
 import {LlmBaseGenerator} from './LlmGenerator.js';
+import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 
 
 export interface GenInner {
@@ -31,7 +32,8 @@ export interface GenInner {
 export interface GenOuter {
   avatarId:string;
   fromGenerator:GeneratorProvider;
-  toolCallParam?:ToolCallParam[]
+  innerId:string;
+  toolCallParam?:ToolCallParam[];
   outputText?:string;
   //  ToolCallParam
   //  AvatarState
@@ -57,8 +59,9 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
           //  Generator処理
           const avatarState = yield *AvatarService.getAvatarState(inner.avatarId)
           const sysConfig = yield *ConfigService.getSysConfig()
-          const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting
-          const res = yield *gen.generateContext2(inner,avatarState) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
+          // const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
+          const gen = yield *OllamaTextGenerator.make({model:'llama3.2',host:'http://192.168.11.121:11434'})
+          const res = yield *gen.generateContext(inner,avatarState) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
           avatarState.appendContext(res)
           yield *Queue.offerAll(OuterQueue, res);
         }),
@@ -73,13 +76,14 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
         body:b => Effect.gen(function*() {
           const outer = yield* Queue.take(OuterQueue)
           //  MCP処理
-          const res = yield *sloveMcp([outer])
+          const res = yield *solveMcp([outer])
+          const r = res.flat()
           yield *Queue.offer(InnerQueue, {
             avatarId:outer.avatarId,
             toGenerator:outer.fromGenerator,
             toolCallRes: {
-              results:res.map(b =>({toLlm:b.toLlm,status:''})),
-              callId: res[0].call_id
+              results:r.map(b =>({toLlm:b.toLlm as z.infer<typeof CallToolResultSchema>,status:''})),
+              callId: r[0].call_id
             }
           })
         }),
@@ -88,29 +92,42 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
       })
     }
 
-    function sloveMcp(list:GenOuter[]) {
+    function solveMcp(list:GenOuter[]) {
       return Effect.gen(function*() {
-        yield *Effect.forEach(list.filter(value => value.outputText),a => AvatarService.getAvatarState(a.avatarId).pipe(
-          Effect.andThen(a1 => {
-            const mes = AsMessage.makeMessage({
-              // innerId: Schema.String,
-                from: '',
-              text: a.outputText,
-              // subCommand: SubCommandSchema,
-              // mediaUrl: Schema.String,
-              // mediaBin: Schema.Any, //  ArrayBuffer
-              // mimeType: Schema.String,
-              // toolName: Schema.String,
-              // toolData: Schema.Any,
-              // textParts: Schema.Array(Schema.String),
-              // llmInfo: Schema.String,
-              // isExternal: Schema.Boolean,
-            },'talk','bot','surface')
-            a1.sendToWindow([mes]);
+        // yield *Effect.forEach(list.filter(value => value.outputText),a => AvatarService.getAvatarState(a.avatarId).pipe(
+        //   Effect.andThen(a1 => {
+        //     const mes = AsMessage.makeMessage({
+        //       innerId: a.innerId,
+        //         from: a1.Name,
+        //       text: a.outputText,
+        //       // subCommand: SubCommandSchema,
+        //       // mediaUrl: Schema.String,
+        //       // mediaBin: Schema.Any, //  ArrayBuffer
+        //       // mimeType: Schema.String,
+        //       // toolName: Schema.String,
+        //       // toolData: Schema.Any,
+        //       // textParts: Schema.Array(Schema.String),
+        //       // llmInfo: Schema.String,
+        //       // isExternal: Schema.Boolean,
+        //     },'talk','bot','surface')
+        //     a1.sendToWindow([mes]);
+        //   })
+        // ))
+        const list3 = list.filter(value => value.toolCallParam !== undefined).map(value => {
+          return Effect.gen(function*() {
+            const avatarState = yield *AvatarService.getAvatarState(value.avatarId)
+            const x=  value.toolCallParam!!.map(value1 => {
+              return McpService.callFunction(avatarState, value1);
+            })
+            return yield *Effect.all(x)
           })
-        ))
-        const list3 = list.filter(value => value.toolCallParam !== undefined).map(value => AvatarService.getAvatarState(value.avatarId).pipe(
-          Effect.andThen(a => McpService.callFunction(a, value.toolCallParam!!))))
+          // return AvatarService.getAvatarState(value.avatarId).pipe(
+          //   Effect.andThen(a => {
+          //     const x = value.toolCallParam?.map(value1 => {
+          //       return McpService.callFunction(a, value1);
+          //     })
+          //   }));
+        })
         // const list2 = Effect.forEach(list.filter(value => value.toolCallParam !== undefined),value => {
         //   return AvatarService.getAvatarState(value.avatarId).pipe(
         //     Effect.andThen(a => McpService.callFunction(a, value.toolCallParam!!))

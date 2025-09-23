@@ -641,6 +641,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   }
 
 
+/*
   override generateContext2(current: GenInner,avatarState:AvatarState,contextConfig?:{prevLen:number;}) {
     const it = this;
     return Effect.gen( function* () {
@@ -734,6 +735,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
 
     })
   }
+*/
 
   override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Message, Error, ConfigService | McpService |DocService> {
     const it = this;

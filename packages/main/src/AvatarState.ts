@@ -9,7 +9,7 @@ import {
   Stream,
   SubscriptionRef,
   SynchronizedRef,
-  Option,
+  Option, Schema,
 } from 'effect';
 import {
   AlertTask,
@@ -17,7 +17,7 @@ import {
   ContextTrigger,
   ContextTriggerList, DaemonConfig,
   SchedulerList,
-  TimerTriggerList, SysConfig, AsOutput,
+  TimerTriggerList, SysConfig, AsOutput, AsMessageContent,
 } from '../../common/Def.js';
 import {BrowserWindow} from 'electron';
 import dayjs from 'dayjs';
@@ -31,6 +31,8 @@ import short from 'short-uuid';
 import expand_template from 'expand-template';
 import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
+import {GenOuter} from './GeneratorService.js';
+import {text} from 'node:stream/consumers';
 
 dayjs.extend(duration);
 
@@ -879,6 +881,42 @@ export class AvatarState {
       ],
     );
 
+  }
+
+  appendContext(add:GenOuter[]) {
+    return Effect.forEach(add, a => {
+      const list:AsMessageContent[] = []
+      if (a.outputText) {
+        const content:AsMessageContent = {
+          innerId: a.innerId,
+          from: this.Name,
+          text: a.outputText
+        }
+        list.push(content);
+      }
+      if(a.toolCallParam) {
+        const content:AsMessageContent = {
+          innerId: a.innerId,
+          from: this.Name,
+          toolName: a.toolCallParam.map(value => value.name).join(','),
+          toolData: a.toolCallParam,
+        }
+        list.push(content);
+      }
+      return Effect.succeed(list)
+    }).pipe(
+      Effect.andThen(a => {
+        const bags = a.flat().flatMap(value => {
+          if (value.text) {
+            return [AsMessage.makeMessage(value, 'talk', 'bot', 'surface')];
+          }
+          if (value.toolData) return [AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')];
+          return [];
+        })
+        this.sendToWindow(bags);
+        return this.addContext(bags)
+        })
+      )
   }
 
   /*
