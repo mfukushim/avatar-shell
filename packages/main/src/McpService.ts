@@ -53,7 +53,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             const transport = Option.isSome(stdio) ? new StdioClientTransport(stdio.value): Option.isSome(streamHttp) ? new StreamableHTTPClientTransport(new URL(streamHttp.value.url)):undefined
             // const transport = a1[1].kind === 'stdio' ? new StdioClientTransport(a1[1]): a1[1].kind === 'streamHttp' ? new StreamableHTTPClientTransport(new URL(a1[1].url)):undefined
             if (!transport) {
-              console.log(a1[1]);
+              console.log('mcp def:',a1[1],stdio);
               return yield *Effect.fail(new Error('MCP define error'))
             }
             yield* Effect.tryPromise({
@@ -226,7 +226,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         if (allow === 'no') return yield* Effect.fail(new Error(`${find1.name} set no use`));
         if (allow === 'ask') {
           //  TODO 困らない形での実行確認アラートを出す
-          const ans = yield* mainAlert(state.BrowserWindow, `Can I use tool '${toolName}_${find1.name}'s?`, ['deny', 'accept']);  //  TODO accept onceとaccept sessionがあったほうがよい
+          const ans = state.BrowserWindow ? yield* mainAlert(state.BrowserWindow, `Can I use tool '${toolName}_${find1.name}'s?`, ['deny', 'accept']): undefined;  //  TODO accept onceとaccept sessionがあったほうがよい
           if (!ans || ans === 'deny') {
             return yield* Effect.fail(new Error(`${find1.name} is denied`));
             //  TODO accept in sessionがまだ

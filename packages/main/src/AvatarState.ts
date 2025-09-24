@@ -64,7 +64,7 @@ export class AvatarState {
     private templateId: string,
     private name: string,
     private userName: string,
-    private window: BrowserWindow,
+    private window: BrowserWindow|null,
     private avatarConfig: AvatarSetting,
     private talkContext: SubscriptionRef.SubscriptionRef<{context: AsMessage[], delta: AsMessage[]}>,
     // private talkSeq: number,
@@ -73,6 +73,10 @@ export class AvatarState {
     private fiberTimers: SynchronizedRef.SynchronizedRef<TimeDaemonState[]>,
   ) {
     this.tag = `${id}_${name}_${dayjs().format('YYYYMMDDHHmmss')}`;
+  }
+
+  get Id() {
+    return this.id;
   }
 
   get TemplateId() {
@@ -660,7 +664,7 @@ export class AvatarState {
     }
   }
 
-  static make(id: string, templateId: string, name: string, window: BrowserWindow, userName: string) {
+  static make(id: string, templateId: string, name: string, window: BrowserWindow|null, userName: string) {
     return Effect.gen(function* () {
       // console.log('avatarstate make');
       const configPub = yield* ConfigService.getAvatarConfigPub(templateId);
@@ -913,6 +917,7 @@ export class AvatarState {
           if (value.toolData) return [AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')];
           return [];
         })
+        console.log('appendContext:', bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
         this.sendToWindow(bags);
         return this.addContext(bags)
         })

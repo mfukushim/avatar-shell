@@ -46,11 +46,23 @@ export class OllamaTextGenerator extends ContextGenerator {
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer);  //  , it.claudeSettings?.inWidth
         mes.images = [b1.toString('base64')];
       }
+      const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
+      const ollamaTools = tools.map(value => {
+        return {
+          type: 'function',
+          function: {
+            name: value.name,
+            description: value.description,
+            parameters: value.inputSchema,
+          },
+        };
+      })
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
           model: it.model,
           messages: prev.concat(mes),
+          tools:ollamaTools,
           stream: true,
         }),
         catch:error => new Error(`ollama error:${error}`),
@@ -58,6 +70,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       const stream =
         Stream.fromAsyncIterable(response, (e) => new Error(String(e))).pipe(
           Stream.tap((ck) => {
+            // console.log('ck:',ck);
             it.sendStreamingText(ck.message.content, avatarState);
             // if (ck.done === false) {
             //   it.sendStreamingText(ck.message.content, avatarState);
@@ -71,17 +84,28 @@ export class OllamaTextGenerator extends ContextGenerator {
       const collect = yield* Stream.runCollect(stream);
       const last = Chunk.filter(collect, a => a.done === true).pipe(Chunk.last);
       const text = Chunk.filter(collect,a => a.message.content !== undefined).pipe(Chunk.map(value => value.message.content),Chunk.join(''))
+      const toolReq = Chunk.filter(collect,a => a.message.tool_calls !== undefined).pipe(Chunk.map(value => value.message.tool_calls!!),Chunk.toReadonlyArray).flat()
+      const toolCallParam = toolReq.map(value => {
+        return {
+          id:value.function.name,
+          name:value.function.name,
+          input:value.function.arguments,
+        }
+      })
+      console.log('toolcall:',JSON.stringify(toolCallParam));
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
 
       //  GenOuterを整理生成
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
-      const innerId = current.avatarId+'_' + ((Option.getOrUndefined(last)?.created_at || new Date()).getTime()).toString();
+      console.log('last:',last);
+      const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
         innerId: innerId,
         outputText: text,
+        toolCallParam:toolCallParam.length > 0 ? toolCallParam : undefined,
       }] as GenOuter[];
     })
   }

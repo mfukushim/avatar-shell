@@ -108,7 +108,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       return Queue.poll(avatarStartupQueue);
     }
 
-    function makeAvatar(window: BrowserWindow) {
+    function makeAvatar(window: BrowserWindow|null) {
       return Effect.gen(function* () {
         const param = yield* pullAvatarQueue();
         let tempId;
