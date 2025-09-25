@@ -32,7 +32,7 @@ import {ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
 export class McpService extends Effect.Service<McpService>()('avatar-shell/McpService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    let clientInfoList: McpConfigList = [];
+    let serverInfoList: McpConfigList = [];
     const latchSet = yield* SynchronizedRef.make<Map<string, {answer: string, latch: Effect.Latch}>>(new Map<string, {
       answer: string,
       latch: Effect.Latch
@@ -40,7 +40,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
 
     function reset(sysConfig: SysConfig) {
       return Effect.gen(function* () {
-        clientInfoList = yield *Effect.validateAll(Object.entries(sysConfig.mcpServers), a1 => {
+        serverInfoList = yield *Effect.validateAll(Object.entries(sysConfig.mcpServers), a1 => {
           return Effect.gen(function* () {
             const client = new Client(
               {
@@ -85,12 +85,12 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           });
         })
         const buildInList = yield* BuildInMcpService.getDefines();
-        clientInfoList.push(...buildInList);
+        serverInfoList.push(...buildInList);
       });
     }
 
     function getMcpServerInfos() {
-      return clientInfoList.map(v => {
+      return serverInfoList.map(v => {
         return {
           id: v.id,
           notice: v.notice,
@@ -101,8 +101,12 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       });
     }
 
+    function getServerInfo(name: string) {
+      return serverInfoList.find(v => v.id === name);
+    }
+
     function readMcpResource(name: string, uri: string) { //:Effect.Effect<ReadResourceResult,Error>
-      const info = clientInfoList.find(v => v.id === name);
+      const info = getServerInfo(name)
       if (info) {
         return Effect.tryPromise({
           try: () => info.client.readResource({uri}),
@@ -125,7 +129,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     function getToolDefs(mcpList: AvatarMcpSettingList) {
       //  このあたりはopenAiもanthropicも同様書式のはず
       return Object.entries(mcpList).flatMap(a => {
-        const find = clientInfoList.find(c => c.id === a[0]);
+        const find = getServerInfo(a[0]);
         if (find) {
           if (!a[1].enable) {
             return [];
@@ -210,32 +214,34 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         const toolName = names.shift();
         if (!toolName) return yield* Effect.fail(new Error('function name not found2'));
         const funcName = names.join('_');
-        const find = clientInfoList.find(p => p.id === toolName);
-        if (!find) return yield* Effect.fail(new Error('function name not found3'));
-        const find1 = find.tools.find(f => f.name === funcName);
-        if (!find1) return yield* Effect.fail(new Error('function name not found4'));
+        const serverInfo = getServerInfo(toolName);
+        // const find = serverInfoList.find(p => p.id === toolName);
+        if (!serverInfo) return yield* Effect.fail(new Error('function name not found3'));
+        const toolInfo = serverInfo.tools.find(f => f.name === funcName);
+        if (!toolInfo) return yield* Effect.fail(new Error('function name not found4'));
         //  このfunctionに実行許可があるか確認する askの場合問い合わせさせる
         const element = state.Config.mcp[toolName];
         if (!element) return yield* Effect.fail(new Error('function name not found5'));
         if (!element.enable) {
           return yield* Effect.fail(new Error(`${toolName} disabled`));
         }
-        if (!element.useTools[find1.name]) return yield* Effect.fail(new Error('function name not found6'));
-        if (!element.useTools[find1.name].enable) return yield* Effect.fail(new Error(`${find1.name} disabled`));
-        const allow = element.useTools[find1.name].allow;
-        if (allow === 'no') return yield* Effect.fail(new Error(`${find1.name} set no use`));
+        const useTool = element.useTools[toolInfo.name]
+        if (!useTool) return yield* Effect.fail(new Error('function name not found6'));
+        if (!useTool.enable) return yield* Effect.fail(new Error(`${toolInfo.name} disabled`));
+        const allow =useTool.allow;
+        if (allow === 'no') return yield* Effect.fail(new Error(`${toolInfo.name} set no use`));
         if (allow === 'ask') {
           //  TODO 困らない形での実行確認アラートを出す
-          const ans = state.BrowserWindow ? yield* mainAlert(state.BrowserWindow, `Can I use tool '${toolName}_${find1.name}'s?`, ['deny', 'accept']): undefined;  //  TODO accept onceとaccept sessionがあったほうがよい
+          const ans = state.BrowserWindow ? yield* mainAlert(state.BrowserWindow, `Can I use tool '${toolName}_${toolInfo.name}'s?`, ['deny', 'accept']): undefined;  //  TODO accept onceとaccept sessionがあったほうがよい
           if (!ans || ans === 'deny') {
-            return yield* Effect.fail(new Error(`${find1.name} is denied`));
+            return yield* Effect.fail(new Error(`${toolInfo.name} is denied`));
             //  TODO accept in sessionがまだ
           }
         }
-        if (find.buildIn && callGenerator) {
+        if (serverInfo.buildIn && callGenerator) {
           //  ビルドインの場合、id情報から直接BuildInMcpServiceを呼ぶ
-          const res = yield *callBuildInTool(find.id, {
-            name: find1.name,
+          const res = yield *callBuildInTool(serverInfo.id, {
+            name: toolInfo.name,
             arguments: params.input,
             state,
           }, callGenerator);
@@ -243,10 +249,12 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             toLlm: res, call_id: params.id, status: 'ok',
           };
         } else {
+          //  TODO 呼び出すMCPが引数を持たないタイプの場合、例外的に入力引数をなしにする指定で許可する(LLMが引数を間違えることが多く、そもそもの定義に引数がない場合はなしで呼んでも支障がなさそうなので)
+          const haveArgs = toolInfo.inputSchema.properties && Object.keys(toolInfo.inputSchema.properties).length > 0
           const res = yield* Effect.tryPromise({
-            try: () => (find.client as Client).callTool({
-              name: find1.name,
-              arguments: params.input,
+            try: () => (serverInfo.client as Client).callTool({
+              name: toolInfo.name,
+              arguments: haveArgs ? params.input: {},
             }, undefined, {timeout: 120 * 1000}),
             catch: error => {
               console.log('mcp error:', error);

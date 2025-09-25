@@ -25,15 +25,15 @@ describe("GeneratorService", () => {
   const testFileName = 'test_file_20240713000000.asdata';
 
 
-  it('execGeneratorLoop', async () => {
+  it('execGeneratorLoop_text', async () => {
     await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('3 seconds');
+      yield *Effect.sleep('1 seconds');
 
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestDummyId', name: 'Mix'})
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
       const avatarState = yield *AvatarService.makeAvatar(null)
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      yield *Effect.sleep('3 seconds');
+      yield *Effect.sleep('1 seconds');
 
       const res = yield *GeneratorService.enterInner({
         avatarId:avatarState.Id,
@@ -41,9 +41,54 @@ describe("GeneratorService", () => {
         input:{
           from: 'user',
           text: 'hello'
-        }
+        },
+        genNum:0,
+        noTool:true,
       })
       console.log('enterInner:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+
+  it('execGeneratorLoop_text2', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *GeneratorService.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: 'hello'
+        },
+        genNum:0,
+        noTool:true,
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('20 seconds');
+
+      const res2 = yield *GeneratorService.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: "What should I do when it's hot?"
+        },
+        genNum:0,
+        noTool:true,
+      })
+      console.log('enterInner2:',res2);
 
       yield *Effect.sleep('30 seconds');
 
@@ -54,12 +99,12 @@ describe("GeneratorService", () => {
   it('execGeneratorLoop_mcp', async () => {
     await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('3 seconds');
+      yield *Effect.sleep('1 seconds');
 
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestDummyId', name: 'Mix'})
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
       const avatarState = yield *AvatarService.makeAvatar(null)
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      yield *Effect.sleep('3 seconds');
+      yield *Effect.sleep('1 seconds');
 
       const res = yield *GeneratorService.enterInner({
         avatarId:avatarState.Id,
@@ -67,7 +112,8 @@ describe("GeneratorService", () => {
         input:{
           from: 'user',
           text: '/get traveler setting'
-        }
+        },
+        genNum:0,
       })
       console.log('enterInner:',res);
 

@@ -31,7 +31,7 @@ import short from 'short-uuid';
 import expand_template from 'expand-template';
 import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
-import {GenOuter} from './GeneratorService.js';
+import {GenInner, GenOuter} from './GeneratorService.js';
 import {text} from 'node:stream/consumers';
 
 dayjs.extend(duration);
@@ -54,7 +54,7 @@ export class AvatarState {
   private summaryCounter: number = 0;
   private externalTalkCounter: number = 0;
   private generatorMaxUseCount: number | undefined;
-  private forcedStopDaemons = false
+  private forcedStopDaemons = false;
 
   fiberConfig: Fiber.RuntimeFiber<any, any> | undefined;
   fiberTalkContext: Fiber.RuntimeFiber<any, any> | undefined;
@@ -64,7 +64,7 @@ export class AvatarState {
     private templateId: string,
     private name: string,
     private userName: string,
-    private window: BrowserWindow|null,
+    private window: BrowserWindow | null,
     private avatarConfig: AvatarSetting,
     private talkContext: SubscriptionRef.SubscriptionRef<{context: AsMessage[], delta: AsMessage[]}>,
     // private talkSeq: number,
@@ -121,15 +121,15 @@ export class AvatarState {
       this.generatorMaxUseCount = config.general.maxGeneratorUseCount;
     }
     return this.restartDaemonSchedules(config.daemons).pipe(
-    // return Effect.gen(function* () {
-    //   it.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
-    //   if (config.general.maxGeneratorUseCount === 0) {
-    //     it.generatorMaxUseCount = undefined;
-    //   } else {
-    //     it.generatorMaxUseCount = config.general.maxGeneratorUseCount;
-    //   }
-    //   yield* it.restartDaemonSchedules(config.daemons);
-    // }).pipe(
+      // return Effect.gen(function* () {
+      //   it.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
+      //   if (config.general.maxGeneratorUseCount === 0) {
+      //     it.generatorMaxUseCount = undefined;
+      //   } else {
+      //     it.generatorMaxUseCount = config.general.maxGeneratorUseCount;
+      //   }
+      //   yield* it.restartDaemonSchedules(config.daemons);
+      // }).pipe(
       Effect.catchAll(e => {
         console.log('changeApplyAvatarConfig error:', e);
         this.showAlert(`avatar config error:${e}`);
@@ -418,8 +418,8 @@ export class AvatarState {
     return Effect.gen(function* () {
       if (it.forcedStopDaemons) {
         //  強制中断フラグが立っている場合、ワンタイムでコンテキスト変動時に次のデーモンを起動しない
-        it.forcedStopDaemons = false
-        return yield *Effect.succeed([]);
+        it.forcedStopDaemons = false;
+        return yield* Effect.succeed([]);
       }
       yield* it.daemonStates.pipe(Ref.get).pipe(Effect.andThen(Effect.forEach(a => {
         console.log('update changeTalkContext len:', updated.context.length, updated.delta.length);
@@ -484,50 +484,50 @@ export class AvatarState {
        */
       let toLlm: AsMessage[];
       let text: any;
-      let message: AsMessage|undefined;
+      let message: AsMessage | undefined;
       if (triggerMes) {
         //  TODO trigger型の場合、そのメッセージはすでにcontextに追加されているものであり、以前のcontextはそのメッセージの前までになる 電文は基本再加工されない。電文の再加工が許されるのは入出力ともにコンテキストに追加しない場合のみ
         //  askAiから来るコンテンツには画像がmediaBinで来ることがあるので、それはmediaUrlに変換しておく
         // if (triggerMes.content.mediaBin) {
-          //  今はまだsoundは考えない
-          /*
-                    if(triggerMes.content.mimeType?.startsWith('image/')) {
-                      const img = Buffer.from(triggerMes.content.mediaBin).toString('base64');
-                      const mediaUrl = yield *DocService.saveDocMedia(triggerMes.id, triggerMes.content.mimeType, img, state.templateId)
-                      message = [{
-                        ...triggerMes,
-                        asClass: 'daemon',
-                        asRole: 'system',
-                        asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-                        content: {
-                          ...triggerMes.content,
-                          mediaBin: undefined,
-                          mediaUrl: mediaUrl,
-                        },
-                      } as AsMessage,
-                      ];
-                    } else if(triggerMes.content.mimeType?.startsWith('text/')) {
-                      message = [{
-                        ...triggerMes,
-                        asClass: 'daemon',
-                        asRole: 'system',
-                        asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-                        content: {
-                          ...triggerMes.content,
-                          mediaBin: undefined,
-                          text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
-                        },
-                      } as AsMessage,
-                      ];
-                    }
-          */
+        //  今はまだsoundは考えない
+        /*
+                  if(triggerMes.content.mimeType?.startsWith('image/')) {
+                    const img = Buffer.from(triggerMes.content.mediaBin).toString('base64');
+                    const mediaUrl = yield *DocService.saveDocMedia(triggerMes.id, triggerMes.content.mimeType, img, state.templateId)
+                    message = [{
+                      ...triggerMes,
+                      asClass: 'daemon',
+                      asRole: 'system',
+                      asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+                      content: {
+                        ...triggerMes.content,
+                        mediaBin: undefined,
+                        mediaUrl: mediaUrl,
+                      },
+                    } as AsMessage,
+                    ];
+                  } else if(triggerMes.content.mimeType?.startsWith('text/')) {
+                    message = [{
+                      ...triggerMes,
+                      asClass: 'daemon',
+                      asRole: 'system',
+                      asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+                      content: {
+                        ...triggerMes.content,
+                        mediaBin: undefined,
+                        text: Buffer.from(triggerMes.content.mediaBin).toString('utf-8'),
+                      },
+                    } as AsMessage,
+                    ];
+                  }
+        */
         // } else {
         if (daemon.config.exec.directTrigger) {
           //  ダイレクト
-          message = triggerMes  //  すでに追加済みなのでaddContentには追加しない
+          message = triggerMes;  //  すでに追加済みなのでaddContentには追加しない
         } else {
           //  再加工
-          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes):triggerMes;
+          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes;
           message = {
             ...triggerMes,
             asClass: 'daemon',
@@ -537,13 +537,13 @@ export class AvatarState {
               ...triggerMes.content,
               text: text,
             },
-          } as AsMessage
-          yield *state.addContext([message])  //  ここは新規なので追加
+          } as AsMessage;
+          yield* state.addContext([message]);  //  ここは新規なので追加
         }
         //  トリガーの場合はコンテキストはトリガー位置まででフィルタする
         const pos = context.findLastIndex(value => value.id === triggerMes.id);
         if (pos >= 0) {
-          context = context.slice(0, pos );
+          context = context.slice(0, pos);
         }
       } else {
         //  非トリガー
@@ -552,8 +552,8 @@ export class AvatarState {
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
-          }, 'daemon', 'system', daemon.config.exec.setting.toContext || 'inner') //  TODO 調整要 非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる 'inner'
-        yield *state.addContext([message])  //  ここは新規なので追加
+          }, 'daemon', 'system', daemon.config.exec.setting.toContext || 'inner'); //  TODO 調整要 非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる 'inner'
+        yield* state.addContext([message]);  //  ここは新規なので追加
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない
 
@@ -617,7 +617,7 @@ export class AvatarState {
   }
 
   get ExternalTalkCounter() {
-    return this.externalTalkCounter
+    return this.externalTalkCounter;
   }
 
   setNames(setting: {userName?: string, avatarName?: string}) {
@@ -664,7 +664,7 @@ export class AvatarState {
     }
   }
 
-  static make(id: string, templateId: string, name: string, window: BrowserWindow|null, userName: string) {
+  static make(id: string, templateId: string, name: string, window: BrowserWindow | null, userName: string) {
     return Effect.gen(function* () {
       // console.log('avatarstate make');
       const configPub = yield* ConfigService.getAvatarConfigPub(templateId);
@@ -698,7 +698,7 @@ export class AvatarState {
 
   stopAvatar() {
     //  ワンタイムでContext変動によるdaemonの実行を無視させる
-    this.forcedStopDaemons = true
+    this.forcedStopDaemons = true;
   }
 
 
@@ -706,17 +706,17 @@ export class AvatarState {
     if (bags.length === 0) {
       return Effect.void;  //  更新の無限ループ防止
     }
-    console.log('addContext',bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
+    console.log('addContext', bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
     const it = this;
     return Effect.gen(function* () {
       const mesList = yield* Effect.forEach(bags, mes => {
         return Effect.gen(function* () {
           //  TODO 本来socket.ioから自分の電文は来ないはずだが、来ることがあるのでフィルタする。。。
-          const current = yield *it.talkContext.get
-          const isSame = current.context.find(value => value.id === mes.id)
+          const current = yield* it.talkContext.get;
+          const isSame = current.context.find(value => value.id === mes.id);
           if (isSame) {
-            console.log('addContext same id:',mes);
-            return undefined
+            console.log('addContext same id:', mes);
+            return undefined;
           }
           if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
             const img = Buffer.from(mes.content.mediaBin).toString('base64');
@@ -750,7 +750,7 @@ export class AvatarState {
         });
 
       });
-      const mesOut = mesList.filter((v): v is  AsMessage => v !== undefined)
+      const mesOut = mesList.filter((v): v is  AsMessage => v !== undefined);
       if (mesOut.length === 0) {
         return Effect.void;
       }
@@ -833,7 +833,7 @@ export class AvatarState {
       .pipe(
         Effect.catchAll(e => {
           console.log('execGenerator error:', e);
-          it.sendRunningMark(message[0].id, false)
+          it.sendRunningMark(message[0].id, false);
           this.showAlert(`execGenerator error:${e}`);
           return Effect.fail(e);
         }),
@@ -887,41 +887,64 @@ export class AvatarState {
 
   }
 
-  appendContext(add:GenOuter[]) {
-    return Effect.forEach(add, a => {
-      const list:AsMessageContent[] = []
+  appendContextGenIn(a: GenInner) {
+    const list: AsMessageContent[] = [];
+    if (a.input?.text) {
+      const content: AsMessageContent = {
+        innerId: a.input.innerId || short.generate(),
+        from: this.Name,
+        text: a.input.text,
+      };
+      list.push(content);
+    }
+    if (a.toolCallRes) {
+      const content: AsMessageContent = {
+        innerId: a.toolCallRes.callId,
+        from: this.Name,
+        toolName: a.toolCallRes.results.map(value => value.toLlm.name).join(','),
+        toolData: a.toolCallRes,
+      };
+      list.push(content);
+    }
+    return this.appendContext(list,false)
+  }
+
+  appendContextGenOut(add: GenOuter[]) {
+    const b = add.map(a => {
+      const list: AsMessageContent[] = [];
       if (a.outputText) {
-        const content:AsMessageContent = {
+        const content: AsMessageContent = {
           innerId: a.innerId,
           from: this.Name,
-          text: a.outputText
-        }
+          text: a.outputText,
+        };
         list.push(content);
       }
-      if(a.toolCallParam) {
-        const content:AsMessageContent = {
+      if (a.toolCallParam) {
+        const content: AsMessageContent = {
           innerId: a.innerId,
           from: this.Name,
           toolName: a.toolCallParam.map(value => value.name).join(','),
           toolData: a.toolCallParam,
-        }
+        };
         list.push(content);
       }
-      return Effect.succeed(list)
-    }).pipe(
-      Effect.andThen(a => {
-        const bags = a.flat().flatMap(value => {
-          if (value.text) {
-            return [AsMessage.makeMessage(value, 'talk', 'bot', 'surface')];
-          }
-          if (value.toolData) return [AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')];
-          return [];
-        })
-        console.log('appendContext:', bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
-        this.sendToWindow(bags);
-        return this.addContext(bags)
-        })
-      )
+      return list;
+    })
+    return this.appendContext(b.flat(),true);
+  }
+
+  appendContext(a: AsMessageContent[],isOut:boolean) {
+    const bags = a.flatMap(value => {
+      if (value.text) {
+        return [AsMessage.makeMessage(value, 'talk', isOut?'bot':'human', 'surface')];
+      }
+      if (value.toolData) return [AsMessage.makeMessage(value, 'physics', isOut? 'toolIn':'toolOut', 'inner')];
+      return [];
+    });
+    console.log('appendContext:', bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
+    this.sendToWindow(bags);
+    return this.addContext(bags);
   }
 
   /*

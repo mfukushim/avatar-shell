@@ -305,7 +305,7 @@ export const vitestAvatarConfigNone: AvatarSetting = {
         },
       },
       'exec': {
-        generator: 'geminiVoice',
+        generator: 'emptyVoice',
         // 'toRole': 'human',
         // templateGeneratePrompt: '{body}',
         directTrigger: true,

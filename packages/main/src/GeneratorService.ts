@@ -13,6 +13,7 @@ import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {DocService, DocServiceLive} from './DocService.js';
 import {NodeFileSystem} from '@effect/platform-node';
 import {MediaServiceLive} from './MediaService.js';
+import {TimeoutException} from 'effect/Cause';
 
 
 export interface GenInner {
@@ -27,6 +28,8 @@ export interface GenInner {
     }[],
     callId: string,
   }
+  genNum:number,
+  noTool?:boolean
   //  GeneratorOutput
   //  AvatarState
   //  InputText
@@ -38,11 +41,13 @@ export interface GenOuter {
   innerId:string;
   toolCallParam?:ToolCallParam[];
   outputText?:string;
+  genNum:number
   //  ToolCallParam
   //  AvatarState
   //  OutputText
 }
 
+const MaxGen = 2  //  TODO 世代の最適値は
 
 export class GeneratorService extends Effect.Service<GeneratorService>()('avatar-shell/GeneratorService', {
   accessors: true,
@@ -51,7 +56,9 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
     const OuterQueue = yield *Queue.bounded<GenOuter>(100)
 
     function enterInner(inner:GenInner) {
-      return Queue.offer(InnerQueue, inner)
+      return Effect.gen(function*() {
+        return yield *Queue.offer(InnerQueue, inner)
+      })
     }
 
     function execGeneratorLoop() {
@@ -62,16 +69,23 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
           console.log('gen in queue wait');
           const inner = yield* Queue.take<GenInner>(InnerQueue)
           console.log('genLoop gen in:',inner);
+          if (inner.genNum >= MaxGen*2) {
+            return  //  func の無限ループを防ぐ
+          }
           //  Generator処理
-          const avatarState = yield *AvatarService.getAvatarState(inner.avatarId)
+          const avatarState = yield *AvatarService.getAvatarState(inner.avatarId);
           const sysConfig = yield *ConfigService.getSysConfig()
           // const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
           const gen = yield *OllamaTextGenerator.make({model:'llama3.1',host:'http://192.168.11.121:11434'})
-          const res = yield *gen.generateContext(inner,avatarState) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
-          avatarState.appendContext(res)
-          console.log('genLoop gen out:',res);
+          const res = yield *gen.generateContext(inner,avatarState,{noTool:inner.noTool}) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
+          yield *avatarState.appendContextGenIn(inner)  //  innerをcontextに追加するのは生成後、そのまえで付けるとprevに入ってしまう。
+          yield *avatarState.appendContextGenOut(res)
           //  TODO 単純テキスト出力はcontextなのか、ioなのか
-          const io = res.filter(a => a.toolCallParam)
+          console.log('genLoop gen out:',res);
+          const io = res.filter(a => a.toolCallParam).map(b => ({
+            ...b,
+            genNum: inner.genNum + 1,
+          }))
           yield *Queue.offerAll(OuterQueue, io);
         }),
         step:b => b,
@@ -99,6 +113,7 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
                 results:r.map(b =>({toLlm:b.toLlm as z.infer<typeof CallToolResultSchema>,status:''})),
                 callId: r[0].call_id
               },
+              genNum: outer.genNum+1
             });
           }
         }),
@@ -133,7 +148,11 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
             const avatarState = yield *AvatarService.getAvatarState(value.avatarId)
             const x=  value.toolCallParam!!.map(value1 => {
               console.log('call:',value1);
-              return McpService.callFunction(avatarState, value1).pipe(Effect.tapError(e => Effect.log('e:',e.message)));
+              return McpService.callFunction(avatarState, value1).pipe(Effect.catchIf(a => a instanceof Error,e => {
+                return Effect.succeed({
+                  toLlm: {content: [{type: 'text', text: e.message}]}, call_id: value.innerId, status: 'ok',
+                })
+              }));
             })
             return yield *Effect.all(x)
           })

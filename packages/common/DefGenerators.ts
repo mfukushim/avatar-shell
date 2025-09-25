@@ -22,11 +22,11 @@ export const AsClassList = AsClassBaseSchema.literals;
 
 export const AsRoleSchema = Schema.Literal(
   '',
-  'human',
-  'bot',
-  'toolIn',
-  'toolOut',
-  'system',
+  'human',  //  一般的なLLM role 'user'
+  'bot',    //  'assistant'
+  'toolIn', //  'assistant'
+  'toolOut', // 'user'
+  'system',  // 除外?
 );
 
 export type AsRole = typeof AsRoleSchema.Type

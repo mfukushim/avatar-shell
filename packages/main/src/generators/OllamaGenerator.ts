@@ -8,7 +8,8 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 
-import {Ollama,Message} from 'ollama';
+import {Ollama, Message, ToolCall} from 'ollama';
+import {AsMessage} from '../../../common/Def.js';
 
 
 export class OllamaTextGenerator extends ContextGenerator {
@@ -31,21 +32,38 @@ export class OllamaTextGenerator extends ContextGenerator {
     });
   }
 
-  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+  generateContext(current: GenInner, avatarState: AvatarState,option:{noTool?:boolean}): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev:Message[] = [] // TODO 仮にprevはないものとする
+      const prevMes = yield *avatarState.TalkContextEffect
+      // console.log('prevMes:', prevMes);
+      const prev:Message[] = prevMes.flatMap(a => {
+        const role = it.asRoleToRole(a.asRole)
+        if(!role || !a.content.text) return []
+        return [{
+          role: role,
+          content:a.content.text,
+          images:undefined, //  TODO 画像は送るべきか?
+        } as Message]
+      })
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
       if (current.input?.text) {
         mes.content  = current.input.text;
+      } else if (current.toolCallRes) {
+        //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
+        mes.content = JSON.stringify(current.toolCallRes.results.map(value => {
+          return value.toLlm;
+        }));
+        console.log('toolCallRes:',mes.content);
       }
       if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
         const media = yield* DocService.readDocMedia(current.input?.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer);  //  , it.claudeSettings?.inWidth
         mes.images = [b1.toString('base64')];
       }
+
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
       const ollamaTools = tools.map(value => {
         return {
@@ -58,11 +76,13 @@ export class OllamaTextGenerator extends ContextGenerator {
         };
       })
       //  prev+currentをLLM APIに要求、レスポンスを取得
+      const messages = prev.concat(mes);
+      console.log('messages:',JSON.stringify(messages));
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
           model: it.model,
-          messages: prev.concat(mes),
-          tools:ollamaTools,
+          messages: messages,
+          tools: option.noTool ? undefined: ollamaTools,
           stream: true,
         }),
         catch:error => new Error(`ollama error:${error}`),
@@ -92,13 +112,13 @@ export class OllamaTextGenerator extends ContextGenerator {
           input:value.function.arguments,
         }
       })
-      console.log('toolcall:',JSON.stringify(toolCallParam));
+      // console.log('toolcall:',JSON.stringify(toolCallParam));
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
 
       //  GenOuterを整理生成
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
-      console.log('last:',last);
+      // console.log('last:',last);
       const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{
         avatarId:current.avatarId,

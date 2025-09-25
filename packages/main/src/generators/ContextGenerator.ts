@@ -1,4 +1,4 @@
-import {ContextGeneratorInfo, ContextTypes, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {AsRole, ContextGeneratorInfo, ContextTypes, GeneratorProvider} from '../../../common/DefGenerators.js';
 import {AsMessage, AsMessageContent, AsOutput} from '../../../common/Def.js';
 import {Effect, Option} from 'effect';
 import {DocService} from '../DocService.js';
@@ -12,13 +12,13 @@ import sharp from 'sharp';
 
 
 export abstract class ContextGenerator {
-  protected logTag:string
+  protected logTag: string;
 
   constructor() {
     this.logTag = this.constructor.name;
   }
 
-  abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
+  abstract generateContext(current: GenInner, avatarState: AvatarState,option:{noTool?:boolean}): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
 
   //   abstract getGeneratorInfo():ContextGeneratorInfo
   //
@@ -49,10 +49,11 @@ export abstract class ContextGenerator {
   protected abstract model: string;
 
   get Name() {
-    return this.genName
+    return this.genName;
   }
+
   get Model() {
-    return this.model
+    return this.model;
   }
 
   //  安全のため画像を小さくしておく
@@ -67,13 +68,29 @@ export abstract class ContextGenerator {
         textParts: [
           text,
         ],
-      }, 'system', 'system','outer')],
+      }, 'system', 'system', 'outer')],
     );
   }
 
   clearStreamingText(avatarState: AvatarState) {
-    avatarState.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system','outer')]);
+    avatarState.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system', 'outer')]);
     return Effect.void;
+  }
+
+  asRoleToRole(asRole: AsRole) {
+    switch (asRole) {
+      case 'human':
+        return 'user';
+      case 'bot':
+        return 'assistant';
+      case 'toolIn':
+        return 'assistant';
+      case 'toolOut':
+        return 'user';
+      case 'system':
+      default:
+        return undefined;
+    }
   }
 
 }
