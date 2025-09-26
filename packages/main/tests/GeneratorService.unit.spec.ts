@@ -43,7 +43,9 @@ describe("GeneratorService", () => {
           text: 'hello'
         },
         genNum:0,
-        noTool:true,
+        setting: {
+          noTool:true
+        }
       })
       console.log('enterInner:',res);
 
@@ -72,7 +74,9 @@ describe("GeneratorService", () => {
           text: 'hello'
         },
         genNum:0,
-        noTool:true,
+        setting: {
+          noTool:true
+        }
       })
       console.log('enterInner:',res);
 
@@ -86,7 +90,9 @@ describe("GeneratorService", () => {
           text: "What should I do when it's hot?"
         },
         genNum:0,
-        noTool:true,
+        setting: {
+          noTool:true
+        }
       })
       console.log('enterInner2:',res2);
 

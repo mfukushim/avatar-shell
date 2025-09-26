@@ -246,7 +246,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             state,
           }, callGenerator);
           return {
-            toLlm: res, call_id: params.id, status: 'ok',
+            toLlm: res, call_id: params.callId, status: 'ok',
           };
         } else {
           //  TODO 呼び出すMCPが引数を持たないタイプの場合、例外的に入力引数をなしにする指定で許可する(LLMが引数を間違えることが多く、そもそもの定義に引数がない場合はなしで呼んでも支障がなさそうなので)
@@ -262,7 +262,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             },
           });
           return {
-            toLlm: res, call_id: params.id, status: 'ok',
+            toLlm: res, call_id: params.callId, status: 'ok',
           };
         }
       }).pipe(Effect.andThen(a => a),

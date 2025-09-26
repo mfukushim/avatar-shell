@@ -18,7 +18,7 @@ export abstract class ContextGenerator {
     this.logTag = this.constructor.name;
   }
 
-  abstract generateContext(current: GenInner, avatarState: AvatarState,option:{noTool?:boolean}): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
+  abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
 
   //   abstract getGeneratorInfo():ContextGeneratorInfo
   //
@@ -77,6 +77,20 @@ export abstract class ContextGenerator {
     return Effect.void;
   }
 
+  filterForLlmPrevContext(asMes:AsMessage[]) {
+    //  TODO ここは妥当な条件を再検討が必要。。
+    return asMes.filter(value => {
+      if(value.asContext === 'outer') {
+        return false;
+      }
+      if(value.asRole === 'system') {
+        return false;
+      }
+      return true;
+    })
+
+  }
+
   asRoleToRole(asRole: AsRole) {
     switch (asRole) {
       case 'human':
@@ -89,7 +103,7 @@ export abstract class ContextGenerator {
         return 'user';
       case 'system':
       default:
-        return undefined;
+        throw new Error("Unknown asRole " + asRole);
     }
   }
 

@@ -582,7 +582,9 @@ export class AvatarState {
       //  個別加工したプロンプトを会話コンテキストに送る
       console.log('toLlm:', toLlm.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
       if (toLlm.length > 0) {
-        //  音声合成コンテンツの場合はここでrenderer側で音声再生を呼ぶ
+        state.addContext(toLlm),
+
+          //  音声合成コンテンツの場合はここでrenderer側で音声再生を呼ぶ
         state.sendToWindow(toLlm);
 
         //  TODO addDaemonGenToContexthは意味合い上、class/roleの違いとしてコンテキストとして検出可能なものとして追加するかどうか、会話トリガーを発生させるものかどうかを分ける形になるはず
@@ -808,7 +810,7 @@ export class AvatarState {
       yield* DocService.addLog(output, it);
       //  log出力はgenerateContext内で行っている
       return yield* gen.generateContext(task, it).pipe(
-        Effect.tap(a => it.addContext(a)),
+        // Effect.tap(a => it.addContext(a)),
         Effect.tap(a => {
           //  TODO 組み込みMCPが追加スケジュールをコールバックpostしている形になっている。ここでPostがあれば内容のスケジュールを追加して、スケジューラーを構築しなおす
           const now = dayjs();
@@ -898,43 +900,75 @@ export class AvatarState {
       list.push(content);
     }
     if (a.toolCallRes) {
-      const content: AsMessageContent = {
-        innerId: a.toolCallRes.callId,
-        from: this.Name,
-        toolName: a.toolCallRes.results.map(value => value.toLlm.name).join(','),
-        toolData: a.toolCallRes,
-      };
-      list.push(content);
+      const content: AsMessageContent[] = a.toolCallRes.map(value => {
+         return {
+          innerId:  value.callId,
+          from: this.Name,
+          toolName: value.name,
+          toolData: value.results,
+        } as AsMessageContent;
+      })
+      list.push(...content);
     }
     return this.appendContext(list,false)
   }
 
   appendContextGenOut(add: GenOuter[]) {
-    const b = add.map(a => {
-      const list: AsMessageContent[] = [];
-      if (a.outputText) {
-        const content: AsMessageContent = {
-          innerId: a.innerId,
-          from: this.Name,
-          text: a.outputText,
-        };
-        list.push(content);
-      }
-      if (a.toolCallParam) {
-        const content: AsMessageContent = {
-          innerId: a.innerId,
-          from: this.Name,
-          toolName: a.toolCallParam.map(value => value.name).join(','),
-          toolData: a.toolCallParam,
-        };
-        list.push(content);
-      }
-      return list;
-    })
-    return this.appendContext(b.flat(),true);
+    const it = this;
+    return Effect.forEach(add,a => {
+      return Effect.gen(function* () {
+        const list: AsMessage[] = [];
+        if (a.outputText) {
+          const content: AsMessageContent = {
+            innerId: a.innerId,
+            from: it.Name,
+            text: a.outputText,
+          };
+          list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
+        }
+        if (a.outputImage) {
+          const mime = 'image/png';
+          const mediaUrl = yield* DocService.saveDocMedia(a.innerId, mime, a.outputImage, it.TemplateId);
+          const content: AsMessageContent = {
+            innerId: a.innerId,
+            from: it.Name,
+            mediaUrl,
+            mimeType: mime,
+          };
+          list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
+        }
+        if (a.outputMediaUrl) {
+          //  TODO 画像はこっちまでもってきて保存しているが、ボイスは生成時に保存しているがつじつまよいのか
+          const content: AsMessageContent = {
+            innerId: a.innerId,
+            from: it.Name,
+            mediaUrl:a.outputMediaUrl,
+            mimeType: a.outputMime,
+          };
+          list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
+        }
+        if (a.toolCallParam) {
+          const content: AsMessageContent[] = a.toolCallParam.map(value => {
+            return {
+              innerId: a.innerId,
+              from: it.Name,
+              toolName: value.name,
+              toolData: value,
+            }
+          })
+          list.push(...content.map(value => AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')));
+        }
+        return list;
+      })
+    }).pipe(Effect.andThen(a => {
+      const bags = a.flat();
+      this.sendToWindow(bags);
+      return this.addContext(bags);
+    }))
   }
 
   appendContext(a: AsMessageContent[],isOut:boolean) {
+    //  TODO 属性設定は再検討要
     const bags = a.flatMap(value => {
       if (value.text) {
         return [AsMessage.makeMessage(value, 'talk', isOut?'bot':'human', 'surface')];

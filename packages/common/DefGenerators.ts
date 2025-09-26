@@ -97,8 +97,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toClass: Schema.optional(AsClassSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toContext:Schema.optional(AsContextLinesSchema),
-  host: Schema.String,
-  model: Schema.String,
+  noTool: Schema.optional(Schema.Boolean),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 
@@ -152,6 +151,11 @@ export interface GeminiVoiceSettings extends ContextGeneratorSetting {
 export interface ClaudeTextSettings extends ContextGeneratorSetting {
   model?:string;
   inWidth?:number;
+}
+
+export interface OllamaTextSettings extends ContextGeneratorSetting {
+  model?:string;
+  host: string,
 }
 
 

@@ -498,7 +498,7 @@ export const SchedulerList =
 export type SchedulerList = typeof SchedulerList.Type
 
 export interface ToolCallParam {
-  id: string, //  idはfunc call時のユニークcall_id
+  callId: string, //  idはfunc call時のユニークcall_id
   name: string, //  nameは MCPの定義名_tool名
   input: any,
 }

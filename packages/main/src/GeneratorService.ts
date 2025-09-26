@@ -21,15 +21,28 @@ export interface GenInner {
   toGenerator:GeneratorProvider;
   input?:AsMessageContent;
   toolCallRes?:{
-    results:{
-      toLlm: z.infer<typeof CallToolResultSchema>,
-      // callId: string,
-      status:string
-    }[],
+    name: string,
     callId: string,
-  }
+    results: z.infer<typeof CallToolResultSchema>
+    /*
+results : {
+ content: [{
+    type:"text",
+    text:"hello"
+ },{
+  type:"image",
+  mimeType:"image/png",
+  data:"xxx"
+ }
+ ],
+ isError:false
+}
+ */
+
+  }[],
   genNum:number,
-  noTool?:boolean
+  setting?:ContextGeneratorSetting,
+  // noTool?:boolean
   //  GeneratorOutput
   //  AvatarState
   //  InputText
@@ -41,7 +54,11 @@ export interface GenOuter {
   innerId:string;
   toolCallParam?:ToolCallParam[];
   outputText?:string;
+  outputImage?:string;
+  outputMediaUrl?:string;
+  outputMime?:string;
   genNum:number
+  setting?:ContextGeneratorSetting,
   //  ToolCallParam
   //  AvatarState
   //  OutputText
@@ -77,10 +94,10 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
           const sysConfig = yield *ConfigService.getSysConfig()
           // const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
           const gen = yield *OllamaTextGenerator.make({model:'llama3.1',host:'http://192.168.11.121:11434'})
-          const res = yield *gen.generateContext(inner,avatarState,{noTool:inner.noTool}) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
+          const res = yield *gen.generateContext(inner,avatarState) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
           yield *avatarState.appendContextGenIn(inner)  //  innerをcontextに追加するのは生成後、そのまえで付けるとprevに入ってしまう。
           yield *avatarState.appendContextGenOut(res)
-          //  TODO 単純テキスト出力はcontextなのか、ioなのか
+          //  TODO 単純テキストをコンソールに出力するのはcontext処理内なのか、io処理内なのか
           console.log('genLoop gen out:',res);
           const io = res.filter(a => a.toolCallParam).map(b => ({
             ...b,
@@ -104,15 +121,12 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
           //  MCP処理
           const res = yield *solveMcp([outer])
           const r = res.flat()
-          console.log('IO loop mcp out:',r);
+          console.log('IO loop mcp out:',JSON.stringify(r));
           if (r.length > 0) {
             yield *Queue.offer(InnerQueue, {
               avatarId:outer.avatarId,
               toGenerator:outer.fromGenerator,
-              toolCallRes: {
-                results:r.map(b =>({toLlm:b.toLlm as z.infer<typeof CallToolResultSchema>,status:''})),
-                callId: r[0].call_id
-              },
+              toolCallRes: r,
               genNum: outer.genNum+1
             });
           }
@@ -152,7 +166,14 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
                 return Effect.succeed({
                   toLlm: {content: [{type: 'text', text: e.message}]}, call_id: value.innerId, status: 'ok',
                 })
-              }));
+              }),
+                Effect.andThen(a => {
+                  return {
+                    name: value1.name,
+                    callId: a.call_id,
+                    results: a.toLlm as z.infer<typeof CallToolResultSchema>
+                  }
+                }));
             })
             return yield *Effect.all(x)
           })

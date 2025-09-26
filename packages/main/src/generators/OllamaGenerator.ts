@@ -1,4 +1,4 @@
-import {ContextGeneratorSetting, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {ContextGeneratorSetting, GeneratorProvider, OllamaTextSettings} from '../../../common/DefGenerators.js';
 import {Chunk, Effect, Stream, Option} from 'effect';
 import {GenInner, GenOuter} from '../GeneratorService.js';
 import {AvatarState} from '../AvatarState.js';
@@ -17,11 +17,11 @@ export class OllamaTextGenerator extends ContextGenerator {
   protected model = 'llama3.2';
   private ollama: Ollama;
 
-  static make(settings?: ContextGeneratorSetting) {
+  static make(settings?: OllamaTextSettings) {
     return Effect.succeed(new OllamaTextGenerator(settings));
   }
 
-  constructor(settings?: ContextGeneratorSetting) {
+  constructor(settings?: OllamaTextSettings) {
     super();
     this.model = settings?.model || 'llama3.2';
     this.ollama = new Ollama({
@@ -32,18 +32,17 @@ export class OllamaTextGenerator extends ContextGenerator {
     });
   }
 
-  generateContext(current: GenInner, avatarState: AvatarState,option:{noTool?:boolean}): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMes = yield *avatarState.TalkContextEffect
-      // console.log('prevMes:', prevMes);
-      const prev:Message[] = prevMes.flatMap(a => {
+      const prev:Message[] = it.filterForLlmPrevContext(prevMes).flatMap(a => {
         const role = it.asRoleToRole(a.asRole)
-        if(!role || !a.content.text) return []
+        if(!role) return []
         return [{
           role: role,
-          content:a.content.text,
+          content:a.content.text || JSON.stringify(a.content.toolData),
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
@@ -53,8 +52,8 @@ export class OllamaTextGenerator extends ContextGenerator {
         mes.content  = current.input.text;
       } else if (current.toolCallRes) {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
-        mes.content = JSON.stringify(current.toolCallRes.results.map(value => {
-          return value.toLlm;
+        mes.content = JSON.stringify(current.toolCallRes.map(value => {
+          return value.results;
         }));
         console.log('toolCallRes:',mes.content);
       }
@@ -82,7 +81,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         try:_ => it.ollama.chat({
           model: it.model,
           messages: messages,
-          tools: option.noTool ? undefined: ollamaTools,
+          tools: current.setting?.noTool ? undefined: ollamaTools,
           stream: true,
         }),
         catch:error => new Error(`ollama error:${error}`),
@@ -126,6 +125,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         innerId: innerId,
         outputText: text,
         toolCallParam:toolCallParam.length > 0 ? toolCallParam : undefined,
+        setting: current.setting
       }] as GenOuter[];
     })
   }

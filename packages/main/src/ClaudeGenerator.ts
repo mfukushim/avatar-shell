@@ -406,7 +406,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
 
   execOneFuncCall(avatarState: AvatarState, a: ToolCallParam) {
     const state = this;
-    const toolId = a.id;
+    const toolId = a.callId;
     return Effect.gen(function* () {
       const toolRes = yield* McpService.callFunction(avatarState, a,'claudeText').pipe(Effect.catchAll(e => {
         console.log('tool error:', e); //  tool denyの件もここに来る TODO denyと他エラーを分けたほうがよい
@@ -458,7 +458,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
           } else if (a2.type === 'resource') {
             //  TODO resourceはuriらしい resourceはLLMに回さないらしい
             //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
-            content.innerId =`${a.id}_${idx}`
+            content.innerId =`${a.callId}_${idx}`
             content.mediaUrl = a2.resource.uri;
             content.mimeType = a2.resource.mimeType
             if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
