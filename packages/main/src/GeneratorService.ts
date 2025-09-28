@@ -7,7 +7,7 @@ import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {z} from 'zod';
 import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {ConfigService, ConfigServiceLive} from './ConfigService.js';
-import {GeneratorTask} from './ContextGenerator.js';
+// import {GeneratorTask} from './ContextGenerator.js';
 import {LlmBaseGenerator} from './LlmGenerator.js';
 import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {DocService, DocServiceLive} from './DocService.js';

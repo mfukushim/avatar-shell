@@ -17,7 +17,9 @@ import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,GeneratorServiceLive,AvatarServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive,
+  ConfigServiceLive, BuildInMcpServiceLive,GeneratorServiceLive,AvatarServiceLive,
+  NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe("GeneratorService", () => {

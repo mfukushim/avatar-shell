@@ -1,3 +1,4 @@
+/*
 import {ContextGenerator, GeneratorOutput, GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Chunk, Effect, Option, Schedule, Stream} from 'effect';
@@ -99,7 +100,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
     }));
   }
 
-  /*
+  /!*
   TODO 以前の画像は重くなりそうなので外しておく 後で検討
               if (a.content.mediaUrl && a.content.mimeType && a.content.mimeType.startsWith('image')) {
                 const media = yield* DocService.readDocMedia(a.content.mediaUrl);
@@ -115,7 +116,7 @@ export abstract class OpenAiBaseGenerator extends LlmBaseGenerator {
                   });
                 }
               }
-  */
+  *!/
 
   setCurrentContext(content: AsMessageContent[]): Effect.Effect<{
     task: Option.Option<GeneratorTask>,
@@ -408,7 +409,7 @@ export class openAiImageGenerator extends OpenAiBaseGenerator {
     const body: ResponseCreateParamsNonStreaming = {
       model: this.model,
       input: inputContext,
-      tools: [({type: 'image_generation', quality: 'low' /*  TODO とりあえず */})] as OpenAI.Responses.Tool[],
+      tools: [({type: 'image_generation', quality: 'low' /!*  TODO とりあえず *!/})] as OpenAI.Responses.Tool[],
       // store:true,
     };
     return Effect.tryPromise({
@@ -535,11 +536,12 @@ export class openAiVoiceGenerator extends OpenAiBaseGenerator {
               , this.openAiSettings?.toClass || 'talk', this.openAiSettings?.toRole, 'outer'),
             {provider: this.genName, model: this.model, isExternal: false})];
         }));
-      /*
+      /!*
       todo gemini側が生成した音声を以前の文脈としてgemini側に送るのは抑制まだ抑制しておく
-      */
+      *!/
     }
     return Effect.succeed([]);
   }
 
 }
+*/

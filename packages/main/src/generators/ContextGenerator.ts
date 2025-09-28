@@ -7,7 +7,7 @@ import {AvatarState} from '../AvatarState.js';
 import {McpService} from '../McpService.js';
 import {MediaService} from '../MediaService.js';
 import {GenInner, GenOuter} from '../GeneratorService.js';
-import {GeneratorTask} from '../ContextGenerator.js';
+// import {GeneratorTask} from '../ContextGenerator.js';
 import sharp from 'sharp';
 
 

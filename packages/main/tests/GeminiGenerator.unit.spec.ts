@@ -115,7 +115,6 @@ describe('GeminiGenerator', () => {
   //   expect(typeof res === 'object').toBe(true);
   // });
 
-  ここがまだつながっていない きちんとジェネレーター切替を入れる必要がある
   it('execGeneratorLoop_text', async () => {
     await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);

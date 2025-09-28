@@ -1,4 +1,5 @@
-/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
+/*
+/!*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell *!/
 import {AsOutput, AsMessage, AsMessageContent} from '../../common/Def.js';
 import {Effect,Option} from 'effect';
 import {ConfigService} from './ConfigService.js';
@@ -56,3 +57,4 @@ export abstract class ContextGenerator {
 }
 
 
+*/
