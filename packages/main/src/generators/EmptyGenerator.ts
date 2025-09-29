@@ -35,7 +35,10 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
         innerId: short.generate() as string,
         outputText: "You haven't configured LLM yet, please do so first./まだLLMを設定していません。最初に設定を行ってください。",
         toolCallParam: undefined,
-        setting: current.setting
+        setting: {
+          ...current.setting,
+          toClass: 'system'
+        }
       }] as GenOuter[];
     })
   }
@@ -53,15 +56,15 @@ export class EmptyImageGenerator extends EmptyBaseGenerator {
   protected genName: GeneratorProvider = 'emptyImage';
 
   static make(settings?: ContextGeneratorSetting) {
-    return Effect.succeed(new EmptyTextGenerator(settings));
+    return Effect.succeed(new EmptyImageGenerator(settings));
   }
 }
 
 export class EmptyVoiceGenerator extends EmptyBaseGenerator {
-  protected genName: GeneratorProvider = 'emptyImage';
+  protected genName: GeneratorProvider = 'emptyVoice';
 
   static make(settings?: ContextGeneratorSetting) {
-    return Effect.succeed(new EmptyTextGenerator(settings));
+    return Effect.succeed(new EmptyVoiceGenerator(settings));
   }
 }
 

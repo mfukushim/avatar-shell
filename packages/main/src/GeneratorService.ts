@@ -1,19 +1,14 @@
-import {Effect, Option, Queue, Schema} from 'effect';
+import {Effect, Option, Queue, Schema,Fiber} from 'effect';
 import {McpService, McpServiceLive} from './McpService.js';
-import {AvatarState} from './AvatarState.js';
-import {AsMessage, AsMessageContent, SysConfig, ToolCallParam} from '../../common/Def.js';
+import {AsMessageContent, ToolCallParam} from '../../common/Def.js';
 import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
 import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {z} from 'zod';
 import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {ConfigService, ConfigServiceLive} from './ConfigService.js';
-// import {GeneratorTask} from './ContextGenerator.js';
-import {LlmBaseGenerator} from './LlmGenerator.js';
 import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
-import {DocService, DocServiceLive} from './DocService.js';
-import {NodeFileSystem} from '@effect/platform-node';
+import {DocServiceLive} from './DocService.js';
 import {MediaServiceLive} from './MediaService.js';
-import {TimeoutException} from 'effect/Cause';
 
 
 export interface GenInner {
@@ -85,6 +80,8 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
         body:b => Effect.gen(function*() {
           console.log('gen in queue wait');
           const inner = yield* Queue.take<GenInner>(InnerQueue)
+          // const fiber = yield* Effect.fork(Queue.take<GenInner>(InnerQueue))
+          // const inner = yield* Fiber.join(fiber)
           console.log('genLoop gen in:',inner);
           if (inner.genNum >= MaxGen*2) {
             return  //  func の無限ループを防ぐ
@@ -94,7 +91,9 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
           const sysConfig = yield *ConfigService.getSysConfig()
           // const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
           const gen = yield *OllamaTextGenerator.make({model:'llama3.1',host:'http://192.168.11.121:11434'})
+          //console.log('inner:',inner);
           const res = yield *gen.generateContext(inner,avatarState) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
+          console.log('res:',res);
           yield *avatarState.appendContextGenIn(inner)  //  innerをcontextに追加するのは生成後、そのまえで付けるとprevに入ってしまう。
           yield *avatarState.appendContextGenOut(res)
           //  TODO 単純テキストをコンソールに出力するのはcontext処理内なのか、io処理内なのか
@@ -103,7 +102,10 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
             ...b,
             genNum: inner.genNum + 1,
           }))
-          yield *Queue.offerAll(OuterQueue, io);
+          console.log('genLoop gen io:',io);
+          if (io.length > 0) {
+            yield *Queue.offerAll(OuterQueue, io);
+          }
         }),
         step:b => b,
         discard:true
@@ -117,6 +119,8 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
         body:b => Effect.gen(function*() {
           console.log('IO in queue wait');
           const outer = yield* Queue.take(OuterQueue)
+          // const fiber = yield* Effect.fork(Queue.take(OuterQueue))
+          // const outer = yield* Fiber.join(fiber)
           console.log('IO loop mcp in:',outer);
           //  MCP処理
           const res = yield *solveMcp([outer])
@@ -194,11 +198,28 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
       })
     }
 
-    yield *Effect.forkDaemon(execGeneratorLoop())
-    yield *Effect.forkDaemon(execExternalLoop())
+    // const fork1 = yield *execGeneratorLoop().pipe(
+    //   Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end gen fork')))
+    // const fork2 = yield *execExternalLoop().pipe(
+    //   Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end io fork')))
+    // const fork1 = yield *Effect.fork(execGeneratorLoop().pipe(
+    //   Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end gen fork'))))
+    // const fork2 = yield *Effect.fork(execExternalLoop().pipe(
+    //   Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end io fork'))))
 
+    function startLoop() {
+      return Effect.gen(function*() {
+        console.log('start loop');
+        const fork1 = yield *Effect.fork(execGeneratorLoop().pipe(
+          Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end gen fork'))))
+        const fork2 = yield *Effect.fork(execExternalLoop().pipe(
+          Effect.tapError(e => Effect.logError(e)),Effect.andThen(a => Effect.log('end io fork'))))
+        console.log('end loop');
+      })
+    }
     return {
       enterInner,
+      startLoop,
     }
   }),
   dependencies: [AvatarServiceLive,ConfigServiceLive,DocServiceLive,McpServiceLive,MediaServiceLive],
