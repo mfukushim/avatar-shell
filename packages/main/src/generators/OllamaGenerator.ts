@@ -1,15 +1,15 @@
-import {ContextGeneratorSetting, GeneratorProvider, OllamaTextSettings} from '../../../common/DefGenerators.js';
+import {
+  GeneratorProvider,
+  OllamaSysConfig,
+} from '../../../common/DefGenerators.js';
 import {Chunk, Effect, Stream, Option} from 'effect';
-import {GenInner, GenOuter} from '../GeneratorService.js';
-import {AvatarState} from '../AvatarState.js';
+import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
 import {ConfigService} from '../ConfigService.js';
 import {McpService} from '../McpService.js';
 import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
-
 import {Ollama, Message, ToolCall} from 'ollama';
-import {AsMessage} from '../../../common/Def.js';
 
 
 export class OllamaTextGenerator extends ContextGenerator {
@@ -17,13 +17,13 @@ export class OllamaTextGenerator extends ContextGenerator {
   protected model = 'llama3.2';
   private ollama: Ollama;
 
-  static make(settings?: OllamaTextSettings) {
+  static make(settings?: OllamaSysConfig) {
     return Effect.succeed(new OllamaTextGenerator(settings));
   }
 
-  constructor(settings?: OllamaTextSettings) {
+  constructor(settings?: OllamaSysConfig) {
     super();
-    this.model = settings?.model || 'llama3.2';
+    this.model = settings?.model || 'llama3.1';
     this.ollama = new Ollama({
       host: settings?.host || 'http://localhost:11434',
       // headers: {

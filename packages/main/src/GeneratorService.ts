@@ -1,3 +1,4 @@
+/*
 import {Effect, Option, Queue, Schema,Fiber} from 'effect';
 import {McpService, McpServiceLive} from './McpService.js';
 import {AsMessageContent, ToolCallParam} from '../../common/Def.js';
@@ -19,7 +20,7 @@ export interface GenInner {
     name: string,
     callId: string,
     results: z.infer<typeof CallToolResultSchema>
-    /*
+    /!*
 results : {
  content: [{
     type:"text",
@@ -32,7 +33,7 @@ results : {
  ],
  isError:false
 }
- */
+ *!/
 
   }[],
   genNum:number,
@@ -227,3 +228,4 @@ export class GeneratorService extends Effect.Service<GeneratorService>()('avatar
 }) {}
 
 export const GeneratorServiceLive = GeneratorService.Default;
+*/

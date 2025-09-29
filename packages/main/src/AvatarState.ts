@@ -9,7 +9,6 @@ import {
   Stream,
   SubscriptionRef,
   SynchronizedRef,
-  Option, Schema,
 } from 'effect';
 import {
   AlertTask,
@@ -17,7 +16,7 @@ import {
   ContextTrigger,
   ContextTriggerList, DaemonConfig,
   SchedulerList,
-  TimerTriggerList, SysConfig, AsOutput, AsMessageContent,
+  TimerTriggerList, SysConfig, AsMessageContent, ToolCallParam,
 } from '../../common/Def.js';
 import {BrowserWindow} from 'electron';
 import dayjs from 'dayjs';
@@ -31,12 +30,9 @@ import short from 'short-uuid';
 import expand_template from 'expand-template';
 import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
-import {GeneratorService, GenInner, GenOuter} from './GeneratorService.js';
-import {text} from 'node:stream/consumers';
-import {AvatarService} from './AvatarService.js';
-import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {z} from 'zod';
 import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
+import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
 
 dayjs.extend(duration);
 
@@ -52,6 +48,55 @@ interface TimeDaemonState {
   generator: ContextGenerator,
   fiber: Fiber.RuntimeFiber<any, any>
 }
+
+export interface GenInner {
+  avatarId:string;
+  toGenerator:GeneratorProvider;
+  input?:AsMessageContent;
+  toolCallRes?:{
+    name: string,
+    callId: string,
+    results: z.infer<typeof CallToolResultSchema>
+    /*
+    results : {
+      content: [{
+        type:"text",
+        text:"hello"
+      },{
+        type:"image",
+        mimeType:"image/png",
+        data:"xxx"
+      }
+      ],
+      isError:false
+    }
+    */
+
+  }[],
+  genNum:number,
+  setting?:ContextGeneratorSetting,
+  // noTool?:boolean
+  //  GeneratorOutput
+  //  AvatarState
+  //  InputText
+}
+
+export interface GenOuter {
+  avatarId:string;
+  fromGenerator:GeneratorProvider;
+  innerId:string;
+  toolCallParam?:ToolCallParam[];
+  outputText?:string;
+  outputImage?:string;
+  outputMediaUrl?:string;
+  outputMime?:string;
+  genNum:number
+  setting?:ContextGeneratorSetting,
+  //  ToolCallParam
+  //  AvatarState
+  //  OutputText
+}
+
 
 export class AvatarState {
   private readonly tag: string;
@@ -785,8 +830,8 @@ export class AvatarState {
         }
         //  Generator処理
         const sysConfig = yield *ConfigService.getSysConfig()
-        // const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
-        const gen = yield *OllamaTextGenerator.make({model:'llama3.1',host:'http://192.168.11.121:11434'})
+        const gen = (yield *ConfigService.makeGenerator(inner.toGenerator, sysConfig)) //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
+        // const gen = yield *OllamaTextGenerator.make({model:'llama3.1',host:'http://192.168.11.121:11434'})
         //console.log('inner:',inner);
         const res = yield *gen.generateContext(inner,it) // 処理するコンテキスト、prevとして抽出適用するコンテキストの設定、
         console.log('res:',res);

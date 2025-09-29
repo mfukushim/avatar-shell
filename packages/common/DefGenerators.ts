@@ -153,11 +153,6 @@ export interface ClaudeTextSettings extends ContextGeneratorSetting {
   inWidth?:number;
 }
 
-export interface OllamaTextSettings extends ContextGeneratorSetting {
-  model?:string;
-  host: string,
-}
-
 
 /*
 Generator 全体設定(api keyなど全体で設定するもの
@@ -222,11 +217,12 @@ export const geminiImageMutableConfigSchema = Schema.mutable(geminiImageConfigSc
 export const geminiVoiceMutableConfigSchema = Schema.mutable(geminiVoiceConfigSchema)
 //    ollama
 export const ollamaSysConfigSchema = Schema.Struct({
-  url: Schema.String,
+  host: Schema.String,
   model: Schema.String,
-  token: Schema.String,
+  token: Schema.optional(Schema.String),
 });
 
+export type OllamaSysConfig = typeof ollamaSysConfigSchema.Type
 export const ollamaMutableConfigSchema = Schema.mutable(ollamaSysConfigSchema)
 
 
@@ -266,7 +262,7 @@ export const generatorsConfigSetChema = Schema.Struct({
   gemini: geminiSysConfigSchema,
   geminiImage: geminiImageConfigSchema,
   geminiVoice: geminiVoiceConfigSchema,
-  // ollama: ollamaSysConfigSchema,
+  ollama: ollamaSysConfigSchema,
   // voiceVox: voiceVoxSysConfigSchema,
 })
 export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
@@ -277,7 +273,7 @@ export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
   gemini: geminiMutableConfigSchema,
   geminiImage: geminiImageMutableConfigSchema,
   geminiVoice: geminiVoiceMutableConfigSchema,
-  // ollama: ollamaMutableConfigSchema,
+  ollama: ollamaMutableConfigSchema,
   // voiceVox: voiceVoxMutableConfigSchema,
 }))
 

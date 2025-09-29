@@ -22,11 +22,8 @@ import {fileURLToPath} from 'url';
 import {dirname} from 'path';
 import {vitestAvatarConfig, vitestSysConfig} from '../../common/vitestConfig.js';
 import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
-// import {openAiImageGenerator, openAiTextGenerator, openAiVoiceGenerator} from './OpenAiGenerator.js';
 import {GeminiImageGenerator, GeminiTextGenerator, GeminiVoiceGenerator} from './generators/GeminiGenerator.js';
-import {PixAiImageGenerator} from './ImageGenarators.js';
 import {ContextGenerator} from './generators/ContextGenerator.js';
-// import {ClaudeTextGenerator} from './ClaudeGenerator.js';
 import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './generators/EmptyGenerator.js';
 import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
@@ -377,7 +374,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       'openAiText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //openAiTextGenerator.make(sysConfig, settings),
       'claudeText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
-      'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make({host:'',model:''}),
+      'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
       //  画像生成系
       'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(settings), //PixAiImageGenerator.make(sysConfig, settings),
       'openAiImage': (sysConfig, settings) => EmptyImageGenerator.make(settings), // openAiImageGenerator.make(sysConfig, settings),

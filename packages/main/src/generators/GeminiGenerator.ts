@@ -1,5 +1,5 @@
 import {ContextGenerator} from './ContextGenerator.js';
-import {AvatarState} from '../AvatarState.js';
+import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
 import {Chunk, Effect, Schedule, Stream} from 'effect';
 import {AsMessage, SysConfig} from '../../../common/Def.js';
 import {DocService} from '../DocService.js';
@@ -23,7 +23,6 @@ import {
   Modality,
   Part,
 } from '@google/genai';
-import {GenInner, GenOuter} from '../GeneratorService.js';
 import {MediaService} from '../MediaService.js';
 
 
@@ -56,7 +55,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
       const blocked = it.filterForLlmPrevContext(prevMes).map(a => {
-        const role: GeminiRole = it.asRoleToRole(a.asRole);
+        const role: GeminiRole = it.asRoleToRole(a.asRole).replace('assistant','model') as GeminiRole;  //  gemini はmodel
         return {
           role,
           mes: a,
@@ -142,7 +141,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
   }
 }
 
-type GeminiRole = 'user' | 'assistant';
+type GeminiRole = 'user' | 'model';
 
 export class GeminiTextGenerator extends GeminiBaseGenerator {
   protected genName:GeneratorProvider = 'geminiText';

@@ -34,6 +34,10 @@ export const vitestSysConfig: SysConfig = {
       model: 'gemini-2.5-flash-preview-tts',
       voice: 'Kore',
     },
+    ollama: {
+      host: 'http://192.168.1.121:11434',
+      model: 'llama3.1',
+    }
     // voiceVox: {
     //   url: 'http://192.168.1.100:50021',
     //   custom: {},

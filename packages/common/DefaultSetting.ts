@@ -14,6 +14,7 @@ export const defaultGenerators: GeneratorsMutableConfigSet = {
   gemini: {apiKey: '', model: ''},
   geminiImage: {model: ''},
   geminiVoice: {model: '', voice: ''},
+  ollama:{model:'',host:''}
   // voiceVox: {url: '', custom: {}},
   // openAiText: {apiKey: '', model: 'gpt-4.1-mini'},
   // openAiImage: {model: 'gpt-4.1-mini'},

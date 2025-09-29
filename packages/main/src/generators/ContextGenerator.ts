@@ -1,13 +1,11 @@
-import {AsRole, ContextGeneratorInfo, ContextTypes, GeneratorProvider} from '../../../common/DefGenerators.js';
-import {AsMessage, AsMessageContent, AsOutput} from '../../../common/Def.js';
-import {Effect, Option} from 'effect';
+import {AsRole, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {AsMessage} from '../../../common/Def.js';
+import {Effect} from 'effect';
 import {DocService} from '../DocService.js';
 import {ConfigService} from '../ConfigService.js';
-import {AvatarState} from '../AvatarState.js';
+import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
 import {McpService} from '../McpService.js';
 import {MediaService} from '../MediaService.js';
-import {GenInner, GenOuter} from '../GeneratorService.js';
-// import {GeneratorTask} from '../ContextGenerator.js';
 import sharp from 'sharp';
 
 
@@ -19,31 +17,6 @@ export abstract class ContextGenerator {
   }
 
   abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
-
-  //   abstract getGeneratorInfo():ContextGeneratorInfo
-  //
-  // abstract setPreviousContext(inContext: AsMessage[]):Effect.Effect<void,Error,DocService|ConfigService>
-  //
-  // abstract setCurrentContext(content:AsMessageContent[]):Effect.Effect<{task:Option.Option<GeneratorTask>},Error,DocService| ConfigService> //  ,output:AsOutput[]
-  //
-  //
-  // abstract generateContext(task:Option.Option<GeneratorTask>,avatarState:AvatarState): Effect.Effect<AsMessage[], Error, ConfigService|McpService|DocService|MediaService>
-  //
-  // abstract generateContext2(current:GenInner,avatarState:AvatarState): Effect.Effect<GenOuter[], Error, ConfigService|McpService|DocService|MediaService>
-  //
-  // abstract getNativeContext():Effect.Effect<AsOutput[],void,ConfigService|McpService>
-  //
-  // static matchContextType(mime:string|undefined,contextType:ContextTypes[]):boolean {
-  //   return contextType.some(value => {
-  //     if (value === 'text') {
-  //       return mime === undefined || mime.startsWith('text/') //  mimeなしはtextデフォルト
-  //     }
-  //     if (value === 'image') {
-  //       return mime?.startsWith('image/')
-  //     }
-  //     return false;
-  //   })
-  // }
 
   protected abstract genName: GeneratorProvider;
   protected abstract model: string;
@@ -83,10 +56,8 @@ export abstract class ContextGenerator {
       if(value.asContext === 'outer') {
         return false;
       }
-      if(value.asRole === 'system') {
-        return false;
-      }
-      return true;
+      return value.asRole !== 'system';
+
     })
 
   }
