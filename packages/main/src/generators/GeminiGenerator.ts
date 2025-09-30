@@ -230,6 +230,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         })
       }
       if(funcCalls.length > 0) {
+        console.log('gemini toolCallParam:',JSON.stringify(funcCalls));
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,

@@ -118,6 +118,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       //  GenOuterを整理生成
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
       // console.log('last:',last);
+      // it.clearStreamingText(avatarState)
       const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{
         avatarId:current.avatarId,

@@ -285,6 +285,7 @@ const handleUIAction = async (event: CustomEvent) => {
      */
     const names = calledMcpUiName.value.split('_')
     const toolName = names.length > 0 && event.detail?.payload?.toolName ? names[0] +'_'+event.detail.payload.toolName : ''
+    console.log('toolName',calledMcpUiName.value,names, toolName);
     await callMcpTool({
       callId: '', //  TODO この扱いでよいか確認要
       name: toolName,

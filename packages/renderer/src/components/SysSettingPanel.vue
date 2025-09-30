@@ -59,6 +59,10 @@ const doOpen = async () => {
     tabMcp.value = key[0];
   }
   tabSelect.value = 'general';
+  //  TODO 暫定対応
+  if (!edit.value.generators.ollama) {
+    edit.value.generators.ollama = {model: '', host: ''};
+  }
   version.value = await getVersion();
   show.value = true;
 };
@@ -138,6 +142,13 @@ const saveAndClose = async () => {
         errorMes.value = 'Gemini Voice setting is not valid';
         return;
       }
+    }
+    cnt = 0;
+    if (edit.value.generators.ollama?.model) cnt++;
+    if (edit.value.generators.ollama?.host) cnt++;
+    if (cnt === 1) {
+      errorMes.value = 'Ollama setting is not valid';
+      return;
     }
 
     //  mcp
@@ -353,6 +364,7 @@ const mcpNameValidate = [
                       </q-tab>
                       <q-tab name="google" label="Gemini">
                       </q-tab>
+                      <q-tab label="Ollama" name="ollama"/>
 <!--
                       <q-tab name="voiceVox" label="VoiceVox">
                       </q-tab>
@@ -434,6 +446,22 @@ const mcpNameValidate = [
                           </q-card-section>
                         </q-card>
 
+                      </q-tab-panel>
+                      <q-tab-panel name="ollama">
+                        <q-card>
+                          <q-card-section>
+                            <q-input v-model="edit.generators.ollama.host"
+                                     type="text"
+                                     placeholder="http://192.168.1.1:11434"
+                                     :label="t('Host')"
+                                     data-testid="ollama-host" />
+                            <q-input v-model="edit.generators.ollama.model"
+                                     type="text"
+                                     placeholder="llama3.1"
+                                     :label="t('Model')"
+                                     data-testid="ollama-model" />
+                          </q-card-section>
+                        </q-card>
                       </q-tab-panel>
 <!--
                       <q-tab-panel name="voiceVox">

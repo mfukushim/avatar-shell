@@ -233,7 +233,7 @@ ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.s
 
 ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam) => {
   return await AvatarService.getAvatarState(avatarId).pipe(
-    Effect.andThen(a => McpService.callFunction(a, params)),
+    Effect.andThen(a => McpService.callFunction(a, params)),    TODO この後を処理させないといけない。。。ここでの関数呼び出しではなく、outerQueueにGenOuterとして登録させる。 送り先のgenはデフォルトのgenを決めないといけないか?
     Effect.catchAll(showAlertIfFatal('callMcpTool')), aiRuntime.runPromise);
 });
 

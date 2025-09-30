@@ -46,8 +46,7 @@ export abstract class ContextGenerator {
   }
 
   clearStreamingText(avatarState: AvatarState) {
-    avatarState.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system', 'outer')]);
-    return Effect.void;
+    avatarState.clearStreamingText()
   }
 
   filterForLlmPrevContext(asMes:AsMessage[]) {
