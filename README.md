@@ -4,6 +4,11 @@ A multifunctional avatar/media MCP client.
 
 Note: There are still some parts of the app that are not stable, and there may be major changes to the specifications around daemon processing.
 
+> We are currently making major changes to the processing around LLM, and OpenAI and Claude's LLM are temporarily not working.  
+> Gemini and the new local Ollama LLM API are available.  
+> It is still unstable, but it is temporarily released in a state where Reversi MCP-UI works.  
+> https://github.com/mfukushim/reversi-mcp-ui
+
 ## Specifications
 
 - Runs on Windows/Mac OS/Linux Desktop mode (Raspberry Pi Desktop).

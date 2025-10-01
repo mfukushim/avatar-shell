@@ -102,12 +102,18 @@ const SubCommandSchema = Schema.Literal(
   'delRunning'
 );
 
+
+const ContentGeneratorSchema = Schema.Union(GeneratorProviderSchema,Schema.Literal('external','mcp'));
+
+export type ContentGenerator = typeof ContentGeneratorSchema.Type
+
 export const AsMessageContentSchema = Schema.partial(
   Schema.Struct({
     innerId: Schema.String,
     from: Schema.String,
     text: Schema.String,
     subCommand: SubCommandSchema,
+    generator: ContentGeneratorSchema,
     mediaUrl: Schema.String,
     mediaBin: Schema.Any, //  ArrayBuffer
     mimeType: Schema.String,

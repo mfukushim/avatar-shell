@@ -1,15 +1,11 @@
-import {ContextGeneratorSetting, GeneratorProvider, OllamaTextSettings} from '../../../common/DefGenerators.js';
-import {Chunk, Effect, Stream, Option} from 'effect';
-import {GenInner, GenOuter} from '../GeneratorService.js';
-import {AvatarState} from '../AvatarState.js';
+import {ContextGeneratorSetting, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {Effect} from 'effect';
+import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
 import {ConfigService} from '../ConfigService.js';
 import {McpService} from '../McpService.js';
 import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
-
-import {Ollama, Message, ToolCall} from 'ollama';
-import {AsMessage} from '../../../common/Def.js';
 import short from 'short-uuid';
 
 
@@ -32,6 +28,7 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
+        toGenerator: it.genName,
         innerId: short.generate() as string,
         outputText: "You haven't configured LLM yet, please do so first./まだLLMを設定していません。最初に設定を行ってください。",
         toolCallParam: undefined,

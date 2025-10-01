@@ -116,10 +116,32 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
             functionResponse: {
               name: value.name,
               id: value.callId,
-              response: value.results,
+              //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
+              response: {
+                ...value.results,
+                content: value.results.content.flatMap(a => {
+                  console.log('contents test:',a);
+                  //  @ts-ignore
+                  if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+                    //  @ts-ignore
+                    if(!a.resource.annotations.audience.includes('assistant')) {
+                      console.log('contents test no out');
+                      return []
+                    }
+                  }
+                  //  @ts-ignore
+                  if(a?.annotations && a.annotations?.audience) {
+                    //  @ts-ignore
+                    if(!a.annotations.audience.includes('assistant')) {
+                      console.log('contents test no out');
+                      return []
+                    }
+                  }
+                  return [a]
+                })
+              },
             },
           });
-
         });
       }
       if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
@@ -215,6 +237,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          toGenerator: it.genName,
           innerId: responseId,
           outputText: outText,
           genNum: nextGen,
@@ -224,6 +247,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          toGenerator: it.genName,
           innerId: responseId,
           outputImage: outImages,
           genNum: nextGen,
@@ -234,6 +258,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          toGenerator: it.genName,
           innerId: responseId,
           toolCallParam:funcCalls.map((v:FunctionCall) => {
             return {
@@ -305,6 +330,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          toGenerator: it.genName,
           innerId: responseId,
           outputImage: outImages,
           genNum: nextGen,
@@ -385,6 +411,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
           {
             avatarId: current.avatarId,
             fromGenerator: it.genName,
+            toGenerator: it.genName,
             innerId: id,
             outputMediaUrl: mediaUrl,
             outputMime: mime,

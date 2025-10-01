@@ -4,7 +4,7 @@ import {
   AsMessage,
   AsMessageContent,
   AsMessageContentMutable,
-  AvatarSetting,
+  AvatarSetting, ContentGenerator,
   ContextTrigger,
   ContextTriggerList,
   DaemonConfig,
@@ -46,6 +46,7 @@ interface TimeDaemonState {
 
 export interface GenInner {
   avatarId: string;
+  fromGenerator: ContentGenerator;
   toGenerator: GeneratorProvider;
   input?: AsMessageContent;
   toolCallRes?: {
@@ -78,7 +79,8 @@ export interface GenInner {
 
 export interface GenOuter {
   avatarId: string;
-  fromGenerator: GeneratorProvider;
+  fromGenerator: ContentGenerator;
+  toGenerator: GeneratorProvider;
   innerId: string;
   toolCallParam?: ToolCallParam[];
   outputText?: string;
@@ -568,6 +570,7 @@ export class AvatarState {
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
+            generator:daemon.generator.Name,
           }, 'daemon', 'system', daemon.config.exec.setting.toContext || 'inner'); //  TODO 調整要 非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる 'inner'
         yield* state.addContext([message]);  //  ここは新規なので追加
       }
@@ -731,7 +734,7 @@ export class AvatarState {
   }
 
 
-  addContext(bags: AsMessage[], isExternal = false) {
+  addContext(bags: AsMessage[]) {
     if (bags.length === 0) {
       return Effect.void;  //  更新の無限ループ防止
     }
@@ -855,6 +858,10 @@ export class AvatarState {
     });
   }
 
+  enterOuter(outer: GenOuter) {
+    return Queue.offer(this.outerQueue, outer);
+  }
+
   execExternalLoop() {
     console.log('start execExternalLoop');
     const it = this;
@@ -873,7 +880,8 @@ export class AvatarState {
         if (r.length > 0) {
           yield* Queue.offer(it.innerQueue, {
             avatarId: outer.avatarId,
-            toGenerator: outer.fromGenerator,
+            fromGenerator:'mcp',
+            toGenerator: outer.toGenerator,
             toolCallRes: r,
             genNum: outer.genNum + 1,
           });
@@ -969,7 +977,7 @@ export class AvatarState {
    */
   execGenerator(gen: ContextGenerator, message: AsMessage, context: AsMessage[] = []) {
     const it = this;
-    console.log('in execGenerator:', JSON.stringify(message), JSON.stringify(context));
+    console.log('in execGenerator:', JSON.stringify(message).slice(0,200), JSON.stringify(context));
     return Effect.gen(function* () {
       /*
             if (it.checkGeneratorCount()) {
@@ -1010,6 +1018,7 @@ export class AvatarState {
       //  log出力はgenerateContext内で行っている
       yield* it.enterInner({
         avatarId: it.id,
+        fromGenerator:message.content.generator || 'external',
         toGenerator: gen.Name,
         input: {
           from: message.content.from,
@@ -1119,6 +1128,7 @@ export class AvatarState {
         innerId: a.input.innerId || short.generate(),
         from: this.Name,
         text: a.input.text,
+        generator: a.toGenerator
       };
       list.push(content);
     }
@@ -1129,6 +1139,7 @@ export class AvatarState {
           from: this.Name,
           toolName: value.name,
           toolData: value.results,
+           generator: a.toGenerator
         } as AsMessageContent;
       })
       list.push(...content);
@@ -1146,6 +1157,7 @@ export class AvatarState {
             innerId: a.innerId,
             from: it.Name,
             text: a.outputText,
+            generator:a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
         }
@@ -1157,6 +1169,7 @@ export class AvatarState {
             from: it.Name,
             mediaUrl,
             mimeType: mime,
+            generator:a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1167,6 +1180,7 @@ export class AvatarState {
             from: it.Name,
             mediaUrl: a.outputMediaUrl,
             mimeType: a.outputMime,
+            generator:a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1177,6 +1191,7 @@ export class AvatarState {
               from: it.Name,
               toolName: value.name,
               toolData: value,
+              generator:a.fromGenerator,
             };
           });
           list.push(...content.map(value => AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')));
@@ -1212,7 +1227,8 @@ export class AvatarState {
                     from: it.Name,
                     innerId: value.innerId,
                     mediaUrl: yield* DocService.saveDocMedia(value.innerId || short.generate(), a2.mimeType, a2.data, it.TemplateId), //  TODO
-                    mimeType: 'image/png'
+                    mimeType: 'image/png',
+                    generator:value.generator
                   }, 'daemon', 'bot' , 'outer')]
                 } else if (a2.type === 'resource') {
                   //  resourceはuriらしい resourceはLLMに回さないらしい
@@ -1229,7 +1245,8 @@ export class AvatarState {
                     innerId: value.innerId,
                     mediaUrl: a2.resource.uri,
                     toolName: value.toolName,
-                    mimeType: a2.resource.mimeType
+                    mimeType: a2.resource.mimeType,
+                    generator:value.generator,
                   }, 'daemon', 'bot' , 'outer')]
                 }
                 return [];

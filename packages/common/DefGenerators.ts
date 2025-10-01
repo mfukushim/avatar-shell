@@ -84,6 +84,8 @@ export const GeneratorProviderSchema = Schema.Literal(
 
 export type GeneratorProvider = typeof GeneratorProviderSchema.Type
 
+export const GeneratorProviderList = GeneratorProviderSchema.literals;
+
 /*
 generator 個別設定(generator daemonごとに別に設定)
  */

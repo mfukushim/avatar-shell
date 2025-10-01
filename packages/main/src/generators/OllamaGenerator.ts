@@ -123,6 +123,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
+        toGenerator: it.genName,
         innerId: innerId,
         outputText: text,
         toolCallParam:toolCallParam.length > 0 ? toolCallParam : undefined,
