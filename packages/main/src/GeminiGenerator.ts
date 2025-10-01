@@ -1,3 +1,4 @@
+/*
 import {ContextGenerator, GeneratorOutput, GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Chunk, Effect, Option, Schedule, Stream} from 'effect';
@@ -121,7 +122,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
     return Effect.gen(function* () {
       const native = yield *Effect.forEach(content, a => {
         return state.contentToNative(a,true)
-/*
+/!*
         return Effect.gen(function* () {
           let content;
           if (a.content.text) {
@@ -148,7 +149,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
           }
           return [];
         });
-*/
+*!/
       }).pipe(Effect.andThen(b => b.flat()))
       const item: Content = {
         role: 'user',
@@ -193,7 +194,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
         const id = short.generate();
         const mime = 'image/png'; //  TODO 音声合成も通るはず
         const mediaUrl = yield* DocService.saveDocMedia(id, mime, outImages, avatarState.TemplateId);
-        /*
+        /!*
         todo 重いだろうから一旦gemini側が生成した画像を以前の文脈としてgemini側に送るのは抑制するか。。
                 const blob = new Blob([b1], {type: a.content.mimeType});
                 const myfile = yield *Effect.tryPromise(() => state.ai.files.upload({
@@ -208,7 +209,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                   }]
                 }
                 state.prevContexts.push(addPrevious)
-        */
+        *!/
         out.push(AsOutput.makeOutput(AsMessage.makeMessage({
           from: avatarState.Name,
           mediaUrl: mediaUrl,
@@ -332,7 +333,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                   } as AsMessage,
                 }
             ]
-/*
+/!*
               return [{
                 llmOut: llmOut ? [function_response_part as FunctionResponse] : [],
                 mes: {
@@ -345,7 +346,7 @@ export abstract class GeminiBaseGenerator extends LlmBaseGenerator {
                   content: content,
                 } as AsMessage,
               }];
-*/
+*!/
             }).pipe(Effect.catchAll(_ => Effect.succeed([])));
           }).pipe(Effect.andThen(a => a.flat()));
 
@@ -519,7 +520,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
         const id = short.generate();
         const mime = 'image/png'; //  TODO 音声合成も通るはず
         const mediaUrl = yield* DocService.saveDocMedia(id, mime, outImages, avatarState.TemplateId);
-        /*
+        /!*
         todo 重いだろうから一旦gemini側が生成した画像を以前の文脈としてgemini側に送るのは抑制するか。。
                 const blob = new Blob([b1], {type: a.content.mimeType});
                 const myfile = yield *Effect.tryPromise(() => state.ai.files.upload({
@@ -534,7 +535,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
                   }]
                 }
                 state.prevContexts.push(addPrevious)
-        */
+        *!/
         out.push(AsOutput.makeOutput(AsMessage.makeMessage({
           from: avatarState.Name,
           mediaUrl: mediaUrl,
@@ -618,9 +619,9 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
         const id = short.generate();
         const mime = 'audio/wav';
         const mediaUrl = yield* DocService.saveDocMedia(id, mime, outImages, avatarState.TemplateId);
-        /*
+        /!*
         todo gemini側が生成した音声を以前の文脈としてgemini側に送るのは抑制まだ抑制しておく
-        */
+        *!/
         out.push(AsOutput.makeOutput(AsMessage.makeMessage({
             from: avatarState.Name,
             mediaUrl: mediaUrl,
@@ -664,3 +665,4 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
     return wavBuffer.toString('base64');
   }
 }
+*/

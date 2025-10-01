@@ -1,7 +1,9 @@
+/*
 import {GeneratorTask} from './ContextGenerator.js';
 import {AvatarState} from './AvatarState.js';
 import {Effect, Option} from 'effect';
 import {
+  AsContents,
   AsMessage,
   AsMessageContent,
   AsMessageContentMutable,
@@ -24,12 +26,15 @@ import {z} from 'zod';
 import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {LlmBaseGenerator, LlmInputContent} from './LlmGenerator.js';
 import Anthropic from '@anthropic-ai/sdk';
+import {GenInner, GenOuter} from './GeneratorService.js';
+import {MediaService} from './MediaService.js';
 
 
 export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
   protected contextCache: Map<string, Anthropic.Messages.MessageParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
+  protected contextCache2: Map<string, Anthropic.Messages.MessageParam> = new Map(); //  idはClaude側のネィティブidで、AsMessage側ではinnerIdを集約したものにしてみる
   // protected contextCache: Map<string, Anthropic.Messages.ContentBlockParam> = new Map(); //  aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected prevContexts: Anthropic.Messages.MessageParam[] = [];
   protected abstract model: string;
@@ -177,48 +182,6 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
     }).pipe(Effect.andThen(a => {
       this.prevContexts = a.flat()
     }))
-    // const mergeContents = this.joinRole(inContext);
-/*
-    return Effect.forEach(mergeContents, a => {
-        return Effect.forEach(a.contents, a1 => {
-          return it.contentToNative(a1,false)
-          // return Effect.gen(function*(){
-          //   if (a1.text) {
-          //     return ([{
-          //       type: 'text',
-          //       text: a1.text,
-          //     } as Anthropic.Messages.ContentBlockParam]);
-          //   }
-          //   if (a1.mediaUrl && a1.mimeType && a1.mimeType.startsWith('image')) {
-          //     const media = yield* DocService.readDocMedia(a1.mediaUrl);
-          //     const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.claudeSettings?.inWidth);
-          //     if (a.asRole === 'bot') {
-          //       //  TODO ログ/外部からの画像再現は難しそう
-          //     } else {
-          //       //  TODO 過去文脈のときの生画像は送るべきか。。。
-          //       return ([{
-          //         type: 'image',
-          //         source: {
-          //           type: 'base64',
-          //           media_type: 'image/png',
-          //           data: b1.toString('base64'),
-          //         },
-          //       } as Anthropic.Messages.ContentBlockParam]);
-          //     }
-          //   }
-          //   return []
-          // })
-        }).pipe(Effect.andThen(a1 => {
-          const llmContent: Anthropic.Messages.ContentBlockParam[] = a1.flat();
-          return {
-            role: a.asRole === 'bot'? 'assistant':'user',
-            content: llmContent,
-          } as Anthropic.Messages.MessageParam;
-        }))  //  TODO テキスト項同士はマージしたほうがよいか
-    }).pipe(Effect.andThen(a => {
-      this.prevContexts = a.flat();
-    }));
-*/
   }
 
 
@@ -444,7 +407,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
 
   execOneFuncCall(avatarState: AvatarState, a: ToolCallParam) {
     const state = this;
-    const toolId = a.id;
+    const toolId = a.callId;
     return Effect.gen(function* () {
       const toolRes = yield* McpService.callFunction(avatarState, a,'claudeText').pipe(Effect.catchAll(e => {
         console.log('tool error:', e); //  tool denyの件もここに来る TODO denyと他エラーを分けたほうがよい
@@ -496,7 +459,7 @@ export abstract class ClaudeBaseGenerator extends LlmBaseGenerator {
           } else if (a2.type === 'resource') {
             //  TODO resourceはuriらしい resourceはLLMに回さないらしい
             //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
-            content.innerId =`${a.id}_${idx}`
+            content.innerId =`${a.callId}_${idx}`
             content.mediaUrl = a2.resource.uri;
             content.mimeType = a2.resource.mimeType
             if(a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
@@ -573,6 +536,207 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     }
     return Effect.succeed(new ClaudeTextGenerator(sysConfig, settings as ClaudeTextSettings | undefined));
   }
+
+  asMessageToNative(asMessage: AsMessage[]) {
+    const it = this;
+    return Effect.forEach(asMessage, mes => {
+      const b = it.contextCache.get(mes.id);
+      if(b) {
+        console.log('cached:',mes.id,b);
+        return Effect.succeed([
+          {
+            role: b.role,
+            content: Array.isArray(b.content) ? b.content.map(value => {
+              //  TODO
+              if (value.type === 'tool_result') {
+                console.log('value.content:', value.content);
+                return {
+                  type:'tool_result',
+                  tool_use_id: value.tool_use_id,
+                  content: Array.isArray(value.content) ? value.content.map(value1 => {
+                    if (value1.type === 'text') {
+                      return {
+                        type: 'text',
+                        text: value1.text,
+                      } as Anthropic.Messages.TextBlockParam;
+                    }
+                    if (value1.type === 'image') {
+                      if(value1.source.type === 'base64') {
+                        return {
+                          type: 'image',
+                          source: {
+                            type: 'base64',
+                            media_type: value1.source.media_type,
+                            data: value1.source.data,
+                          }
+                        } as Anthropic.Messages.ImageBlockParam;
+                      }
+                      return {
+                        type: 'image',
+                        source:{
+                          type: 'url',
+                          url: value1.source.url,
+                        }
+                      }
+                    }
+                  }):value.content
+                };
+              }
+              return value;
+            }):b.content
+          } as Anthropic.Messages.MessageParam,
+        ]);
+      }
+      if (mes.content.text) {
+        const c = [{
+          type: 'text',
+          text: mes.content.text,
+        } as Anthropic.Messages.ContentBlockParam];
+        const m:Anthropic.Messages.MessageParam = {
+          role: mes.asRole === 'bot'? 'assistant':'user',
+          content: c,
+        }
+        return Effect.succeed([m]);
+      }
+      return Effect.succeed([])
+//      return Effect.fail(new Error('context not found'));
+    }).pipe(Effect.andThen(a => a.flat() )) //  Anthropic.Messages.ContentBlockParam[]
+  }
+
+  joinNativeRole(inContext: Anthropic.Messages.MessageParam[], margeText = true): Anthropic.Messages.MessageParam[] {
+    return inContext.reduce((previousValue, currentValue) => {
+      if (previousValue.length > 0) {
+        const last = previousValue[previousValue.length - 1];
+        if (currentValue.role === last.role) {
+          if(Array.isArray(last.content)) {
+            last.content.push(...(typeof currentValue.content === 'string' ? [{text:currentValue.content,type:'text'} as  Anthropic.Messages.TextBlockParam]:currentValue.content));
+          }
+          return previousValue;
+        }
+      }
+      previousValue.push({
+        role: currentValue.role,
+        content: typeof currentValue.content === 'string' ? [{text:currentValue.content,type:'text'}]:currentValue.content,
+      });
+      return previousValue;
+    }, [] as Anthropic.Messages.MessageParam[]);
+    // //  さらに同じコンテンツ内のtextを連結して1つのtextブロックにする
+    // if (!margeText) {
+    //   return merge;
+    // }
+    // return merge.map(value => {
+    //   const textContents = value.contents.filter(value1 => value1.text);
+    //   if (textContents.length > 1) {
+    //     const text = textContents.map(value1 => value1.text).join('\n');
+    //     const list = value.contents.filter(value1 => !value1.text);
+    //     return {
+    //       asRole: value.asRole,
+    //       contents: [
+    //         {text},
+    //         ...list,
+    //       ],
+    //     };
+    //   }
+    //   return value;
+    // });
+  }
+
+
+/!*
+  override generateContext2(current: GenInner,avatarState:AvatarState,contextConfig?:{prevLen:number;}) {
+    const it = this;
+    return Effect.gen( function* () {
+      const content:Anthropic.Messages.ContentBlockParam[] = []
+      if (current.toolCallRes) {
+        const t:Anthropic.Messages.ToolResultBlockParam[] = current.toolCallRes.results.map(value =>{
+          return {
+            ...value.toLlm,
+            tool_use_id: current.toolCallRes?.callId || '',
+            type: 'tool_result',
+          } as Anthropic.Messages.ToolResultBlockParam
+        })
+        content.push(...t)
+      }
+      if (current.input) {
+        content.push(...(yield *it.contentToNative(current.input,false)))
+      }
+      const prev = (yield *avatarState.TalkContextEffect)
+      const prevContents = contextConfig?.prevLen ? prev.slice(-contextConfig.prevLen) : prev;  //  TODO contextlineによるフィルタがいるはず
+      const contents = yield *it.asMessageToNative(prevContents).pipe(Effect.andThen(a => it.joinNativeRole(a)));
+
+      contents.push({
+        role: 'user',
+        content: content,
+      });
+
+      return yield *Effect.gen( function* () {
+        yield *DocService.saveNativeLog(it.logTag,'textExecLlm_context',contents);
+        const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
+        console.log('tools:', tools.length);
+        console.log('claude :', contents.map(value => JSON.stringify(value,null,2).slice(0,250)).join('\n'));
+        const body: Anthropic.Messages.MessageCreateParamsStreaming = {
+          model: it.model || 'claude-3-5-haiku-latest',
+          messages: contents,
+          tools: tools.map(a => {
+            return {
+              name: a.name,
+              description: a.description,
+              input_schema: a.inputSchema,
+            } as Anthropic.Tool;
+          }),
+          stream: true,
+          max_tokens: 1024,
+          // store:true,
+        };
+        const stream = it.anthropic.messages.stream(body)
+          .on('text', (text: string) => {
+            console.log(text);
+            it.sendStreamingText(text, avatarState);
+          });
+        //  確定実行結果取得
+        const message = yield* Effect.tryPromise({
+          try: () => stream.finalMessage(),
+          catch: error => {
+            console.log('error:', error);
+            return new Error(`claude error:${error}`);
+          },
+        });
+        console.log(message);
+        yield *DocService.saveNativeLog(it.logTag,'textExecLlm_out',message);
+
+        // it.prevContexts.push({
+        //   role: 'assistant',
+        //   content: message.content,
+        // }) //  直に送らず不要分の削除がいるらしい
+        return message;
+      }).pipe(
+        Effect.andThen(a => {
+          return a.content.map(value => {
+            if (value.type === 'text') {
+              return [{
+                avatarId:current.avatarId,
+                fromGenerator:'claudeText',
+                outputText:value.text,
+              } as GenOuter]
+            }
+            if(value.type === 'tool_use') {
+              return [{
+                avatarId:current.avatarId,
+                fromGenerator:'claudeText',
+                toolCallRes:value,
+              } as GenOuter]
+            }
+            return []
+          }).flat()
+        }),
+        // Effect.catchIf(a => a instanceof Error, _ => Effect.succeed([])));
+      )
+
+      // return {task: Option.some(item)}; //  output
+
+    })
+  }
+*!/
 
   override execLlm(inputContext: Anthropic.Messages.MessageParam, avatarState: AvatarState): Effect.Effect<Anthropic.Message, Error, ConfigService | McpService |DocService> {
     const it = this;
@@ -654,3 +818,4 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
 
 
 }
+*/

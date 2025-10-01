@@ -22,15 +22,13 @@ import {fileURLToPath} from 'url';
 import {dirname} from 'path';
 import {vitestAvatarConfig, vitestSysConfig} from '../../common/vitestConfig.js';
 import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
-import {openAiImageGenerator, openAiTextGenerator, openAiVoiceGenerator} from './OpenAiGenerator.js';
-import {GeminiImageGenerator, GeminiTextGenerator, GeminiVoiceGenerator} from './GeminiGenerator.js';
-import {PixAiImageGenerator} from './ImageGenarators.js';
-import {ContextGenerator} from './ContextGenerator.js';
-import {ClaudeTextGenerator} from './ClaudeGenerator.js';
-import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './LlmGenerator.js';
+import {GeminiImageGenerator, GeminiTextGenerator, GeminiVoiceGenerator} from './generators/GeminiGenerator.js';
+import {ContextGenerator} from './generators/ContextGenerator.js';
+import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './generators/EmptyGenerator.js';
 import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
 import dayjs from 'dayjs';
+import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 
 let debugConfigFile:string|undefined = undefined;
 
@@ -373,15 +371,16 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
 
     const genMap: Record<GeneratorProvider, (sysConfig: SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any, Error>> = {
       //  llm系
-      'openAiText': (sysConfig, settings) => openAiTextGenerator.make(sysConfig, settings),
-      'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig, settings),
+      'openAiText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //openAiTextGenerator.make(sysConfig, settings),
+      'claudeText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
+      'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
       //  画像生成系
-      'pixAi': (sysConfig, settings) => PixAiImageGenerator.make(sysConfig, settings),
-      'openAiImage': (sysConfig, settings) => openAiImageGenerator.make(sysConfig, settings),
+      'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(settings), //PixAiImageGenerator.make(sysConfig, settings),
+      'openAiImage': (sysConfig, settings) => EmptyImageGenerator.make(settings), // openAiImageGenerator.make(sysConfig, settings),
       'geminiImage': GeminiImageGenerator.make,
       //  音声合成系
-      'openAiVoice': (sysConfig, settings) => openAiVoiceGenerator.make(sysConfig, settings),
+      'openAiVoice': (sysConfig, settings) => EmptyVoiceGenerator.make(settings), //openAiVoiceGenerator.make(sysConfig, settings),
       'geminiVoice': (sysConfig, settings) => GeminiVoiceGenerator.make(sysConfig, settings),
       // 'openAiVoice',
       // 'voiceVox',

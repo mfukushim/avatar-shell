@@ -10,8 +10,9 @@ import {describe, expect, it} from '@effect/vitest';
 import {AsMessage, AsOutput, AvatarSettingMutable} from '../../common/Def';
 import dayjs from 'dayjs';
 import {vitestSysConfig} from '../../common/vitestConfig';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('avatarState', () => {
@@ -434,6 +435,193 @@ describe('avatarState', () => {
     expect(res.check3.length).toBe(4);
     expect(res.check4.length).toBe(4);
   });
+
+  it('execGeneratorLoop_text', async () => {
+    const r = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // yield *GeneratorService.startLoop()
+
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestNoneId', 'Mix', null, 'user');
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('5 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: 'hello'
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const context = yield *avatarState.TalkContextEffect;
+      console.log('context:',context)
+      return context
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+    console.log('r:',r);
+  })
+  it('addContext', async () => {
+    //  vitest --run --testNamePattern=make AvatarState.unit.spec.ts
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestNoneId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
+      yield* avatarState.addContext([
+        AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface')
+      ], true);
+      return yield* avatarState.TalkContextEffect;
+    }).pipe(
+      aiRuntime.runPromise,
+    );
+
+    console.log(JSON.stringify(res, null, 2));
+    expect(typeof res === 'object').toBeTruthy();
+    expect(res.length).toBe(1);
+  });
+
+  it('execGeneratorLoop_text2', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // yield *GeneratorService.startLoop()
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: 'hello'
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('20 seconds');
+
+      const res2 = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: "What should I do when it's hot?"
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner2:',res2);
+
+      yield *Effect.sleep('30 seconds');
+
+      console.log('context:',yield *avatarState.TalkContextEffect)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+  it('execGeneratorLoop_mcp', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: '/get traveler setting'
+        },
+        genNum:0,
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+  it('execGeneratorLoop_text2_gemini', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // yield *GeneratorService.startLoop()
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'geminiText',
+        input:{
+          from: 'user',
+          text: 'hello'
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('20 seconds');
+
+      const res2 = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'geminiText',
+        input:{
+          from: 'user',
+          text: "What should I do when it's hot?"
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner2:',res2);
+
+      yield *Effect.sleep('30 seconds');
+
+      console.log('context:',yield *avatarState.TalkContextEffect)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
 
 }, 10 * 60 * 1000);
 

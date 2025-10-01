@@ -1,6 +1,6 @@
 | Name                      | License type   | Link                                                           | Installed version | Author                                                        |
 | :------------------------ | :------------- | :------------------------------------------------------------- | :---------------- | :------------------------------------------------------------ |
-| @anthropic-ai/sdk         | MIT            | https://github.com/anthropics/anthropic-sdk-typescript.git     | 0.57.0            | Anthropic <support@anthropic.com>                             |
+| @anthropic-ai/sdk         | MIT            | https://github.com/anthropics/anthropic-sdk-typescript.git     | 0.60.0            | Anthropic <support@anthropic.com>                             |
 | @effect/cluster           | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.46.0            | n/a                                                           |
 | @effect/experimental      | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.54.0            | n/a                                                           |
 | @effect/platform          | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.90.0            | n/a                                                           |
@@ -9,7 +9,8 @@
 | @effect/sql               | MIT            | git+https://github.com/Effect-TS/effect.git                    | 0.44.0            | n/a                                                           |
 | @electron/remote          | MIT            | git+https://github.com/electron/remote.git                     | 2.1.3             | n/a                                                           |
 | @google/genai             | Apache-2.0     | git+https://github.com/googleapis/js-genai.git                 | 1.11.0            |                                                               |
-| @modelcontextprotocol/sdk | MIT            | git+https://github.com/modelcontextprotocol/typescript-sdk.git | 1.17.0            | Anthropic, PBC (https://anthropic.com)                        |
+| @mcp-ui/client            | Apache-2.0     | https://registry.npmjs.org/@mcp-ui/client/-/client-5.12.0.tgz  | 5.6.2             | n/a                                                           |
+| @modelcontextprotocol/sdk | MIT            | git+https://github.com/modelcontextprotocol/typescript-sdk.git | 1.17.2            | Anthropic, PBC (https://anthropic.com)                        |
 | @pixai-art/client         | MIT            | git+https://github.com/pixai-art/pixai-client-js.git           | 0.4.0             | Andy Frank <fandy0726@gmail.com>                              |
 | audio-loader              | MIT            | git+https://github.com/danigb/audio-loader.git                 | 1.0.3             | danigb <danigb@gmail.com>                                     |
 | audio-play                | MIT            | git+https://github.com/audiojs/audio-play.git                  | 2.3.1             | ΔY <dfcreative@gmail.com>                                     |
@@ -21,7 +22,8 @@
 | expand-template           | (MIT OR WTFPL) | git+https://github.com/ralphtheninja/expand-template.git       | 2.0.3             | LM <ralphtheninja@riseup.net>                                 |
 | graphql                   | MIT            | git+https://github.com/graphql/graphql-js.git                  | 16.11.0           | n/a                                                           |
 | graphql-ws                | MIT            | git+https://github.com/enisdenjo/graphql-ws.git                | 5.16.2            | Denis Badurina <badurinadenis@gmail.com>                      |
-| openai                    | Apache-2.0     | https://github.com/openai/openai-node.git                      | 5.12.0            | OpenAI <support@openai.com>                                   |
+| ollama                    | MIT            | git+https://github.com/ollama/ollama-js.git                    | 0.5.18            | Saul Boyd                                                     |
+| openai                    | Apache-2.0     | https://github.com/openai/openai-node.git                      | 5.12.2            | OpenAI <support@openai.com>                                   |
 | rxjs                      | Apache-2.0     | git+https://github.com/reactivex/rxjs.git                      | 7.8.2             | Ben Lesh <ben@benlesh.com>                                    |
 | sharp                     | Apache-2.0     | git://github.com/lovell/sharp.git                              | 0.34.3            | Lovell Fuller <npm@lovell.info>                               |
 | short-uuid                | MIT            | git+https://github.com/oculus42/short-uuid.git                 | 5.2.0             | Samuel Rouse                                                  |

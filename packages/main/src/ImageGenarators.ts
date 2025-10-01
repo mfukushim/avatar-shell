@@ -1,3 +1,4 @@
+/*
 import {ContextGenerator, GeneratorOutput, GeneratorTask} from './ContextGenerator.js';
 import {AsMessage, AsMessageContent, AsOutput} from '../../common/Def.js';
 import {AvatarState} from './AvatarState.js';
@@ -176,3 +177,4 @@ export class PixAiImageGenerator extends ContextGenerator{
   }
 
 }
+*/

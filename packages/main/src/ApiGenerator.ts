@@ -1,7 +1,7 @@
-import {ContextGenerator} from './ContextGenerator.js';
 import {Effect, Schedule} from 'effect';
 import {HttpClient, HttpClientRequest} from '@effect/platform';
 import {NodeHttpClient} from '@effect/platform-node';
+import {ContextGenerator} from './generators/ContextGenerator.js';
 
 
 export abstract class VoiceAipBaseGenerator extends ContextGenerator {

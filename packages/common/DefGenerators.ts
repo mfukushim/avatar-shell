@@ -22,11 +22,11 @@ export const AsClassList = AsClassBaseSchema.literals;
 
 export const AsRoleSchema = Schema.Literal(
   '',
-  'human',
-  'bot',
-  'toolIn',
-  'toolOut',
-  'system',
+  'human',  //  一般的なLLM role 'user'
+  'bot',    //  'assistant'
+  'toolIn', //  'assistant'
+  'toolOut', // 'user'
+  'system',  // 除外?
 );
 
 export type AsRole = typeof AsRoleSchema.Type
@@ -75,6 +75,7 @@ export const GeneratorProviderSchema = Schema.Literal(
   // 'ollama',
   // 'voiceVox',
   // 'comfyUi',
+  'ollamaText',
   'pixAi',  //  TODO 確認
   'emptyText',
   'emptyImage',
@@ -82,6 +83,8 @@ export const GeneratorProviderSchema = Schema.Literal(
 );
 
 export type GeneratorProvider = typeof GeneratorProviderSchema.Type
+
+export const GeneratorProviderList = GeneratorProviderSchema.literals;
 
 /*
 generator 個別設定(generator daemonごとに別に設定)
@@ -96,6 +99,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toClass: Schema.optional(AsClassSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toContext:Schema.optional(AsContextLinesSchema),
+  noTool: Schema.optional(Schema.Boolean),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 
@@ -215,11 +219,12 @@ export const geminiImageMutableConfigSchema = Schema.mutable(geminiImageConfigSc
 export const geminiVoiceMutableConfigSchema = Schema.mutable(geminiVoiceConfigSchema)
 //    ollama
 export const ollamaSysConfigSchema = Schema.Struct({
-  url: Schema.String,
+  host: Schema.String,
   model: Schema.String,
-  token: Schema.String,
+  token: Schema.optional(Schema.String),
 });
 
+export type OllamaSysConfig = typeof ollamaSysConfigSchema.Type
 export const ollamaMutableConfigSchema = Schema.mutable(ollamaSysConfigSchema)
 
 
@@ -259,7 +264,7 @@ export const generatorsConfigSetChema = Schema.Struct({
   gemini: geminiSysConfigSchema,
   geminiImage: geminiImageConfigSchema,
   geminiVoice: geminiVoiceConfigSchema,
-  // ollama: ollamaSysConfigSchema,
+  ollama: ollamaSysConfigSchema,
   // voiceVox: voiceVoxSysConfigSchema,
 })
 export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
@@ -270,7 +275,7 @@ export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
   gemini: geminiMutableConfigSchema,
   geminiImage: geminiImageMutableConfigSchema,
   geminiVoice: geminiVoiceMutableConfigSchema,
-  // ollama: ollamaMutableConfigSchema,
+  ollama: ollamaMutableConfigSchema,
   // voiceVox: voiceVoxMutableConfigSchema,
 }))
 

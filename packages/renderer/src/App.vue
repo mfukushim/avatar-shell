@@ -27,6 +27,7 @@ const Wizard = defineAsyncComponent(() =>
 );
 import MenuPanel from './components/MenuPanel.vue';
 import McpUiWapper from './components/McpUiWapper.vue';
+import type {GeneratorProvider} from '../../common/DefGenerators.ts';
 // const MenuPanel = defineAsyncComponent(() =>
 //   import('./components/MenuPanel.vue')
 // )
@@ -114,6 +115,7 @@ const showAsAlert = ref(false);
 
 const recentSoundId = ref('');
 
+const calledMcpUiGenerator = ref<GeneratorProvider>('emptyText');
 const calledMcpUiName = ref('');
 const htmlResourceJson = ref<string | undefined>(undefined);
 
@@ -144,6 +146,11 @@ const setTimeline = async (tl0: AsMessage[]) => {
         mimeType: 'text/html',
         text: text,
       });
+      if(ui.content?.generator && ui.content.generator !== 'external' && ui.content.generator !== 'mcp'){
+        calledMcpUiGenerator.value = ui.content.generator;
+      } else {
+        calledMcpUiGenerator.value = 'emptyText';
+      }
     }
   } else {
     calledMcpUiName.value = ''
@@ -285,11 +292,12 @@ const handleUIAction = async (event: CustomEvent) => {
      */
     const names = calledMcpUiName.value.split('_')
     const toolName = names.length > 0 && event.detail?.payload?.toolName ? names[0] +'_'+event.detail.payload.toolName : ''
+    console.log('toolName',calledMcpUiName.value,names, toolName,calledMcpUiGenerator.value);
     await callMcpTool({
-      id: '', //  TODO この扱いでよいか確認要
+      callId: '', //  TODO この扱いでよいか確認要
       name: toolName,
       input: event.detail?.payload?.params || {},
-    })
+    },calledMcpUiGenerator.value)
     //  TODO ユーザがツールを使ったことを通知する必要はあるか?
     // const mes = AsMessage.makeMessage({from: getUserName(), text: 'user selected'}, 'talk', 'human', 'surface')
     // await doAskAi([mes])
@@ -311,7 +319,7 @@ const handleUIAction = async (event: CustomEvent) => {
       });
     }
     console.log('inText', inText);
-    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
+    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'inner')
     await doAskAi([mes])
     await sendMessageIn([mes]);
   } else if(event.detail.type === 'notify') {
@@ -321,7 +329,7 @@ const handleUIAction = async (event: CustomEvent) => {
     },
      */
     let inText = event.detail?.payload?.message
-    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'surface')
+    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'inner')
     await doAskAi([mes])
     await sendMessageIn([mes]);
   }

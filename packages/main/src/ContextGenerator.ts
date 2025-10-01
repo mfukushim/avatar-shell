@@ -1,4 +1,5 @@
-/*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
+/*
+/!*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell *!/
 import {AsOutput, AsMessage, AsMessageContent} from '../../common/Def.js';
 import {Effect,Option} from 'effect';
 import {ConfigService} from './ConfigService.js';
@@ -7,6 +8,7 @@ import {DocService} from './DocService.js';
 import {McpService} from './McpService.js';
 import {ContextGeneratorInfo, ContextTypes, GeneratorProvider} from '../../common/DefGenerators.js';
 import {MediaService} from './MediaService.js';
+import {GenInner, GenOuter} from './GeneratorService.js';
 
 export type GeneratorTask = any
 export type GeneratorOutput = any
@@ -25,6 +27,8 @@ export abstract class ContextGenerator {
 
 
   abstract generateContext(task:Option.Option<GeneratorTask>,avatarState:AvatarState): Effect.Effect<AsMessage[], Error, ConfigService|McpService|DocService|MediaService>
+
+  // abstract generateContext2(current:GenInner,avatarState:AvatarState): Effect.Effect<GenOuter[], Error, ConfigService|McpService|DocService|MediaService>
 
   abstract getNativeContext():Effect.Effect<AsOutput[],void,ConfigService|McpService>
 
@@ -53,3 +57,4 @@ export abstract class ContextGenerator {
 }
 
 
+*/

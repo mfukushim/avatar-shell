@@ -1,7 +1,7 @@
 {
   "name": "avatar-shell",
   "description": "Avatar/Visually-based MCP client",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -73,6 +73,7 @@
     "expand-template": "^2.0.3",
     "graphql": "^16.11.0",
     "graphql-ws": "^5.16.2",
+    "ollama": "^0.5.18",
     "openai": "^5.12.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.3",

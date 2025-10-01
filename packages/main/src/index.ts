@@ -18,6 +18,7 @@ import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {SocketServiceLive} from './SocketService.js';
 import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../common/Def.js';
 import electronLog from 'electron-log';
+import {GeneratorProvider} from '../../common/DefGenerators.js';
 
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive, MediaServiceLive,AvatarServiceLive,SocketServiceLive);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
@@ -231,10 +232,21 @@ ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await Ava
 
 ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.stopAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('stopAvatar')), aiRuntime.runPromise));
 
-ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam) => {
+ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,gen:GeneratorProvider) => {
   return await AvatarService.getAvatarState(avatarId).pipe(
-    Effect.andThen(a => McpService.callFunction(a, params)),
-    Effect.catchAll(showAlertIfFatal('callMcpTool')), aiRuntime.runPromise);
+    Effect.andThen(a => {
+      return a.enterOuter({
+        avatarId: avatarId,
+        fromGenerator: 'external',
+        toGenerator:gen,
+        innerId: params.callId,
+        toolCallParam: [params],
+        genNum: 1,
+      })
+    }),
+    // Effect.andThen(a => McpService.callFunction(a, params)),    TODO この後を処理させないといけない。。。ここでの関数呼び出しではなく、outerQueueにGenOuterとして登録させる。 送り先のgenはデフォルトのgenを決めないといけないか?
+    Effect.catchAll(showAlertIfFatal('callMcpTool')),
+    aiRuntime.runPromise)
 });
 
 
