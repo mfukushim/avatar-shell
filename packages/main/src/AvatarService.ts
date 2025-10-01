@@ -39,7 +39,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         // const m = yield *Ref.get(avatars)
         // const state = yield *HashMap.get(m,avatarId)
         const state = yield *getAvatarState(avatarId)
-        yield *state.addContext(bags,true)
+        yield *state.addContext(bags)
         yield* DocService.addLog(bags.map(value => (AsOutput.makeOutput(value,{
           provider:'emptyText', //  無効値を持たせたいが
           model:'none',
