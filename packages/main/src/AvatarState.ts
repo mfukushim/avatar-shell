@@ -977,7 +977,7 @@ export class AvatarState {
    */
   execGenerator(gen: ContextGenerator, message: AsMessage, context: AsMessage[] = []) {
     const it = this;
-    console.log('in execGenerator:', JSON.stringify(message).slice(0,200), JSON.stringify(context));
+    console.log('in execGenerator:', JSON.stringify(message).slice(0,200), JSON.stringify(context).slice(0,200));
     return Effect.gen(function* () {
       /*
             if (it.checkGeneratorCount()) {

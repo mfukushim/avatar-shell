@@ -120,7 +120,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
               response: {
                 ...value.results,
                 content: value.results.content.flatMap(a => {
-                  console.log('contents test:',a);
+                  // console.log('contents test:',a);
                   //  @ts-ignore
                   if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
                     //  @ts-ignore

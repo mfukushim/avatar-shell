@@ -134,6 +134,29 @@ const stopAvatarBtn = async () => {
   await stopAvatar();
 }
 
+const filterToolData = (toolData: any) => {
+  if (toolData?.content) {
+    const content:any[] = toolData.content;
+    return content.map(value => {
+      if (value.type === 'image') {
+        return '[image]';
+      }
+      if (value.type === 'audio') {
+        return '[audio]';
+      }
+      if(value.type === 'resource') {
+        return `[${value.mimeType}]`;
+      }
+      if(value.type === 'text') {
+        return `[text] ${value.text}`;
+      }
+      return `[unknown ${JSON.stringify(value)}]`;
+    }).join(',');
+  } else {
+    return JSON.stringify(toolData);
+  }
+}
+
 const tableRef = ref<QVirtualScroll>();
 const showTextFind = ref(false);
 const showInfo = ref(false);
@@ -168,7 +191,7 @@ const imageCache = ref<Record<string, string>>({});
           <q-markdown :no-blockquote="false" v-if="item.content.text" :src="item.content.text" />
           <q-img v-if="getItemType(item) == 'image'" :src="imageCache[item.id]" @click="pickItem(item)" />
           <q-icon v-if="getItemType(item) == 'audio'" size="32px" name="play_circle" @click="playSound(item)" />
-          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolCall' && item.content.toolData" :src="JSON.stringify(item.content.toolData)" />
+          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolCall' && item.content.toolData" :src="filterToolData(item.content.toolData)" />
         </div>
         <div v-else >
           {{item.content.text.slice(0,3)}}
