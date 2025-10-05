@@ -281,37 +281,29 @@ const handleUIAction = async (event: CustomEvent) => {
     return
   }
   if (event.detail.type === 'tool') {
+    console.log('tool:',event.detail.payload);
     //  TODO toolを直起動にする
-    /*
-    payload: {
-      toolName: "get-weather",
-      params: {
-        city: "Tokyo",
-      },
-    },
-     */
     const names = calledMcpUiName.value.split('_')
     const toolName = names.length > 0 && event.detail?.payload?.toolName ? names[0] +'_'+event.detail.payload.toolName : ''
-    console.log('toolName',calledMcpUiName.value,names, toolName,calledMcpUiGenerator.value);
-    await callMcpTool({
-      callId: '', //  TODO この扱いでよいか確認要
-      name: toolName,
-      input: event.detail?.payload?.params || {},
-    },calledMcpUiGenerator.value)
+    console.log('toolName',calledMcpUiName.value,names,event.detail?.payload?.params, toolName,calledMcpUiGenerator.value);
+    try {
+      await callMcpTool({
+        callId: '', //  TODO この扱いでよいか確認要
+        name: toolName,
+        input: event.detail?.payload?.params || {},
+      },calledMcpUiGenerator.value)
+    } catch (e) {
+      console.log('callMcpTool error',e);
+    }
     //  TODO ユーザがツールを使ったことを通知する必要はあるか?
+    //  TODO ツールがMCP-UIで直起動されるときは、それをfunc callをAIはしていないのだがから、func call のレスポンスもAIは知らない。
+    //  TODO つまりツールを起動はしているがこれの結果はuserのテキスト入力として扱われなければならない。。。
+    //   TODO つまりselect-userはAIにとっては発行されたことがないのだから、そのツールの実行結果はuserのテキスト入力のように扱わなければならない。。
     // const mes = AsMessage.makeMessage({from: getUserName(), text: 'user selected'}, 'talk', 'human', 'surface')
     // await doAskAi([mes])
     // await sendMessageIn([mes]);
   } else if(event.detail.type === 'intent') {
-    /*
-    payload: {
-      intent: "create-task",
-      params: {
-        title: "Buy groceries",
-        description: "Buy groceries for the week",
-      },
-    },
-     */
+    console.log('intent:',event.detail.payload);
     let inText = JSON.stringify(event.detail.payload);
     if (sysConfig.experimental.mcpUiTemplate) {
       inText = expand(sysConfig.experimental.mcpUiTemplate, {
@@ -323,11 +315,7 @@ const handleUIAction = async (event: CustomEvent) => {
     await doAskAi([mes])
     await sendMessageIn([mes]);
   } else if(event.detail.type === 'notify') {
-    /*
-    payload: {
-      message: "cart-updated",
-    },
-     */
+    console.log('notify:',event.detail.payload);
     let inText = event.detail?.payload?.message
     const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'inner')
     await doAskAi([mes])

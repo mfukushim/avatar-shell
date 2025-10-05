@@ -1,4 +1,7 @@
-import {Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef} from 'effect';
+import {
+  Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef, Option,
+  FiberStatus,
+} from 'effect';
 import {
   AlertTask,
   AsMessage,
@@ -570,7 +573,7 @@ export class AvatarState {
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
-            generator:daemon.generator.Name,
+            generator: daemon.generator.Name,
           }, 'daemon', 'system', daemon.config.exec.setting.toContext || 'inner'); //  TODO 調整要 非trigger mesの場合、条件によって自律生成される。これはaddDaemonGenToContextにより、trueならinner,falseならouterになる 'inner'
         yield* state.addContext([message]);  //  ここは新規なので追加
       }
@@ -810,20 +813,37 @@ export class AvatarState {
   MaxGen = 2;  //  TODO 世代の最適値は
 
   enterInner(inner: GenInner) {
-    return Queue.offer(this.innerQueue, inner);
+    const it = this;
+    return Effect.gen(function* () {
+      yield* Queue.offer(it.innerQueue, inner);
+      yield* it.rerunLoop();
+      // const fiberInner = yield* Effect.fork(it.execGeneratorLoop().pipe(
+      //   Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
+      // const fiberOuter = yield* Effect.fork(it.execExternalLoop().pipe(
+      //   Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+      // yield *Fiber.awaitAll([fiberInner, fiberOuter]).pipe(Effect.tap(_ => Effect.log('end loop fiber')))
+    });
   }
 
   execGeneratorLoop() {
     console.log('start execGeneratorLoop');
     const it = this;
+    let loop = true;
     return Effect.loop(true, {
       while: a => a,
       body: b => Effect.gen(function* () {
+        // const p = yield *Queue.size(it.innerQueue);
+        // const q = yield *Queue.size(it.outerQueue);
+        // if (p === 0 && q === 0) {
+        //   loop = false
+        //   // yield* Queue.shutdown(it.innerQueue)
+        //   // yield* Queue.shutdown(it.outerQueue)
+        // }
         console.log('gen in queue wait');
         const inner = yield* Queue.take<GenInner>(it.innerQueue);
         // const fiber = yield* Effect.fork(Queue.take<GenInner>(InnerQueue))
         // const inner = yield* Fiber.join(fiber)
-        console.log('genLoop gen in:', inner);
+        // console.log('genLoop gen in:', inner);
         if (inner.genNum >= it.MaxGen * 2) {
           if (inner.genNum > 0) {
             yield* it.appendContextGenIn(inner);  //  innerをcontextに追加するのは生成後、そのまえで付けるとprevに入ってしまう。 ここに来るにはすでにContextに入力されているからdaemonで検出されてここに来ているのだからここで入力を追加する必要はない
@@ -852,27 +872,47 @@ export class AvatarState {
         if (io.length > 0) {
           yield* Queue.offerAll(it.outerQueue, io);
         }
+        // const p = yield *Queue.size(it.innerQueue);
+        // const q = yield *Queue.size(it.outerQueue);
+        // if (p === 0 && q === 0) {
+        //   loop = false
+        //   yield* Queue.shutdown(it.innerQueue)
+        //   yield* Queue.shutdown(it.outerQueue)
+        // }
       }),
-      step: b => b,
+      step: b => loop,
       discard: true,
-    });
+    }).pipe(Effect.catchAll(a => Effect.logError('execGeneratorLoop error:', a)));
+    ;
   }
 
   enterOuter(outer: GenOuter) {
-    return Queue.offer(this.outerQueue, outer);
+    const it = this;
+    return Effect.gen(function* () {
+      yield* Queue.offer(it.outerQueue, outer);
+      yield* it.rerunLoop();
+    });
   }
 
   execExternalLoop() {
     console.log('start execExternalLoop');
     const it = this;
+    let loop = true;
     return Effect.loop(true, {
       while: a => a,
       body: b => Effect.gen(function* () {
+        // const p = yield *Queue.size(it.innerQueue);
+        // const q = yield *Queue.size(it.outerQueue);
+        // if (p === 0 && q === 0) {
+        //   loop = false
+        //   // yield* Queue.shutdown(it.innerQueue)
+        //   // yield* Queue.shutdown(it.outerQueue)
+        // }
         console.log('IO in queue wait');
         const outer = yield* Queue.take(it.outerQueue);
         // const fiber = yield* Effect.fork(Queue.take(OuterQueue))
         // const outer = yield* Fiber.join(fiber)
-        console.log('IO loop mcp in:', outer);
+        // console.log('IO loop mcp in:', outer);
         //  MCP処理
         const res = yield* it.solveMcp([outer]);
         const r = res.flat();
@@ -880,16 +920,23 @@ export class AvatarState {
         if (r.length > 0) {
           yield* Queue.offer(it.innerQueue, {
             avatarId: outer.avatarId,
-            fromGenerator:'mcp',
+            fromGenerator: 'mcp',
             toGenerator: outer.toGenerator,
             toolCallRes: r,
             genNum: outer.genNum + 1,
           });
         }
+        // const p = yield *Queue.size(it.innerQueue);
+        // const q = yield *Queue.size(it.outerQueue);
+        // if (p === 0 && q === 0) {
+        //   loop = false
+        //   yield* Queue.shutdown(it.innerQueue)
+        //   yield* Queue.shutdown(it.outerQueue)
+        // }
       }),
-      step: b => b,
+      step: b => loop,
       discard: true,
-    });
+    }).pipe(Effect.catchAll(a => Effect.logError('execExternalLoop error:', a)));
   }
 
   solveMcp(list: GenOuter[]) {
@@ -977,48 +1024,13 @@ export class AvatarState {
    */
   execGenerator(gen: ContextGenerator, message: AsMessage, context: AsMessage[] = []) {
     const it = this;
-    console.log('in execGenerator:', JSON.stringify(message).slice(0,200), JSON.stringify(context));
+    console.log('in execGenerator:', JSON.stringify(message).slice(0, 200), JSON.stringify(context).slice(0, 200));
     return Effect.gen(function* () {
-      /*
-            if (it.checkGeneratorCount()) {
-              return [it.overMes];
-            }
-      */
-      // if (message.length === 0) {
-      //   return [];
-      // }
       it.sendRunningMark(message.id, true, gen.Name);
-      // it.sendRunningMark(message[0].id, true, gen.Name);
-      /*
-            yield* gen.setPreviousContext(context);
-            const {task} = yield* gen.setCurrentContext(message.map(value => value.content));
-            const output = message.map((a, i) =>
-              AsOutput.makeOutput(a, {
-                provider: gen.Name,
-                model: gen.Model,
-                isExternal: false,
-              }, i === 0 && Option.isSome(task) ? [task.value] : []));
-            // yield* it.addContext(message, false);
-            yield* DocService.addLog(output, it);
-      */
-      /*
-      gen.generateContext({
-        avatarId:it.id,
-        toGenerator:gen.Name,
-        input:{
-          from: message.content.from,
-          text: message.content.text
-        },
-        genNum:0,
-        setting: {
-          // noTool:true
-        }
-      }, it)
-       */
       //  log出力はgenerateContext内で行っている
       yield* it.enterInner({
         avatarId: it.id,
-        fromGenerator:message.content.generator || 'external',
+        fromGenerator: message.content.generator || 'external',
         toGenerator: gen.Name,
         input: {
           from: message.content.from,
@@ -1028,36 +1040,53 @@ export class AvatarState {
         setting: {
           // noTool:true
         },
-      }).pipe(
-        // Effect.tap(a => it.addContext(a)),
-        Effect.tap(a => {
-          //  TODO 組み込みMCPが追加スケジュールをコールバックpostしている形になっている。ここでPostがあれば内容のスケジュールを追加して、スケジューラーを構築しなおす
-          const now = dayjs();
-          console.log('in spool:');
-          return it.daemonStatesQueue.takeAll.pipe(Effect.andThen(a1 => {
-            Chunk.forEach(a1, daemon =>
-              it.makeTimeDaemon(daemon, now).pipe(Effect.andThen(daemonFiber => {
-                if (daemonFiber.length > 0) {
-                  it.fiberTimers.pipe(SynchronizedRef.update(a2 => {
-                    a2.push(daemonFiber[0]);
-                    return a2;
-                  }));
-                }
-              })));
-            console.log('end spool:');
-            return Effect.succeed(1);
-          }));
-        }),
-        // Effect.tap(_ => it.clearStreamingText()),
-        Effect.tap(_ => it.sendRunningMark(message.id, false)),
-      );
-      const fiberInner = yield* Effect.fork(it.execGeneratorLoop().pipe(
-        Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
-      const fiberOuter = yield* Effect.fork(it.execExternalLoop().pipe(
-        Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+      });
+      //   .pipe(
+      //   // Effect.tap(a => it.addContext(a)),
+      //   Effect.tap(a => {
+      //     //  TODO 組み込みMCPが追加スケジュールをコールバックpostしている形になっている。ここでPostがあれば内容のスケジュールを追加して、スケジューラーを構築しなおす
+      //     const now = dayjs();
+      //     console.log('in spool:');
+      //     return it.daemonStatesQueue.takeAll.pipe(Effect.andThen(a1 => {
+      //       Chunk.forEach(a1, daemon =>
+      //         it.makeTimeDaemon(daemon, now).pipe(Effect.andThen(daemonFiber => {
+      //           if (daemonFiber.length > 0) {
+      //             it.fiberTimers.pipe(SynchronizedRef.update(a2 => {
+      //               a2.push(daemonFiber[0]);
+      //               return a2;
+      //             }));
+      //           }
+      //         })));
+      //       console.log('end spool:');
+      //       return Effect.succeed(1);
+      //     }));
+      //   }),
+      //   // Effect.tap(_ => it.clearStreamingText()),
+      //   Effect.tap(_ => it.sendRunningMark(message.id, false)),
+      // );
+      console.log('start loop');
+      // yield *Fiber.awaitAll([fiberInner]).pipe(Effect.tap(_ => Effect.log('end loop fiber')))
 
+      const now = dayjs();
+      console.log('in spool:');
+      return yield* it.daemonStatesQueue.takeAll.pipe(Effect.andThen(a1 => {
+        Chunk.forEach(a1, daemon =>
+          it.makeTimeDaemon(daemon, now).pipe(Effect.andThen(daemonFiber => {
+            if (daemonFiber.length > 0) {
+              it.fiberTimers.pipe(SynchronizedRef.update(a2 => {
+                a2.push(daemonFiber[0]);
+                return a2;
+              }));
+            }
+          })));
+        console.log('end spool:');
+        return Effect.succeed(1);
+      }));
     })
       .pipe(
+        Effect.tap(a => {
+          it.sendRunningMark(message.id, false);
+        }),
         Effect.catchAll(e => {
           console.log('execGenerator error:', e);
           it.sendRunningMark(message.id, false);
@@ -1065,6 +1094,34 @@ export class AvatarState {
           return Effect.fail(e);
         }),
       );
+  }
+
+  private rerunLoop() {
+    const it = this;
+    return Effect.gen(function* () {
+      if (it.fiberInner) {
+        const s = yield* it.fiberInner.status;
+        // console.log('fiberInner status:', s);
+        if (FiberStatus.isDone(s)) {
+          it.fiberInner = yield* Effect.forkDaemon(it.execGeneratorLoop().pipe(
+            Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
+        }
+      } else {
+        it.fiberInner = yield* Effect.forkDaemon(it.execGeneratorLoop().pipe(
+          Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
+      }
+      if (it.fiberOuter) {
+        const s = yield* it.fiberOuter.status;
+        // console.log('fiberOuter status:', s);
+        if (FiberStatus.isDone(s)) {
+          it.fiberOuter = yield* Effect.forkDaemon(it.execExternalLoop().pipe(
+            Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+        }
+      } else {
+        it.fiberOuter = yield* Effect.forkDaemon(it.execExternalLoop().pipe(
+          Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+      }
+    });
   }
 
   /**
@@ -1106,6 +1163,44 @@ export class AvatarState {
     }
   */
 
+  /**
+   * MCP tool呼び出しなどのLLM外からのtool呼び出しを処理する
+   * ユーザ入力操作に相当するため、
+   * toolの出力結果からtextのデータのみ取りだし、ユーザからのenterInternalとして入力する
+   */
+  callMcpToolByExternal(params: ToolCallParam, gen: GeneratorProvider) {
+    const it = this;
+    return Effect.gen(function* () {
+      const res = yield* McpService.callFunction(it, params).pipe(Effect.catchIf(a => a instanceof Error, e => {
+        return Effect.succeed({
+          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
+        });
+      }));
+      let text = ''
+      if (typeof res.toLlm.content === 'string') {
+        text = res.toLlm.content;
+      } else {
+        text = (res.toLlm.content as {text:string}[]).map(value => value.text).join('\n');
+      }
+      console.log('callMcpToolByExternal text:',text);
+      //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
+      //         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
+      yield *it.enterInner({
+        avatarId: it.id,
+        fromGenerator: 'external',
+        toGenerator: gen,
+        input: {
+          from: it.Name,
+          text: text,
+          isExternal: true,
+        },
+        genNum: 0,
+      });
+      return 'ok'
+    });
+
+  }
+
   clearStreamingText() {
     this.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system', 'outer')]);
   }
@@ -1122,29 +1217,30 @@ export class AvatarState {
   }
 
   appendContextGenIn(a: GenInner) {
+    console.log('appendContextGenIn:',JSON.stringify(a).slice(0, 200));
     const list: AsMessageContent[] = [];
     if (a.input?.text) {
       const content: AsMessageContent = {
         innerId: a.input.innerId || short.generate(),
         from: this.Name,
         text: a.input.text,
-        generator: a.toGenerator
+        generator: a.toGenerator,
       };
       list.push(content);
     }
     if (a.toolCallRes) {
       const content: AsMessageContent[] = a.toolCallRes.map(value => {
-         return {
-          innerId:  value.callId,
+        return {
+          innerId: value.callId,
           from: this.Name,
           toolName: value.name,
-          toolData: value.results,
-           generator: a.toGenerator
+          toolRes: value.results,
+          generator: a.toGenerator,
         } as AsMessageContent;
-      })
+      });
       list.push(...content);
     }
-    return this.appendContext(list,false)
+    return this.appendContext(list, false);
   }
 
   appendContextGenOut(add: GenOuter[]) {
@@ -1157,7 +1253,7 @@ export class AvatarState {
             innerId: a.innerId,
             from: it.Name,
             text: a.outputText,
-            generator:a.fromGenerator,
+            generator: a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
         }
@@ -1169,7 +1265,7 @@ export class AvatarState {
             from: it.Name,
             mediaUrl,
             mimeType: mime,
-            generator:a.fromGenerator,
+            generator: a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1180,7 +1276,7 @@ export class AvatarState {
             from: it.Name,
             mediaUrl: a.outputMediaUrl,
             mimeType: a.outputMime,
-            generator:a.fromGenerator,
+            generator: a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1190,8 +1286,8 @@ export class AvatarState {
               innerId: a.innerId,
               from: it.Name,
               toolName: value.name,
-              toolData: value,
-              generator:a.fromGenerator,
+              toolReq: value,
+              generator: a.fromGenerator,
             };
           });
           list.push(...content.map(value => AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')));
@@ -1210,16 +1306,16 @@ export class AvatarState {
     //  TODO 属性設定は再検討要
     const it = this;
     return Effect.gen(function* () {
-      const bags = yield *Effect.forEach(a,value => {
-        return Effect.gen(function*() {
+      const bags = yield* Effect.forEach(a, value => {
+        return Effect.gen(function* () {
           if (value.text) {
             return [AsMessage.makeMessage(value, 'talk', isOut ? 'bot' : 'human', 'surface')];
           }
-          if (value.toolData){
+          if (value.toolRes) {
             //  toolDataはここでmessage分解する
-            const mes = yield *Effect.forEach((value.toolData as  z.infer<typeof CallToolResultSchema>).content,a2 => {
-              return Effect.gen(function*() {
-                console.log('add toolCallRes:',JSON.stringify(a2).slice(0,200));
+            const mes = yield* Effect.forEach((value.toolRes as z.infer<typeof CallToolResultSchema>).content, a2 => {
+              return Effect.gen(function* () {
+                console.log('add toolCallRes:', JSON.stringify(a2).slice(0, 200));
                 if (a2.type === 'image') {
                   // con.mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, it.TemplateId);
                   // con.mimeType = 'image/png';
@@ -1228,8 +1324,8 @@ export class AvatarState {
                     innerId: value.innerId,
                     mediaUrl: yield* DocService.saveDocMedia(value.innerId || short.generate(), a2.mimeType, a2.data, it.TemplateId), //  TODO
                     mimeType: 'image/png',
-                    generator:value.generator
-                  }, 'daemon', 'bot' , 'outer')]
+                    generator: value.generator,
+                  }, 'daemon', 'bot', 'outer')];
                 } else if (a2.type === 'resource') {
                   //  resourceはuriらしい resourceはLLMに回さないらしい
                   //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
@@ -1240,29 +1336,30 @@ export class AvatarState {
                     //  TODO なんで型があってないんだろう。。
                     yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
                   }
+                  console.log('ui: generator:',value);
                   return [AsMessage.makeMessage({
                     from: it.Name,
                     innerId: value.innerId,
                     mediaUrl: a2.resource.uri,
                     toolName: value.toolName,
                     mimeType: a2.resource.mimeType,
-                    generator:value.generator,
-                  }, 'daemon', 'bot' , 'outer')]
+                    generator: value.generator,
+                  }, 'daemon', 'bot', 'outer')];
                 }
                 return [];
 
-              })
-            })
+              });
+            });
             return [AsMessage.makeMessage(value, 'physics', isOut ? 'toolIn' : 'toolOut', 'inner')].concat(mes.flat());
           }
           return [];
-        })
+        });
       }).pipe(Effect.andThen(a1 => a1.flat()));
       console.log('appendContext:', bags.map(value => JSON.stringify(value).slice(0, 200)).join('\n'));
       it.sendToWindow(bags);
       // return Effect.succeed(bags);
-      return yield *it.addContext(bags);
-    })
+      return yield* it.addContext(bags);
+    });
   }
 
   /*

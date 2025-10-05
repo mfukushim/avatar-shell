@@ -301,6 +301,7 @@ onMounted(async () => {
                             {{$t('trigger.IfContextExists')}}
                             <q-select v-model="daemon.trigger.condition.asClass" :options="AsClassList" label="asClass" />
                             <q-select v-model="daemon.trigger.condition.asRole" :options="AsRoleList" label="asRole" />
+                            <q-select v-model="daemon.trigger.condition.asContext" :options="AsContextLinesList" label="asContext" />
                           </div>
                             <div v-else-if="daemon.trigger.triggerType === 'IfSummaryCounterOver'">
                               {{$t('trigger.IfSummaryCounterOver')}}

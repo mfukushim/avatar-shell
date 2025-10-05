@@ -82,11 +82,19 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
               text: value.mes.content.text,
             });
           }
-          if (value.mes.content.toolData) {
+          if (value.mes.content.toolReq) {
+            parts.push({
+              functionCall: {
+                name:value.mes.content.toolName,
+                args: value.mes.content.toolReq,
+              }
+            })
+          }
+          if (value.mes.content.toolRes) {
             parts.push({
               functionResponse: {
                 name: value.mes.content.toolName,
-                response: value.mes.content.toolData,
+                response:it.filterToolRes(value.mes.content.toolRes),
               },
             });
           }
@@ -117,29 +125,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
               name: value.name,
               id: value.callId,
               //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
-              response: {
-                ...value.results,
-                content: value.results.content.flatMap(a => {
-                  console.log('contents test:',a);
-                  //  @ts-ignore
-                  if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-                    //  @ts-ignore
-                    if(!a.resource.annotations.audience.includes('assistant')) {
-                      console.log('contents test no out');
-                      return []
-                    }
-                  }
-                  //  @ts-ignore
-                  if(a?.annotations && a.annotations?.audience) {
-                    //  @ts-ignore
-                    if(!a.annotations.audience.includes('assistant')) {
-                      console.log('contents test no out');
-                      return []
-                    }
-                  }
-                  return [a]
-                })
-              },
+              response: it.filterToolRes(value.results),
             },
           });
         });
@@ -161,6 +147,40 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       return mes;
     })
   }
+
+/*
+  private filterToolRes(value: any) {
+    try {
+      console.log('filterToolRes:',value);
+      return {
+        ...value,
+        content: value.content.flatMap((a:any) => {
+          // console.log('contents test:',a);
+          //  @ts-ignore
+          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.resource.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          //  @ts-ignore
+          if (a?.annotations && a.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          return [a];
+        }),
+      };
+    } catch (error) {
+      console.log('filterToolRes error:',error);
+      throw error;
+    }
+  }
+*/
 }
 
 type GeminiRole = 'user' | 'model';
@@ -189,6 +209,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
 
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
+      console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
+      console.log('gemini context end:');
       const res = yield* Effect.tryPromise({
         try: () => it.ai.models.generateContentStream({
           model: it.model,
@@ -255,6 +277,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       }
       if(funcCalls.length > 0) {
         console.log('gemini toolCallParam:',JSON.stringify(funcCalls));
+        //  TODO ここのfunc call の書式がまだ合ってない
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
@@ -266,6 +289,11 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
               name: v.name || '',
               input: v.args,
             }
+            // return {
+            //   callId: (v.args?.callId as string) || responseId,
+            //   name: (v.args?.name as string) || v.name || '',
+            //   input: v.args?.input || '',
+            // }
           }),
           genNum: nextGen,
         })

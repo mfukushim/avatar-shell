@@ -41,7 +41,7 @@ export class SocketService extends Effect.Service<SocketService>()('avatar-shell
         });
         ioServer.on('connection', (socket) => {
           socket.on('asMessage', (msg: AsMessage[]) => {
-            console.log('received asMessage:', msg);
+            // console.log('received asMessage:', msg);
 
             // クライアントに返信
             socket.broadcast.emit('asMessage', msg);
