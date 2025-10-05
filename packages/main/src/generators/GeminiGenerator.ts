@@ -277,6 +277,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       }
       if(funcCalls.length > 0) {
         console.log('gemini toolCallParam:',JSON.stringify(funcCalls));
+        //  TODO ここのfunc call の書式がまだ合ってない
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
@@ -288,6 +289,11 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
               name: v.name || '',
               input: v.args,
             }
+            // return {
+            //   callId: (v.args?.callId as string) || responseId,
+            //   name: (v.args?.name as string) || v.name || '',
+            //   input: v.args?.input || '',
+            // }
           }),
           genNum: nextGen,
         })
