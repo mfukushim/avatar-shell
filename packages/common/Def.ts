@@ -118,7 +118,8 @@ export const AsMessageContentSchema = Schema.partial(
     mediaBin: Schema.Any, //  ArrayBuffer
     mimeType: Schema.String,
     toolName: Schema.String,
-    toolData: Schema.Any,
+    toolReq: Schema.Any,
+    toolRes: Schema.Any,
     textParts: Schema.Array(Schema.String),
     llmInfo: Schema.String,
     isExternal: Schema.Boolean,

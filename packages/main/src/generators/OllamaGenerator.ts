@@ -42,7 +42,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         if(!role) return []
         return [{
           role: role,
-          content:a.content.text || JSON.stringify(a.content.toolData),
+          content:a.content.text || JSON.stringify(a.content.toolRes),
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
@@ -53,7 +53,8 @@ export class OllamaTextGenerator extends ContextGenerator {
       } else if (current.toolCallRes) {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
         mes.content = JSON.stringify(current.toolCallRes.map(value => {
-          return value.results;
+          // return value.results;
+          return it.filterToolRes(value.results);
         }));
         console.log('toolCallRes:',mes.content);
       }
@@ -76,7 +77,16 @@ export class OllamaTextGenerator extends ContextGenerator {
       })
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const messages = prev.concat(mes);
-      console.log('messages:',JSON.stringify(messages));
+      console.log('ollama context:',messages.map(a => {
+        let text = '##' + a.content.slice(0.200)
+        if (a.tool_calls) {
+          a.tool_calls.forEach(b => {
+            text += '\n+#' + JSON.stringify(b).slice(0.200)
+          })
+        }
+        return text;
+      }).join('\n'));
+      console.log('ollama context end:');
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
           model: it.model,

@@ -107,8 +107,11 @@ const getItemType = (item: AsMessage) => {
   if (item.content.mediaUrl && item.content.mimeType) {
     return item.content.mimeType.split('/')[0];
   }
-  if (item.content.toolData) {
+  if (item.content.toolReq) {
     return 'toolCall';
+  }
+  if (item.content.toolRes) {
+    return 'toolRes';
   }
   if (item.content.text) {
     return 'text';
@@ -145,7 +148,7 @@ const filterToolData = (toolData: any) => {
         return '[audio]';
       }
       if(value.type === 'resource') {
-        return `[${value.mimeType}]`;
+        return `[${value.resource.mimeType}]`;
       }
       if(value.type === 'text') {
         return `[text] ${value.text}`;
@@ -191,7 +194,8 @@ const imageCache = ref<Record<string, string>>({});
           <q-markdown :no-blockquote="false" v-if="item.content.text" :src="item.content.text" />
           <q-img v-if="getItemType(item) == 'image'" :src="imageCache[item.id]" @click="pickItem(item)" />
           <q-icon v-if="getItemType(item) == 'audio'" size="32px" name="play_circle" @click="playSound(item)" />
-          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolCall' && item.content.toolData" :src="filterToolData(item.content.toolData)" />
+          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolCall' && item.content.toolReq" :src="filterToolData(item.content.toolReq)" />
+          <q-markdown :no-blockquote="false" v-if="getItemType(item) == 'toolRes' && item.content.toolRes" :src="filterToolData(item.content.toolRes)" />
         </div>
         <div v-else >
           {{item.content.text.slice(0,3)}}

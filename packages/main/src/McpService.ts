@@ -218,7 +218,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         // const find = serverInfoList.find(p => p.id === toolName);
         if (!serverInfo) return yield* Effect.fail(new Error('function name not found3'));
         const toolInfo = serverInfo.tools.find(f => f.name === funcName);
-        if (!toolInfo) return yield* Effect.fail(new Error('function name not found4'));
+        if (!toolInfo) return yield* Effect.fail(new Error(`function name not found4 ${funcName}`));
         //  このfunctionに実行許可があるか確認する askの場合問い合わせさせる
         const element = state.Config.mcp[toolName];
         if (!element) return yield* Effect.fail(new Error('function name not found5'));

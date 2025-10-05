@@ -235,16 +235,40 @@ ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.s
 ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,gen:GeneratorProvider) => {
   return await AvatarService.getAvatarState(avatarId).pipe(
     Effect.andThen(a => {
-      return a.enterOuter({
-        avatarId: avatarId,
-        fromGenerator: 'external',
-        toGenerator:gen,
-        innerId: params.callId,
-        toolCallParam: [params],
-        genNum: 1,
-      })
+      return a.callMcpToolByExternal(params, gen)
+//       return Effect.gen(function* () {
+//         const res = yield *McpService.callFunction(a, params).pipe(Effect.catchIf(a => a instanceof Error, e => {
+//           return Effect.succeed({
+//             toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
+//           });
+//         }));
+//         //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
+// /*
+//         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
+//         return a.enterInner({
+//           avatarId: avatarId,
+//           fromGenerator: 'external',
+//           toGenerator:gen,
+//           input: {
+//             from: a.Name,
+//             text: res.
+//           },
+//           genNum: 0,
+//         })
+// */
+//       })
     }),
-    // Effect.andThen(a => McpService.callFunction(a, params)),    TODO この後を処理させないといけない。。。ここでの関数呼び出しではなく、outerQueueにGenOuterとして登録させる。 送り先のgenはデフォルトのgenを決めないといけないか?
+    // Effect.andThen(a => {
+      //  ここに来るツール起動要求は、AIの預かり知らない呼び出しなのでその結果をそのままAIに渡しても処理されない。
+      //  直に処理してからユーザ入力として処理する
+      // return a.enterOuter({
+      //   avatarId: avatarId,
+      //   fromGenerator: 'external',
+      //   toGenerator:gen,
+      //   innerId: params.callId,
+      //   toolCallParam: [params],
+      //   genNum: 1,
+      // })
     Effect.catchAll(showAlertIfFatal('callMcpTool')),
     aiRuntime.runPromise)
 });
