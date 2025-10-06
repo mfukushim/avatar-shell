@@ -9,7 +9,7 @@ import {McpService} from '../McpService.js';
 import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
-import {Ollama, Message, ToolCall} from 'ollama';
+import {Ollama, Message} from 'ollama';
 
 
 export class OllamaTextGenerator extends ContextGenerator {
@@ -30,6 +30,38 @@ export class OllamaTextGenerator extends ContextGenerator {
       //   Authorization: "Bearer <api key>",
       // },
     });
+  }
+
+  filterToolRes(value: any) {
+    try {
+      console.log('filterToolRes:',value);
+      return {
+        ...value,
+        content: value.content.flatMap((a:any) => {
+          // console.log('contents test:',a);
+          //  @ts-ignore
+          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.resource.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          //  @ts-ignore
+          if (a?.annotations && a.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          return [a];
+        }),
+      };
+    } catch (error) {
+      console.log('filterToolRes error:',error);
+      throw error;
+    }
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
