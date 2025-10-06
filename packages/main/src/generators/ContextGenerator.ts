@@ -61,37 +61,6 @@ export abstract class ContextGenerator {
 
   }
 
-  filterToolRes(value: any) {
-    try {
-      console.log('filterToolRes:',value);
-      return {
-        ...value,
-        content: value.content.flatMap((a:any) => {
-          // console.log('contents test:',a);
-          //  @ts-ignore
-          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.resource.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          //  @ts-ignore
-          if (a?.annotations && a.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          return [a];
-        }),
-      };
-    } catch (error) {
-      console.log('filterToolRes error:',error);
-      throw error;
-    }
-  }
 
   asRoleToRole(asRole: AsRole) {
     switch (asRole) {
