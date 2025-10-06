@@ -85,8 +85,8 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
           if (value.mes.content.toolReq) {
             parts.push({
               functionCall: {
-                name:value.mes.content.toolName,
-                args: value.mes.content.toolReq,
+                name:value.mes.content.toolReq.name,
+                args: value.mes.content.toolReq.args,
               }
             })
           }
@@ -108,6 +108,38 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       });
       return prev;
     })
+  }
+
+  filterToolRes(value: any) {
+    try {
+      console.log('filterToolRes:',value);
+      return {
+        ...value,
+        content: value.content.flatMap((a:any) => {
+          // console.log('contents test:',a);
+          //  @ts-ignore
+          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.resource.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          //  @ts-ignore
+          if (a?.annotations && a.annotations?.audience) {
+            //  @ts-ignore
+            if (!a.annotations.audience.includes('assistant')) {
+              console.log('contents test no out');
+              return [];
+            }
+          }
+          return [a];
+        }),
+      };
+    } catch (error) {
+      console.log('filterToolRes error:',error);
+      throw error;
+    }
   }
 
   protected makeCurrentContext(current: GenInner) {

@@ -29,6 +29,7 @@ import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
 import dayjs from 'dayjs';
 import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
+import {ClaudeTextGenerator} from './generators/ClaudeGenerator.js';
 
 let debugConfigFile:string|undefined = undefined;
 
@@ -372,7 +373,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     const genMap: Record<GeneratorProvider, (sysConfig: SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any, Error>> = {
       //  llm系
       'openAiText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //openAiTextGenerator.make(sysConfig, settings),
-      'claudeText': (sysConfig, settings) => EmptyTextGenerator.make(settings), //ClaudeTextGenerator.make(sysConfig, settings),
+      'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig,settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
       'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
       //  画像生成系
