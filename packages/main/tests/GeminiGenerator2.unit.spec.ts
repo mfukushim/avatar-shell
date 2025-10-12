@@ -2,17 +2,17 @@
 import {Effect, Layer, ManagedRuntime, Schema} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
-import {AvatarState, GenInner} from '../src/AvatarState';
+import {AvatarState} from '../src/AvatarState';
 import {ConfigServiceLive} from '../src/ConfigService';
 import {McpService, McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {OllamaTextGenerator} from '../src/generators/OllamaGenerator';
+import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
-import {vitestSysConfig} from '../../common/vitestConfig';
+import {GeminiTextGenerator} from '../src/generators/GeminiGenerator';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 
 const cwd = process.cwd()
@@ -21,19 +21,15 @@ if (cwd.endsWith('main')) {
   baseDir = path.join(baseDir,'../..');
 }
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
-  BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
-describe('OllamaGenerator', () => {
+describe('GeminiGenerator2', () => {
   beforeEach(() => {
   });
 
   it('make', async () => {
-    const ai = await OllamaTextGenerator.make( {
-      host: "http://192.168.11.121:11434",
-      model: "llama3.1"
-    }).pipe(runPromise);
+    const ai = await GeminiTextGenerator.make(vitestSysConfig).pipe(runPromise);
 
     console.log(ai);
     expect(typeof ai === 'object').toBe(true);
@@ -45,16 +41,14 @@ describe('OllamaGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* OllamaTextGenerator.make({
-        host: "http://192.168.11.121:11434",
-        model: "llama3.1"
-      });
+      const ai = yield* GeminiTextGenerator.make(vitestSysConfig);
 
-      return yield *ai.generateContext({avatarId:'aaaa',toGenerator:'ollamaText',input:{
+      return yield *ai.generateContext({avatarId:'aaaa',toGenerator:'geminiText',input:{
           innerId: '1234567890',
           text: 'hello',
-        }
-      } as GenInner, avatarState);
+        },
+        genNum:0
+      }, avatarState);
     }).pipe(aiRuntime.runPromise,);
 
 
@@ -68,10 +62,7 @@ describe('OllamaGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* OllamaTextGenerator.make({
-        host: "http://192.168.11.121:11434",
-        model: "llava:7b-v1.6"
-      });
+      const ai = yield* GeminiTextGenerator.make(vitestSysConfig);
 
       // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       const fs = yield* FileSystem.FileSystem;
@@ -84,48 +75,14 @@ describe('OllamaGenerator', () => {
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        }
-      } as GenInner, avatarState);
+        },
+        genNum:0
+      }, avatarState);
     }).pipe(aiRuntime.runPromise,);
 
 
     console.log(res);
     expect(typeof res === 'object').toBe(true);
-  });
-
-  it('コンテキストステップ確認', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      // yield *GeneratorService.startLoop()
-      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *avatarState.enterInner({
-        avatarId:avatarState.Id,
-        fromGenerator:'external',
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: 'hello'
-        },
-        genNum:0,
-        setting: {
-          noTool:true
-        }
-      })
-      console.log('enterInner:',res);
-
-      yield *Effect.sleep('20 seconds');
-
-      console.log('context:',yield *avatarState.TalkContextEffect)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
   });
 
   //  現時点ファイルはimageのみ想定っぽい。テキストファイルは展開してプロンプト扱いにしていたはず。
@@ -157,8 +114,36 @@ describe('OllamaGenerator', () => {
   //   expect(typeof res === 'object').toBe(true);
   // });
 
+  it('execGeneratorLoop_text', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
 
-//  追加テスト: toAnswerOut (text のみ) で AsOutput が生成される
-// it('toAnswerOut converts text response to outputs', async () => {
-//   const ai = await openAiTextGenerator.make(vitestSysConfig, {
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *GeneratorService.enterInner({
+        avatarId:avatarState.Id,
+        toGenerator:'geminiText',
+        input:{
+          from: 'user',
+          text: 'hello'
+        },
+        genNum:0,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+
+
 },5*60*1000);

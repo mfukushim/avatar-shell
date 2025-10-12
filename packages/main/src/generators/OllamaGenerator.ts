@@ -109,24 +109,18 @@ export class OllamaTextGenerator extends ContextGenerator {
       })
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const messages = prev.concat(mes);
-      console.log('ollama context:',messages.map(a => {
-        let text = '##' + a.content.slice(0.200)
-        if (a.tool_calls) {
-          a.tool_calls.forEach(b => {
-            text += '\n+#' + JSON.stringify(b).slice(0.200)
-          })
-        }
-        return text;
-      }).join('\n'));
-      console.log('ollama context end:');
+      it.debugContext('ollama',messages);
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
           model: it.model,
           messages: messages,
-          tools: current.setting?.noTool ? undefined: ollamaTools,
+          tools: current.setting?.noTool ? []: ollamaTools,
           stream: true,
         }),
-        catch:error => new Error(`ollama error:${error}`),
+        catch:error => {
+          console.log(`ollama error:${error}`);
+          return new Error(`ollama error:${error}`);
+        },
       })
       const stream =
         Stream.fromAsyncIterable(response, (e) => new Error(String(e))).pipe(
@@ -174,5 +168,17 @@ export class OllamaTextGenerator extends ContextGenerator {
     })
   }
 
+  private debugContext(label:string,messages: Message[]) {
+    console.log(label+' context:', messages.map(a => {
+      let text = '##' + a.content.slice(0.200);
+      if (a.tool_calls) {
+        a.tool_calls.forEach(b => {
+          text += '\n+#' + JSON.stringify(b).slice(0.200);
+        });
+      }
+      return text;
+    }).join('\n'));
+    console.log(label+' context end:');
+  }
 }
 

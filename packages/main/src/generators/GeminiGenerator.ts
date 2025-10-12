@@ -340,7 +340,6 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
   protected model = 'gemini-2.0-flash-preview-image-generation';
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<GeminiImageGenerator, Error> {
-    console.log('geminiImageGenerator make:',sysConfig.generators.gemini);
     if (!sysConfig.generators.gemini?.apiKey) {
       return Effect.fail(new Error('gemini api key is not set.'));
     }
@@ -408,7 +407,6 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
   protected cutoffTextLimit = 150;
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<GeminiBaseGenerator, Error> {
-    console.log('GeminiVoiceGenerator make:',sysConfig.generators.gemini);
     if (!sysConfig.generators.gemini?.apiKey) {
       return Effect.fail(new Error('gemini api key is not set.'));
     }
