@@ -100,8 +100,7 @@ describe('OllamaGenerator', () => {
 
       yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
       const avatarState = yield *AvatarService.makeAvatar(null)
-      // yield *GeneratorService.startLoop()
-      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+
       yield *Effect.sleep('1 seconds');
 
       const res = yield *avatarState.enterInner({
@@ -110,9 +109,10 @@ describe('OllamaGenerator', () => {
         toGenerator:'ollamaText',
         input:{
           from: 'user',
-          text: 'hello'
+          text: 'hello',
+          isExternal:true,
         },
-        genNum:0,
+        genNum:1,
         setting: {
           noTool:true
         }

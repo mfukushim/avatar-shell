@@ -153,7 +153,7 @@ export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
     } as AsMessage;
   }
   static debugLog(message:AsMessage) {
-    return `${message.asClass},${message.asRole},${message.asContext}:${JSON.stringify(message.content).slice(0,200)}`
+    return `**${message.asClass},${message.asRole},${message.asContext}:${JSON.stringify(message.content).slice(0,200)}`
   }
 }
 

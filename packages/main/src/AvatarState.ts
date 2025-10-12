@@ -1368,11 +1368,11 @@ export class AvatarState {
 
 
   debugGenInner(a: GenInner) {
-    return `${a.fromGenerator},${a.toGenerator},${a.input?.text},${a.toolCallRes?.map(value => value.name).join(',')}`;
+    return `%%${a.fromGenerator},${a.toGenerator},${a.input?.text},${a.toolCallRes?.map(value => value.name).join(',')}`;
   }
 
   debugGenOuter(a: GenOuter) {
-    return `${a.fromGenerator},${a.toGenerator},${a.outputText},${a.outputImage},${a.outputMediaUrl},${a.toolCallParam?.map(value => value.name).join(',')}`;
+    return `&&${a.fromGenerator},${a.toGenerator},${a.outputText},${a.outputImage},${a.outputMediaUrl},${a.toolCallParam?.map(value => value.name).join(',')}`;
   }
   /*
   Asのジェネレータのコンテキストとの対応パターン
