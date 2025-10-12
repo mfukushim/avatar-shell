@@ -867,7 +867,7 @@ export class AvatarState {
           genNum: inner.genNum + 1,
         }));
         it.clearStreamingText();
-        console.log('genLoop gen io:', io);
+        console.log('genLoop gen io:', io.map(v =>it.debugGenOuter(v)));
         if (io.length > 0) {
           yield* Queue.offerAll(it.outerQueue, io);
         }
@@ -1228,6 +1228,7 @@ export class AvatarState {
         from: this.Name,
         text: a.input.text,
         generator: a.toGenerator,
+        isExternal: a.input.isExternal,
       };
       list.push(content);
     }
@@ -1239,6 +1240,7 @@ export class AvatarState {
           toolName: value.name,
           toolRes: value.results,
           generator: a.toGenerator,
+          isExternal: a.input?.isExternal,
         } as AsMessageContent;
       });
       list.push(...content);
@@ -1293,7 +1295,7 @@ export class AvatarState {
 
                 });
               });
-              return [AsMessage.makeMessage(value, setting?.toClass || 'physics', setting?.toRole || (value.toolReq ? 'toolIn' : 'toolOut'), 'inner')].concat(mes.flat());
+              return [AsMessage.makeMessage(value, setting?.toClass || 'talk', setting?.toRole || (value.toolReq ? 'toolIn' : 'toolOut'), 'inner')].concat(mes.flat());
             }
             return [];
           });
@@ -1352,7 +1354,7 @@ export class AvatarState {
               generator: a.fromGenerator,
             };
           });
-          list.push(...content.map(value => AsMessage.makeMessage(value, 'physics', 'toolIn', 'inner')));
+          list.push(...content.map(value => AsMessage.makeMessage(value, 'talk', 'toolIn', 'inner')));
         }
         return list;
       });

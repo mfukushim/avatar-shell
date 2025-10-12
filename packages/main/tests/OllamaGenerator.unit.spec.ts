@@ -93,7 +93,7 @@ describe('OllamaGenerator', () => {
     expect(typeof res === 'object').toBe(true);
   });
 
-  it('コンテキストステップ確認', async () => {
+  it('コンテキストステップ確認1', async () => {
     await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
       yield *Effect.sleep('1 seconds');
@@ -115,6 +115,40 @@ describe('OllamaGenerator', () => {
         genNum:0,
         setting: {
           noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('20 seconds');
+
+      console.log('context:',yield *avatarState.TalkContextEffect)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  });
+
+  it('コンテキストステップ確認2', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        fromGenerator:'external',
+        toGenerator:'ollamaText',
+        input:{
+          from: 'user',
+          text: '/get traveler tips',
+          isExternal:true,
+        },
+        genNum:1,
+        setting: {
         }
       })
       console.log('enterInner:',res);

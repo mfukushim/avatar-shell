@@ -10,6 +10,7 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {Ollama, Message} from 'ollama';
+import {AsMessage} from '../../../common/Def.js';
 
 
 export class OllamaTextGenerator extends ContextGenerator {
@@ -34,7 +35,6 @@ export class OllamaTextGenerator extends ContextGenerator {
 
   filterToolRes(value: any) {
     try {
-      console.log('filterToolRes:',value);
       return {
         ...value,
         content: value.content.flatMap((a:any) => {
@@ -74,7 +74,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         if(!role) return []
         return [{
           role: role,
-          content:a.content.text || JSON.stringify(a.content.toolRes),
+          content:a.content.text || JSON.stringify(a.content.toolRes) || JSON.stringify(a.content.toolReq),
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
@@ -165,12 +165,13 @@ export class OllamaTextGenerator extends ContextGenerator {
         toolCallParam:toolCallParam.length > 0 ? toolCallParam : undefined,
         setting: current.setting
       }] as GenOuter[];
-    })
+    }).pipe(Effect.tapError(error => Effect.log('OllamaTextGenerator error:', error.message,error.stack)));
   }
 
   private debugContext(label:string,messages: Message[]) {
-    console.log(label+' context:', messages.map(a => {
-      let text = '##' + a.content.slice(0.200);
+    console.log(label+' context start:');
+    console.log(messages.map(a => {
+      let text = '##'+a.role+':' + a.content?.slice(0.200);
       if (a.tool_calls) {
         a.tool_calls.forEach(b => {
           text += '\n+#' + JSON.stringify(b).slice(0.200);
