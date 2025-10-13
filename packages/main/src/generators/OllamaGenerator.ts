@@ -109,7 +109,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       })
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const messages = prev.concat(mes);
-      it.debugContext('ollama',messages);
+      it.debugContext(messages);
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
           model: it.model,
@@ -168,8 +168,8 @@ export class OllamaTextGenerator extends ContextGenerator {
     }).pipe(Effect.tapError(error => Effect.log('OllamaTextGenerator error:', error.message,error.stack)));
   }
 
-  private debugContext(label:string,messages: Message[]) {
-    console.log(label+' context start:');
+  private debugContext(messages: Message[]) {
+    console.log('ollama context start:');
     console.log(messages.map(a => {
       let text = '##'+a.role+':' + a.content?.slice(0.200);
       if (a.tool_calls) {
@@ -179,7 +179,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       }
       return text;
     }).join('\n'));
-    console.log(label+' context end:');
+    console.log('ollama context end:');
   }
 }
 

@@ -121,7 +121,10 @@ describe('OllamaGenerator', () => {
 
       yield *Effect.sleep('20 seconds');
 
-      console.log('context:',yield *avatarState.TalkContextEffect)
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:',
+        params)
+      expect(params.length).toBe(4)
 
     }).pipe(
       aiRuntime.runPromise,

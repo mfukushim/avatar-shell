@@ -24,6 +24,7 @@ import {
   Part,
 } from '@google/genai';
 import {MediaService} from '../MediaService.js';
+import {Message} from 'ollama';
 
 
 export abstract class GeminiBaseGenerator extends ContextGenerator {
@@ -112,7 +113,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
 
   filterToolRes(value: any) {
     try {
-      console.log('filterToolRes:',value);
+      // console.log('filterToolRes:',value);
       return {
         ...value,
         content: value.content.flatMap((a:any) => {
@@ -180,39 +181,57 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     })
   }
 
-/*
-  private filterToolRes(value: any) {
-    try {
-      console.log('filterToolRes:',value);
-      return {
-        ...value,
-        content: value.content.flatMap((a:any) => {
-          // console.log('contents test:',a);
-          //  @ts-ignore
-          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.resource.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          //  @ts-ignore
-          if (a?.annotations && a.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          return [a];
-        }),
-      };
-    } catch (error) {
-      console.log('filterToolRes error:',error);
-      throw error;
-    }
+  protected debugContext(messages: Content[]) {
+    console.log('gemini context start:');
+    console.log(messages.map(a => {
+      let text = '##'+a.role+':';
+      if (Array.isArray(a.parts)) {
+        a.parts.forEach(b => {
+          text += '\n+#' + JSON.stringify(b).slice(0.200);
+        });
+      } else {
+        text+= a.parts
+      }
+      return text;
+    }).join('\n'));
+    console.log('gemini context end:');
+    // console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
+    // console.log('gemini context end:');
   }
-*/
+
+  /*
+    private filterToolRes(value: any) {
+      try {
+        console.log('filterToolRes:',value);
+        return {
+          ...value,
+          content: value.content.flatMap((a:any) => {
+            // console.log('contents test:',a);
+            //  @ts-ignore
+            if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+              //  @ts-ignore
+              if (!a.resource.annotations.audience.includes('assistant')) {
+                console.log('contents test no out');
+                return [];
+              }
+            }
+            //  @ts-ignore
+            if (a?.annotations && a.annotations?.audience) {
+              //  @ts-ignore
+              if (!a.annotations.audience.includes('assistant')) {
+                console.log('contents test no out');
+                return [];
+              }
+            }
+            return [a];
+          }),
+        };
+      } catch (error) {
+        console.log('filterToolRes error:',error);
+        throw error;
+      }
+    }
+  */
 }
 
 type GeminiRole = 'user' | 'model';
@@ -241,8 +260,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
 
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
-      console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
-      console.log('gemini context end:');
+      it.debugContext(contents);
       const res = yield* Effect.tryPromise({
         try: () => it.ai.models.generateContentStream({
           model: it.model,
@@ -507,4 +525,5 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
     const wavBuffer = Buffer.concat([header, pcmBuffer]);
     return wavBuffer.toString('base64');
   }
+
 }

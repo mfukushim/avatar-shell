@@ -19,9 +19,9 @@ export const vitestSysConfig: SysConfig = {
       model: '',
       voice: '',
     },
-    'anthropic': {
-      'apiKey': 'aaa',
-      'model': 'claude-3-7-sonnet-latest',
+    anthropic: {
+      apiKey: process.env.VITE_CLAUDE_API_KEY as string || 'aaa',
+      model: 'claude-3-7-sonnet-latest',
     },
     gemini: {
       apiKey: process.env.VITE_GEMINI_API_KEY as string || 'aaaa',

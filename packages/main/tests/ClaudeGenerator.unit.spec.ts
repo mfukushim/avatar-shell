@@ -12,8 +12,8 @@ import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
-import {GeminiTextGenerator} from '../src/generators/GeminiGenerator';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator';
 
 const cwd = process.cwd()
 let baseDir = cwd;
@@ -24,12 +24,12 @@ if (cwd.endsWith('main')) {
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
-describe('GeminiGenerator2', () => {
+describe('ClaudeGenerator', () => {
   beforeEach(() => {
   });
 
   it('make', async () => {
-    const ai = await GeminiTextGenerator.make(vitestSysConfig).pipe(runPromise);
+    const ai = await ClaudeTextGenerator.make(vitestSysConfig).pipe(runPromise);
 
     console.log(ai);
     expect(typeof ai === 'object').toBe(true);
@@ -41,10 +41,10 @@ describe('GeminiGenerator2', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* GeminiTextGenerator.make(vitestSysConfig);
+      const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
 
       return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'geminiText',fromGenerator:'external',
+        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
         input:{
           innerId: '1234567890',
           text: 'hello',
@@ -52,7 +52,6 @@ describe('GeminiGenerator2', () => {
         genNum:0
       }, avatarState);
     }).pipe(aiRuntime.runPromise,);
-
 
     console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
@@ -64,7 +63,7 @@ describe('GeminiGenerator2', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* GeminiTextGenerator.make(vitestSysConfig);
+      const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
 
       // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       const fs = yield* FileSystem.FileSystem;
@@ -73,7 +72,7 @@ describe('GeminiGenerator2', () => {
 
       const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
       return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'geminiText',fromGenerator:'external',
+        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
         input:{
           innerId: '1234567890',
           mediaUrl: url,
@@ -131,7 +130,7 @@ describe('GeminiGenerator2', () => {
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'geminiText',
+        toGenerator:'claudeText',
         input:{
           from: 'user',
           text: 'hello',
@@ -168,7 +167,7 @@ describe('GeminiGenerator2', () => {
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'geminiText',
+        toGenerator:'claudeText',
         input:{
           from: 'user',
           text: '/get traveler tips',
