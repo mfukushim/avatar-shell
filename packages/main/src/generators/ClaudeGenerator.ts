@@ -13,6 +13,7 @@ import {
 } from '../../../common/DefGenerators.js';
 import Anthropic from '@anthropic-ai/sdk';
 import {MediaService} from '../MediaService.js';
+import {Content} from '@google/genai';
 
 
 export abstract class ClaudeBaseGenerator extends ContextGenerator {
@@ -184,6 +185,25 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
       return mes as Anthropic.MessageParam;
     });
   }
+
+  protected debugContext(messages: Anthropic.Messages.MessageParam[]) {
+    console.log('claude context start:');
+    console.log(messages.map(a => {
+      let text = '##'+a.role+':';
+      if (Array.isArray(a.content)) {
+        a.content.forEach(b => {
+          text += '\n+#' + JSON.stringify(b).slice(0.200);
+        });
+      } else {
+        text+= a.content
+      }
+      return text;
+    }).join('\n'));
+    console.log('claude context end:');
+    // console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
+    // console.log('gemini context end:');
+  }
+
 }
 
 export class ClaudeTextGenerator extends ClaudeBaseGenerator {
@@ -211,8 +231,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
 
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
-      console.log('Claude context:', contents.map(a => Array.isArray(a.content) ? a.content?.map(b => '##' + JSON.stringify(b).slice(0.200)).join(','):a.content).join('\n'));
-      console.log('Claude context end:');
+      it.debugContext(contents);
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-5-haiku-latest',
         messages: contents,
@@ -229,7 +248,6 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       };
       const stream = it.anthropic.messages.stream(body)
         .on('text', (text: string) => {
-          console.log(text);
           it.sendStreamingText(text, avatarState);
         });
       //  確定実行結果取得
@@ -240,7 +258,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           return new Error(`claude error:${error}`);
         },
       });
-      console.log(message);
+      // console.log(message);
 
       /*
             const res = yield* Effect.tryPromise({

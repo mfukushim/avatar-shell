@@ -19,9 +19,9 @@ export const vitestSysConfig: SysConfig = {
       model: '',
       voice: '',
     },
-    'anthropic': {
-      'apiKey': 'aaa',
-      'model': 'claude-3-7-sonnet-latest',
+    anthropic: {
+      apiKey: process.env.VITE_CLAUDE_API_KEY as string || 'aaa',
+      model: 'claude-3-7-sonnet-latest',
     },
     gemini: {
       apiKey: process.env.VITE_GEMINI_API_KEY as string || 'aaaa',
@@ -35,7 +35,7 @@ export const vitestSysConfig: SysConfig = {
       voice: 'Kore',
     },
     ollama: {
-      host: 'http://192.168.1.121:11434',
+      host: 'http://192.168.11.121:11434',
       model: 'llama3.1',
     }
     // voiceVox: {
@@ -213,11 +213,6 @@ export const vitestAvatarConfigNone: AvatarSetting = {
   templateId: 'vitestNoneId',
   'general': {
     'name': 'vitestMi',
-    // useLlm: 'emptyText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
@@ -315,7 +310,8 @@ export const vitestAvatarConfigNone: AvatarSetting = {
         directTrigger: true,
         setting: {
           toClass:'daemon',
-          toRole:'bot'
+          toRole:'bot',
+          toContext:'outer'
         },
       },
     },

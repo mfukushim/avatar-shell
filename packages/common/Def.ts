@@ -152,6 +152,9 @@ export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
       content
     } as AsMessage;
   }
+  static debugLog(message:AsMessage) {
+    return `**${message.asClass},${message.asRole},${message.asContext}:${JSON.stringify(message.content).slice(0,200)}`
+  }
 }
 
 export const AsContentsSchema = Schema.Struct({

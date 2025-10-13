@@ -97,7 +97,7 @@ describe('avatarState', () => {
           from: 'human',
           text: 'hello',
         },'talk','human','surface')
-      ], true);
+      ]);
       return yield* avatarState.TalkContextEffect;
     }).pipe(
       aiRuntime.runPromise,
@@ -451,6 +451,7 @@ describe('avatarState', () => {
 
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'ollamaText',
         input:{
           from: 'user',
@@ -486,7 +487,7 @@ describe('avatarState', () => {
           from: 'human',
           text: 'hello',
         },'talk','human','surface')
-      ], true);
+      ]);
       return yield* avatarState.TalkContextEffect;
     }).pipe(
       aiRuntime.runPromise,
@@ -510,6 +511,7 @@ describe('avatarState', () => {
 
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'ollamaText',
         input:{
           from: 'user',
@@ -526,6 +528,7 @@ describe('avatarState', () => {
 
       const res2 = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'ollamaText',
         input:{
           from: 'user',
@@ -558,6 +561,7 @@ describe('avatarState', () => {
 
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'ollamaText',
         input:{
           from: 'user',
@@ -586,6 +590,7 @@ describe('avatarState', () => {
 
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'geminiText',
         input:{
           from: 'user',
@@ -602,6 +607,7 @@ describe('avatarState', () => {
 
       const res2 = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
+        fromGenerator:'external',
         toGenerator:'geminiText',
         input:{
           from: 'user',
