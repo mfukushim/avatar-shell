@@ -13,6 +13,11 @@ Japanese / [English](./README.md)
 > まだ不安定ですが、リバーシ MCP-UIが動く状態での一時的公開です。  
 > https://github.com/mfukushim/reversi-mcp-ui
 
+> Note: 以前の版を使っている方はコンテキストデーモンのmainLLMの設定を以下のように設定してください(条件項のasContext=outer)
+設定ファイルの初期化については近々追加予定です。  
+<img width="400" alt="COntext daemon setting" src="./page_images/img2.png" />
+
+
 ## 機能
 
 - Windows/Mac OS/Linux Desktopモード (Raspberry pi Desktop)で動作します。
@@ -82,6 +87,8 @@ Google geminiのAPI keyをGoogleのサイトより取得してください。
   - input text   対話テキスト入力
   - conversation area show/hide   会話エリア切替(多段)
 
+## コンセプト  
+
 ### コンテキストジェネレーター
 
 本システムでは、タイムラインに文脈(会話文、生成画像など)を追加する機能を持つ部品を「コンテキストジェネレーター」と呼んでいます。  
@@ -108,6 +115,15 @@ AIが内蔵MCPサーバーに提出した予定を、人の入力のようにAva
 コンテキストジェネレーター、コンテキストデーモン、エコーデーモンの概念については以下のページでも説明しています(日本語)
 
 https://note.com/marble_walkers/n/nb7930d95c2d3
+
+
+## ガイド  
+
+https://note.com/marble_walkers/n/nf3e2a277c061  
+https://note.com/marble_walkers/n/nb7930d95c2d3  
+https://note.com/marble_walkers/n/nd702134c8f52  
+https://note.com/marble_walkers/n/n12b4caae21d8  
+https://note.com/marble_walkers/n/n6f460f490898
 
 
 <img width="600" alt="スクリーンショット 2025-06-15 020826" src="https://github.com/user-attachments/assets/d03dcdcb-5e54-4a99-acb4-ae7b492f6ce6" />

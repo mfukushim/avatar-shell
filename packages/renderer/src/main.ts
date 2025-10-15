@@ -34,7 +34,7 @@ myApp.use(Quasar, {
 console.log('getLocale',getLocale);
 const loadLocaleMessages = async () => {
   const locale = await getLocale() || 'en'
-  // locale = 'en-US'
+  // const locale = 'en-US'
   const messages = await import(`./locales/${locale.split('-')[0]}.ts`)
   i18n.global.setLocaleMessage(locale, messages.default)
   i18n.global.locale = locale
