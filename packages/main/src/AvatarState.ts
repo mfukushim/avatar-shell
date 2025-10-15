@@ -736,7 +736,12 @@ export class AvatarState {
   }
 
 
-  addContext(bags: AsMessage[]) {
+  /**
+   *
+   * @param bags
+   * @param isExternal 外部から与えたコンテキスト これはLLMのprev contextには追加されない LLMの認識できるコンテキストはLLM自身が発生したものとdaemonが検出したものだけになるべきだから?
+   */
+  addContext(bags: AsMessage[],isExternal?:boolean) {
     if (bags.length === 0) {
       return Effect.void;  //  更新の無限ループ防止
     }
@@ -764,6 +769,7 @@ export class AvatarState {
                 ...mes.content,
                 mediaBin: undefined,
                 mediaUrl: mediaUrl,
+                isExternal
               },
             } as AsMessage;
           } else if (mes.content.mediaBin && mes.content.mimeType?.startsWith('text/')) {
@@ -776,10 +782,17 @@ export class AvatarState {
                 ...mes.content,
                 mediaBin: undefined,
                 text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
+                isExternal
               },
             } as AsMessage;
           } else {
-            return mes;
+            return {
+              ...mes,
+              content: {
+                ...mes.content,
+                isExternal,
+              }
+            };
           }
         });
 
@@ -1035,6 +1048,8 @@ export class AvatarState {
         input: {
           from: message.content.from,
           text: message.content.text,
+          isExternal: message.content.isExternal
+          // isExternal: true  //  TODO execGeneratorから来るものを外部=userと見なしてよいのかは検討要
         },
         genNum: 1,  //  この入力はまだcontextに追加されていないので1から開始して追加させる
         setting: {
@@ -1221,6 +1236,7 @@ export class AvatarState {
 
   appendContextGenIn(a: GenInner) {
     console.log('appendContextGenIn:',this.debugGenInner(a).slice(0, 200));
+    console.log(a);
     const list: AsMessageContent[] = [];
     if (a.input?.text) {
       const content: AsMessageContent = {
@@ -1254,13 +1270,15 @@ export class AvatarState {
         const bags = yield* Effect.forEach(a, value => {
           return Effect.gen(function* () {
             if (value.text) {
-              return [AsMessage.makeMessage(value, setting?.toClass || 'talk', setting?.toRole || (value.isExternal ? 'human': 'bot'), setting?.toContext || 'surface')];
+              //  TODO toRoleは計算結果のロールをどうするかの話でこのメッセージのロールをどうするかの指定ではない。。
+              return [AsMessage.makeMessage(value, setting?.toClass || 'talk', /*setting?.toRole ||*/ (value.isExternal ? 'human': 'bot'), setting?.toContext || 'surface')];
             }
             if (value.toolRes) {
               //  toolDataはここでmessage分解する
               const mes = yield* Effect.forEach((value.toolRes as z.infer<typeof CallToolResultSchema>).content, a2 => {
                 return Effect.gen(function* () {
                   console.log('add toolCallRes:', JSON.stringify(a2).slice(0, 200));
+                  //  ここでtool結果から抽出するのは、ユーザ都合で表示させたい画像やhtmlだけなので、これはouterで抽出する
                   if (a2.type === 'image') {
                     // con.mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, it.TemplateId);
                     // con.mimeType = 'image/png';
@@ -1270,7 +1288,7 @@ export class AvatarState {
                       mediaUrl: yield* DocService.saveDocMedia(value.innerId || short.generate(), a2.mimeType, a2.data, it.TemplateId), //  TODO
                       mimeType: 'image/png',
                       generator: value.generator,
-                    }, 'daemon', 'bot', 'outer')];
+                    }, 'daemon', (value.toolReq ? 'toolIn' : 'toolOut'), 'outer')];
                   } else if (a2.type === 'resource') {
                     //  resourceはuriらしい resourceはLLMに回さないらしい
                     //  MCP UIの拡張uriを受け付ける htmlテキストはかなり大きくなりうるのでimageと同じくキャッシュ保存にする
@@ -1289,13 +1307,14 @@ export class AvatarState {
                       toolName: value.toolName,
                       mimeType: a2.resource.mimeType,
                       generator: value.generator,
-                    }, 'daemon', 'bot', 'outer')];
+                    }, 'daemon', (value.toolReq ? 'toolIn' : 'toolOut'), 'outer')];
                   }
                   return [];
 
                 });
               });
-              return [AsMessage.makeMessage(value, setting?.toClass || 'talk', setting?.toRole || (value.toolReq ? 'toolIn' : 'toolOut'), 'inner')].concat(mes.flat());
+              //  AIはtool responseがあったことを対として認識できないといけない。そのための独立toolRes。これを実際にLLMのprevに戻すべきかは各LLMの特性による
+              return [AsMessage.makeMessage(value, setting?.toClass || 'daemon', setting?.toRole || (value.toolReq ? 'toolIn' : 'toolOut'), 'inner')].concat(mes.flat()); //  テキストはLLMに読ませてLLMから返答させる必要があるからinner
             }
             return [];
           });
@@ -1354,7 +1373,7 @@ export class AvatarState {
               generator: a.fromGenerator,
             };
           });
-          list.push(...content.map(value => AsMessage.makeMessage(value, 'talk', 'toolIn', 'inner')));
+          list.push(...content.map(value => AsMessage.makeMessage(value, 'daemon', 'toolIn', 'inner')));
         }
         return list;
       });

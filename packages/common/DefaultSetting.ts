@@ -109,6 +109,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         'trigger': {'triggerType': 'IfContextExists', 'condition': {
             asClass: 'talk',
             asRole: 'human',
+            asContext:'outer'
           }},
         'exec': {
           generator: 'geminiText',

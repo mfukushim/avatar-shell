@@ -187,7 +187,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       let text = '##'+a.role+':';
       if (Array.isArray(a.parts)) {
         a.parts.forEach(b => {
-          text += '\n+#' + JSON.stringify(b).slice(0.200);
+          text += '\n+#' + JSON.stringify(b).slice(0,200);
         });
       } else {
         text+= a.parts

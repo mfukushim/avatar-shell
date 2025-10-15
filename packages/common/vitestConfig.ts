@@ -62,6 +62,10 @@ export const vitestSysConfig: SysConfig = {
         "bs_handle":process.env.VITE_TR_bs_handle as string,
       },
     },
+    "reversi": {
+      "type": "streamable-http",
+      "url": "https://reversi-mcp-ui.daisycodes.workers.dev/mcp"
+    },
     "slack": {
       "command": "npx",
       "args": [

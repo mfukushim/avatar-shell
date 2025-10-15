@@ -81,7 +81,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     const it = this;
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
-      console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0.200)).join('\n'));
+      console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0,200)).join('\n'));
       const out:ResponseInputItem[] = []
       it.filterForLlmPrevContext(prevMes).forEach(a => {
         const role = it.asRoleToRole(a.asRole);
@@ -318,7 +318,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
-      console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0.200)).join('\n'));
+      console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0,200)).join('\n'));
       console.log('OpenAi context end:');
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
@@ -361,11 +361,12 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       const responseOut = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
         Chunk.toReadonlyArray,
       ).map(a => a.response.output).flat();
-      console.log(responseOut);
+      console.log('responseOut:',JSON.stringify(responseOut));
       const textOut = responseOut.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
         //  TODO mesIdは1件のはず?
         return {id:b.id,text:b.content.filter(c => c.type === 'output_text').map(c => c.text).join('\n')}
       });
+      console.log('textOut:',JSON.stringify(textOut));
       if (textOut.length > 1) {
         return yield *Effect.fail(new Error(`response.completed > 1:${textOut.length}`))
       }

@@ -55,6 +55,9 @@ export abstract class ContextGenerator {
       if(value.asContext === 'outer') {
         return false;
       }
+      // if (value.content.isExternal) {
+      //   return false;
+      // }
       return value.asRole !== 'system';
 
     })

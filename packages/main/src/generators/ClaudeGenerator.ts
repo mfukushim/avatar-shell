@@ -192,7 +192,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
       let text = '##'+a.role+':';
       if (Array.isArray(a.content)) {
         a.content.forEach(b => {
-          text += '\n+#' + JSON.stringify(b).slice(0.200);
+          text += '\n+#' + JSON.stringify(b).slice(0,200);
         });
       } else {
         text+= a.content

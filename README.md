@@ -7,7 +7,12 @@ Note: There are still some parts of the app that are not stable, and there may b
 > We are currently making major changes to the processing around LLM, and OpenAI and Claude's LLM are temporarily not working.  
 > Gemini and the new local Ollama LLM API are available.  
 > It is still unstable, but it is temporarily released in a state where Reversi MCP-UI works.  
-> https://github.com/mfukushim/reversi-mcp-ui
+> https://github.com/mfukushim/reversi-mcp-ui  
+
+> Note: If you are using an earlier version, please set the context daemon mainLLM as follows (condition asContext=outer).
+Configuration file initialization will be added soon.  
+<img width="400" alt="COntext daemon setting" src="./page_images/img2.png" />
+
 
 ## Specifications
 
@@ -97,6 +102,7 @@ For other LLMs, try adding them via System Settings or Avatar Settings.
   - conversation area show/hide  
     Conversation area switching (multi-stage)
 
+## Concepts
     
 ### Context Generator
 
@@ -122,7 +128,14 @@ Caution: This function may result in excessive privilege escalation. Please be a
 
 The concepts of context generators, context daemons, and echo daemons are also explained on the following page (Japanese)
 
-https://note.com/marble_walkers/n/nb7930d95c2d3
+
+## Guide (Japanese)
+
+https://note.com/marble_walkers/n/nf3e2a277c061  
+https://note.com/marble_walkers/n/nb7930d95c2d3  
+https://note.com/marble_walkers/n/nd702134c8f52  
+https://note.com/marble_walkers/n/n12b4caae21d8  
+https://note.com/marble_walkers/n/n6f460f490898  
 
 
 <img width="600" alt="スクリーンショット 2025-06-15 020826" src="https://github.com/user-attachments/assets/d03dcdcb-5e54-4a99-acb4-ae7b492f6ce6" />
