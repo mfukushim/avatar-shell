@@ -26,11 +26,11 @@ async function sendMessage() {
   talkText.value = '';
   const datas:AsMessage[] = []
   if (inText) {
-    datas.push(AsMessage.makeMessage({from: getUserName(), text: inText},'talk','human','surface'));
+    datas.push(AsMessage.makeMessage({from: getUserName(), text: inText},'talk','human','outer'));
   }
   if (fileUpload.value) {
     const arrayBuffer = await fileUpload.value.arrayBuffer();
-    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','surface'));
+    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','outer'));
   }
   if(mcpResource.value) {
     mcpResource.value.contents.forEach(v => {

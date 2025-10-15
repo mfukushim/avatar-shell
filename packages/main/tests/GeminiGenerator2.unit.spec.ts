@@ -3,17 +3,18 @@ import {Effect, Layer, ManagedRuntime, Schema} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
 import {AvatarState} from '../src/AvatarState';
-import {ConfigServiceLive} from '../src/ConfigService';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
 import {McpService, McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestSysConfig} from '../../common/vitestConfig';
+import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {GeminiTextGenerator} from '../src/generators/GeminiGenerator';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {AsMessage} from '../../common/Def';
 
 const cwd = process.cwd()
 let baseDir = cwd;
@@ -187,6 +188,273 @@ describe('GeminiGenerator2', () => {
     }).pipe(
       aiRuntime.runPromise,
     )
+  });
+
+  it('コンテキストステップ確認3', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'outer',
+              },
+            },
+            exec: {
+              generator: 'geminiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
+      }
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: 'hello',
+        isExternal:true,
+      },'talk','human','outer')])
+      console.log('askAvatar:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(5)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+
+  it('コンテキストステップ確認4', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'outer',
+              },
+            },
+            exec: {
+              generator: 'geminiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
+      }
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: 'hello',
+        isExternal:true,
+      },'talk','human','outer')])
+      console.log('askAvatar:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const res2 = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: "What should I do when it's hot?",
+        isExternal:true,
+      },'talk','human','outer')])
+      console.log('askAvatar:',res2);
+
+      yield *Effect.sleep('30 seconds');
+
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(10)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+
+  it('コンテキストステップ確認5', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'outer',
+              },
+            },
+            exec: {
+              generator: 'geminiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
+      }
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: '/get traveler tips',
+        isExternal:true,
+      },'talk','human','outer')])
+      console.log('askAvatar:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(7)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
+  })
+  it('コンテキストステップ確認6', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield* Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {
+          reversi: {
+            enable: true,
+            useTools: {
+              "new-game": {
+                enable: true,
+                allow: 'any',
+              },
+              'get-board': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-user': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-assistant': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'session-auth': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'add': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'calculate': {
+                'enable': true,
+                'allow': 'ask',
+              },
+            },
+          },
+        },
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'outer',
+              },
+            },
+            exec: {
+              generator: 'geminiText',
+              directTrigger: true,
+              setting: {
+                toClass: 'talk',
+                toRole: 'bot',
+                toContext: 'surface',
+              },
+            },
+          }],
+        ),
+      };
+      //  @ts-ignore
+      yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
+
+      yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
+      const avatarState = yield* AvatarService.makeAvatar(null);
+      yield* Effect.sleep('1 seconds');
+
+      const res = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: '/new game',
+        isExternal: true,
+      }, 'talk', 'human', 'outer')]);
+      console.log('askAvatar:', res);
+
+      yield* Effect.sleep('30 seconds');
+
+      const params = yield* avatarState.TalkContextEffect;
+      console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
+      expect(params.length).toBe(8);
+
+    }).pipe(
+      aiRuntime.runPromise,
+    );
   });
 
 
