@@ -1,10 +1,12 @@
 # Avatar-Shell
 
-A multifunctional avatar/media MCP client.  
+### A multifunctional avatar/media MCP client.  
+
+English / [Japanese](./README_jp.md)
 
 Note: There are still some parts of the app that are not stable, and there may be major changes to the specifications around daemon processing.
 
-> We are currently making major changes to the processing around LLM, and OpenAI and Claude's LLM are temporarily not working.  
+> We are currently making major changes to the processing around LLM.  
 > Gemini and the new local Ollama LLM API are available.  
 > It is still unstable, but it is temporarily released in a state where Reversi MCP-UI works.  
 > https://github.com/mfukushim/reversi-mcp-ui  

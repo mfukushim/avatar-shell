@@ -228,47 +228,17 @@ ipcMain.handle('calcDefaultName', async (_, templateId:string) => await AvatarSe
 
 ipcMain.handle('getLocale',  (_) => app.getLocale());
 
+ipcMain.handle('getPreferencePath',  async (_) => await ConfigService.getPreferencePath().pipe(Effect.catchAll(showAlertIfFatal('getPreferencePath')), aiRuntime.runPromise));
+
+ipcMain.handle('resetPreference',  async (_, all:boolean) => await ConfigService.resetPreference(all).pipe(Effect.catchAll(showAlertIfFatal('resetPreference')), aiRuntime.runPromise));
+
 ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await AvatarService.findInPage(avatarId,text).pipe(Effect.catchAll(showAlertIfFatal('findInPage')), aiRuntime.runPromise));
 
 ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.stopAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('stopAvatar')), aiRuntime.runPromise));
 
 ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,gen:GeneratorProvider) => {
   return await AvatarService.getAvatarState(avatarId).pipe(
-    Effect.andThen(a => {
-      return a.callMcpToolByExternal(params, gen)
-//       return Effect.gen(function* () {
-//         const res = yield *McpService.callFunction(a, params).pipe(Effect.catchIf(a => a instanceof Error, e => {
-//           return Effect.succeed({
-//             toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
-//           });
-//         }));
-//         //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
-// /*
-//         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
-//         return a.enterInner({
-//           avatarId: avatarId,
-//           fromGenerator: 'external',
-//           toGenerator:gen,
-//           input: {
-//             from: a.Name,
-//             text: res.
-//           },
-//           genNum: 0,
-//         })
-// */
-//       })
-    }),
-    // Effect.andThen(a => {
-      //  ここに来るツール起動要求は、AIの預かり知らない呼び出しなのでその結果をそのままAIに渡しても処理されない。
-      //  直に処理してからユーザ入力として処理する
-      // return a.enterOuter({
-      //   avatarId: avatarId,
-      //   fromGenerator: 'external',
-      //   toGenerator:gen,
-      //   innerId: params.callId,
-      //   toolCallParam: [params],
-      //   genNum: 1,
-      // })
+    Effect.andThen(a => a.callMcpToolByExternal(params, gen)),
     Effect.catchAll(showAlertIfFatal('callMcpTool')),
     aiRuntime.runPromise)
 });

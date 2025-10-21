@@ -80,8 +80,8 @@ export class OllamaTextGenerator extends ContextGenerator {
       })
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
-      if (current.input?.text) {
-        mes.content  = current.input.text;
+      if (current.input?.content.text) {
+        mes.content  = current.input.content.text;
       } else if (current.toolCallRes) {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
         mes.content = JSON.stringify(current.toolCallRes.map(value => {
@@ -90,8 +90,8 @@ export class OllamaTextGenerator extends ContextGenerator {
         }));
         console.log('toolCallRes:',mes.content);
       }
-      if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
-        const media = yield* DocService.readDocMedia(current.input?.mediaUrl);
+      if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
+        const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer);  //  , it.claudeSettings?.inWidth
         mes.images = [b1.toString('base64')];
       }

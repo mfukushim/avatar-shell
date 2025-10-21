@@ -5,11 +5,11 @@ import {useI18n} from 'vue-i18n';
 import {
   exportAvatar,
   exportSysConfig,
-  getAvatarConfigList,
+  getAvatarConfigList, getPreferencePath,
   getSysConfig,
   getVersion, importAvatar,
   importSysConfig,
-  openBrowser,
+  openBrowser, resetPreference,
   setSysConfig,
 } from '@app/preload';
 import {type McpServerDef, type SysConfigMutable, SysConfigSchema} from '../../../common/Def.ts';
@@ -51,6 +51,7 @@ const doOpen = async () => {
   mcpConfig.value = getMcpServerList();
   const list = await getAvatarConfigList();
   avatarList.value = list.map(e => ({value: e.templateId, label: e.name}));
+  exportAvatarTemplateId.value = list.length > 0 ? list[0].templateId : '';
   //  websocket
   websocketPort.value = edit.value.websocket.serverPort ? edit.value.websocket.serverPort.toString() : undefined;
 
@@ -254,6 +255,8 @@ const disableImportAvatar = ref(false);
 const disableExportAvatar = ref(false);
 const disableExportSysConfig = ref(false);
 
+const prefPath = ref('');
+
 const importSys = async () => {
   disableImportSys.value = true;
   await importSysConfig()
@@ -279,8 +282,13 @@ const exportAvatarBtn = async (templateId:string) => {
   disableExportAvatar.value = false
 }
 
+const fullReset = async (all:boolean) => {
+  await resetPreference(all)
+}
+
 onMounted(async () => {
   document.addEventListener('click', handleClick);
+  prefPath.value = await getPreferencePath();
 });
 
 onBeforeUnmount(() => {
@@ -322,6 +330,7 @@ const mcpNameValidate = [
                   <q-tab name="mcp" icon="extension" :label="t('mcpSettings')" />
                   <q-tab name="websocket" icon="rss_feed" :label="t('avatarCommunication')" />
                   <q-tab name="importExport" icon="import_export" :label="t('importExport')" />
+                  <q-tab name="reset" icon="delete_forever" :label="t('reset')" />
                   <q-tab name="experimental" icon="science" :label="t('experimental')" />
                   <q-tab name="license" icon="info_outline" :label="t('license')" />
                 </q-tabs>
@@ -571,6 +580,26 @@ const mcpNameValidate = [
                                  data-testid="ws-text-template"
                         />
                       </q-card-section>
+                    </q-card>
+                  </q-tab-panel>
+                  <q-tab-panel name="reset">
+                    <div class="text-h6 q-mb-md">{{ t('reset') }}</div>
+                    <q-card>
+                        <div class="row q-ma-sm">
+                          <div class="q-ma-md">{{t('fullReset')}}</div>
+                          <q-space/>
+                          <q-btn :label="t('fullReset')" class="q-ma-md" @click="fullReset(true)"></q-btn>
+                        </div>
+                        <div class="row">
+                          <div class="q-ma-md">{{t('resetWithoutMedia')}}</div>
+                          <q-space/>
+                          <q-btn :label="t('resetWithoutMedia')" class="q-ma-md" @click="fullReset(false)"></q-btn>
+                        </div>
+                        <div class="row">
+                          <div class="q-ma-md">{{ t('preferenceDirectory') }}:</div>
+                          <q-space/>
+                          <div class="q-ma-md col-8">{{prefPath}}</div>
+                        </div>
                     </q-card>
                   </q-tab-panel>
                   <q-tab-panel name="experimental">

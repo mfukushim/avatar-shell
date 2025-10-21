@@ -221,10 +221,10 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     return Effect.gen(function* () {
       const mesList: ResponseInputItem[] = [];
       const mesContent = [] as ResponseInputContent[]
-      if (current.input?.text) {
+      if (current.input?.content.text) {
         mesContent.push({
           type: 'input_text',
-          text: current.input.text,
+          text: current.input.content.text,
         } as ResponseInputText);
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
@@ -243,12 +243,12 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
           // })
         });
       }
-      if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
+      if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
         //  openAIの場合、画像ファイルはinput_imageとしてbase64で送る
-        const media = yield* DocService.readDocMedia(current.input.mediaUrl);
+        const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.openAiSettings?.inWidth);
         const b64 = b1.toString('base64');
-        const imageUrl = `data:${current.input.mimeType};base64,${b64}`;
+        const imageUrl = `data:${current.input.content.mimeType};base64,${b64}`;
         //  縮小した画像をLLMには送る
         mesContent.push({
           type: 'input_image',
@@ -390,7 +390,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           toGenerator: it.genName,
-          innerId: (textOut.length > 0 ? textOut[0].id:undefined) || current.input?.innerId ||  short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
+          innerId: (textOut.length > 0 ? textOut[0].id:undefined) || current.input?.content.innerId ||  short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {
             return {
               callId: v.call_id,

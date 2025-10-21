@@ -9,7 +9,7 @@ import {
   SysConfigMutable,
   SysConfigSchema,
 } from '../../common/Def.js';
-import {app, dialog} from 'electron';
+import {app, dialog,session} from 'electron';
 import {
   defaultAvatarSetting,
   defaultMutableSetting,
@@ -31,8 +31,9 @@ import dayjs from 'dayjs';
 import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {ClaudeTextGenerator} from './generators/ClaudeGenerator.js';
 import {OpenAiTextGenerator} from './generators/OpenAiGenerator.js';
+import { rm, readdir } from 'fs/promises';
 
-let debugConfigFile:string|undefined = undefined;
+let debugConfigFile: string | undefined = undefined;
 
 const debug = process.env.VITE_LOCAL_DEBUG === '1';
 const debugWrite = process.env.VITE_LOCAL_DEBUG === '2';
@@ -42,7 +43,7 @@ const isViTest = process.env.VITEST === 'true';
 const playWright = process.argv.slice(2).find(arg => arg.startsWith('--playWright='))?.split('=')[1];
 
 if (debug) {
-  debugConfigFile = '../../common/debugConfig.js'
+  debugConfigFile = '../../common/debugConfig.js';
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,13 +52,109 @@ export const __pwd = isViTest ? path.join(__dirname, '../../..') : __dirname.end
 
 const debugPath = app ? path.join(app.getPath('userData'), 'docs') : `${__pwd}/tools/docs`;
 
+async function factoryReset(options?: {
+  // ベストエフォートの安全消去（後述）
+  secure?: boolean;
+  // 残したいファイル/フォルダ名（userData 直下基準）
+  keep?: string[];
+  // electron-store 等の外部パス（フルパス）で追加削除したいもの
+  extraPaths?: string[];
+}) {
+  const secure = options?.secure ?? false;
+  const keep = new Set(options?.keep ?? []);
+  const extraPaths = options?.extraPaths ?? [];
+
+  // 1) まずブラウザ系ストレージをクリア
+  //   Cookie, LocalStorage, IndexedDB, CacheStorage, ServiceWorker, WebSQL 等を対象
+  try {
+    await session.defaultSession.clearStorageData({
+      // 必要に応じて targets を絞れる:
+      // quotas: ['temporary', 'persistent', 'syncable'],
+      // storages: ['cookies', 'localstorage', 'indexdb', 'shadercache', 'serviceworkers', 'cachestorage', 'websql'],
+    });
+    await session.defaultSession.clearCache();
+  } catch (e) {
+    console.warn('clearStorageData/clearCache 失敗:', e);
+  }
+
+  // 2) ユーザーデータ/キャッシュ/ログの物理削除
+  const userData = app.getPath('userData');
+  console.log('userData:', userData);
+  // const cache = app.getPath('cache');
+  const logs = app.getPath('logs');
+  console.log('logs:', logs);
+
+  // userData 直下の一部を残したい場合（ライセンスキー等）は個別削除に切替
+  const deletes: string[] = [];
+  // const { readdir, lstat } = await import('fs/promises');
+  const items = await readdir(userData);
+  for (const name of items) {
+    if (keep.has(name)) continue;
+    deletes.push(path.join(userData, name));
+  }
+
+  // キャッシュ/ログ/追加の外部パス
+  // deletes.push(cache);
+  deletes.push(logs, ...extraPaths);
+  console.log('deletes:', deletes.join('\n'));
+  // 実削除
+  for (const p of deletes) {
+    try {
+      await rm(p, { recursive: true, force: true });
+    } catch (e) {
+      console.warn('rm 失敗:', p, e);
+    }
+  }
+  app.exit(0);
+
+  // 3) （任意）ベストエフォート安全消去（上書き）
+  //    ※ SSD のウェアレベリング等で保証は不可。実施するなら特定ファイルだけに限定を推奨。
+  if (secure && keep.size === 0) {
+    // 例: “残したいもの以外”で特定の既知ファイルを乱数で1回上書きしてから削除する処理を
+    //     専用関数で組み込む。ここでは割愛。
+  }
+}
+
+// IPC エンドポイント（レンダラーからのコマンド）
+/*
+ipcMain.handle('factory-reset', async (evt, args: { confirm?: boolean }) => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!args?.confirm) {
+    const result = await dialog.showMessageBox(win ?? null, {
+      type: 'warning',
+      buttons: ['初期化する', 'キャンセル'],
+      defaultId: 0,
+      cancelId: 1,
+      title: '工場出荷状態に戻す',
+      message: 'ユーザーデータがすべて削除され、アプリは再起動します。よろしいですか？',
+      noLink: true,
+    });
+    if (result.response !== 0) return { canceled: true };
+  }
+
+  // すべてのウィンドウを閉じてから実行（書込み競合回避）
+  BrowserWindow.getAllWindows().forEach(w => w.destroy());
+
+  await factoryReset({
+    secure: false,        // 必要に応じて true
+    keep: [],             // 例: ['license.key'] などを残す場合
+    extraPaths: [],       // 例: electron-store の個別ファイルパス
+  });
+
+  // 再起動
+  app.relaunch();
+  app.exit(0);
+  return { ok: true };
+});
+*/
+
 export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell/ConfigService', {
   accessors: true,
   effect: Effect.gen(function* () {
-    let sysData:SysConfig;
-    let avatarData:Record<string, AvatarSetting>;
-    let mutableSetting: Ref.Ref<MutableSysConfig> =  yield *Ref.make(defaultMutableSetting);
-    let store:Store|undefined = undefined
+    let sysData: SysConfig;
+    let avatarData: Record<string, AvatarSetting>;
+    let mutableSetting: Ref.Ref<MutableSysConfig> = yield* Ref.make(defaultMutableSetting);
+    let store: Store | undefined = undefined;
 
     if (debugConfigFile) {
       sysData = yield* Effect.tryPromise(() => {
@@ -72,9 +169,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       sysData = vitestSysConfig;
       avatarData = vitestAvatarConfig;
     } else if (playWright) {
-      sysData = defaultSysSetting
+      sysData = defaultSysSetting;
       avatarData = emptyAvatarConfig;
-    } else if(app) {
+    } else if (app) {
       store = new Store(debug ? {} : {
         encryptionKey: 'IntelligenceIsNotReasoning',  // for Obfuscation, not security
       });
@@ -100,9 +197,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
     const sysConfig: SubscriptionRef.SubscriptionRef<SysConfig> = yield* SubscriptionRef.make(sysData);
 
     const avatarConfigs: Ref.Ref<HashMap.HashMap<string, SubscriptionRef.SubscriptionRef<AvatarSetting>>>
-      = yield *Effect.forEach(Object.entries(avatarData), a =>
+      = yield* Effect.forEach(Object.entries(avatarData), a =>
       SubscriptionRef.make<AvatarSetting>(a[1] as AvatarSetting).pipe(Effect.andThen(a1 => [a[0], a1] as [string, SubscriptionRef.SubscriptionRef<AvatarSetting>]))).pipe(
-        Effect.andThen(a => Ref.make(HashMap.make(...a))));
+      Effect.andThen(a => Ref.make(HashMap.make(...a))));
 
     function getMutableSetting() {
       return mutableSetting.get;
@@ -152,23 +249,23 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       }));
     }
 
-    function importSysConfig(loadPath?:string) {
-      return Effect.gen(function*() {
-        let path = loadPath
+    function importSysConfig(loadPath?: string) {
+      return Effect.gen(function* () {
+        let path = loadPath;
         if (!path) {
-          const {filePaths,canceled} = yield *Effect.tryPromise(signal => dialog.showOpenDialog({
+          const {filePaths, canceled} = yield* Effect.tryPromise(signal => dialog.showOpenDialog({
             title: 'import System settings',
             buttonLabel: 'Load',
             filters: [
               {name: 'json Files', extensions: ['json']},
             ],
-          }))
+          }));
           if (canceled) {
-            return yield *Effect.fail(new Error('Canceled'));
+            return yield* Effect.fail(new Error('Canceled'));
           }
-          path = filePaths[0]
+          path = filePaths[0];
         }
-        return yield *fs.readFileString(path).pipe(Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
+        return yield* fs.readFileString(path).pipe(Effect.andThen(a => SubscriptionRef.updateEffect(sysConfig, b => Schema.decodeUnknown(Schema.parseJson(SysConfigSchema))(a))),
           Effect.catchAll(e => {
             return Effect.tryPromise(() => dialog.showMessageBox({
               title: 'Error',
@@ -177,27 +274,27 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
               buttons: ['ok'],
               defaultId: 0,
             }));
-          }))
-      })
+          }));
+      });
     }
 
-    function importAvatar(loadPath?:string) {
-      return Effect.gen(function*() {
-        let path = loadPath
+    function importAvatar(loadPath?: string) {
+      return Effect.gen(function* () {
+        let path = loadPath;
         if (!path) {
-          const ret = yield *Effect.tryPromise(() => dialog.showOpenDialog({
+          const ret = yield* Effect.tryPromise(() => dialog.showOpenDialog({
             title: 'import Avatar settings',
             buttonLabel: 'Load',
             filters: [
               {name: 'json Files', extensions: ['json']},
             ],
-          }))
+          }));
           if (ret.canceled) {
-            return yield *Effect.fail(new Error('Canceled'));
+            return yield* Effect.fail(new Error('Canceled'));
           }
-          path = ret.filePaths[0]
+          path = ret.filePaths[0];
         }
-        return yield *fs.readFileString(path).pipe(
+        return yield* fs.readFileString(path).pipe(
           Effect.andThen(a1 => Schema.decodeUnknown(Schema.parseJson(AvatarSetting))(a1)),
           Effect.andThen(config => {
             return Effect.gen(function* () {
@@ -231,12 +328,12 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
             }));
           }),
         );
-      })
+      });
     }
 
-    function exportSysConfig(savePath?:string) {
+    function exportSysConfig(savePath?: string) {
       return Effect.gen(function* () {
-        let path = savePath
+        let path = savePath;
         if (!path) {
           const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
             title: 'export System settings',
@@ -250,15 +347,15 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
           if (canceled) {
             return yield* Effect.void;
           }
-          path = filePath
+          path = filePath;
         }
         yield* sysConfig.get.pipe(Effect.andThen(a => fs.writeFileString(path, JSON.stringify(a, null, 2))));
       });
     }
 
-    function exportAvatar(templateId: string,savePath?:string) {
+    function exportAvatar(templateId: string, savePath?: string) {
       return Effect.gen(function* () {
-        let path = savePath
+        let path = savePath;
         const setting = yield* avatarConfigs.get.pipe(Effect.andThen(HashMap.get(templateId)), Effect.andThen(a => a.get));
         if (!path) {
           const {filePath, canceled} = yield* Effect.tryPromise(signal => dialog.showSaveDialog({
@@ -273,39 +370,39 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
           if (canceled) {
             return yield* Effect.void;
           }
-          path = filePath
+          path = filePath;
         }
         yield* fs.writeFileString(path, JSON.stringify(setting, null, 2));
       });
 
     }
 
-/*
-    function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
-      return Ref.get(avatarConfigs).pipe(
-        Effect.andThen(HashMap.get(templateId)),
-        Effect.andThen(SubscriptionRef.updateAndGetEffect(f)),
-        Effect.tap(a => {
-          if (debugWrite) {
-            return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
-          }
-        }),
-        Effect.andThen(saveAvatarConfigs()),
-      );
-    }
-*/
+    /*
+        function updateAvatarConfigEffect(templateId: string, f: (c: AvatarSetting) => Effect.Effect<AvatarSetting | AvatarSettingMutable, Error, any>) {
+          return Ref.get(avatarConfigs).pipe(
+            Effect.andThen(HashMap.get(templateId)),
+            Effect.andThen(SubscriptionRef.updateAndGetEffect(f)),
+            Effect.tap(a => {
+              if (debugWrite) {
+                return fs.writeFileString(path.join(debugPath, `debugAvatar_${templateId}.json`), JSON.stringify(a, null, 2));
+              }
+            }),
+            Effect.andThen(saveAvatarConfigs()),
+          );
+        }
+    */
 
     function setAvatarConfig(id: string, data: AvatarSetting) {
-      return Effect.gen(function*() {
+      return Effect.gen(function* () {
         // const updated = yield *McpService.updateAvatarMcpSetting(data) //  TODO ここでMcpServiceを使うと依存性の順序が崩れるようだ。。
-        return yield *Ref.get(avatarConfigs).pipe(
+        return yield* Ref.get(avatarConfigs).pipe(
           Effect.andThen(HashMap.get(id)),
           Effect.andThen(SubscriptionRef.update(() => {
             return data;
           })),
           Effect.andThen(saveAvatarConfigs()),
         );
-      })
+      });
     }
 
     function copyAvatarConfig(templateId: string) {
@@ -371,10 +468,29 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       return Effect.succeed(app.getVersion());
     };
 
+    function getPreferencePath() {
+      return store ? path.dirname(store.path) : undefined;
+    }
+
+    function resetPreference(all = false) {
+      return Effect.tryPromise(() => dialog.showMessageBox({
+        title: 'Confirm',
+        message: app?.getLocale() === 'ja' ? '初期化してよいですか' : 'Can I initialize it?',
+        // detail: 'There is no data format migration yet. Sorry for the inconvenience.',
+        buttons: ['Cancel', 'Initialize'],
+        defaultId: 0,
+      })).pipe(Effect.andThen(a => {
+        if (a.response === 1) {
+          return factoryReset({keep: all ? undefined:['docs']});
+        }
+        return Effect.void;
+      }));
+    }
+
     const genMap: Record<GeneratorProvider, (sysConfig: SysConfig, settings?: ContextGeneratorSetting) => Effect.Effect<any, Error>> = {
       //  llm系
       'openAiText': (sysConfig, settings) => OpenAiTextGenerator.make(sysConfig, settings),
-      'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig,settings), //ClaudeTextGenerator.make(sysConfig, settings),
+      'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig, settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
       'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
       //  画像生成系
@@ -441,6 +557,8 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       updateMutableSetting,
       getGeneratorList,
       makeGenerator,
+      getPreferencePath,
+      resetPreference,
     };
 
   }),
