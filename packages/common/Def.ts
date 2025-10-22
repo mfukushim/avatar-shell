@@ -139,6 +139,7 @@ export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
   asContext:AsContextLinesSchema,
   genName:Schema.optional(Schema.String),
   isRequestAction: Schema.Boolean,
+  isContextAdded: Schema.optional(Schema.Boolean),
   content: AsMessageContentSchema,
 }) {
   static makeMessage(content: AsMessageContent, asClass: AsClass = 'talk', asRole: AsRole = 'human', asContext:AsContextLines, isRequestAction=false) {

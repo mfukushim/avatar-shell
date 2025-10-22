@@ -171,10 +171,10 @@ export class OllamaTextGenerator extends ContextGenerator {
   private debugContext(messages: Message[]) {
     console.log('ollama context start:');
     console.log(messages.map(a => {
-      let text = '##'+a.role+':' + a.content?.slice(0,200);
+      let text = '##'+a.role+':' + a.content?.slice(0,200).replaceAll('\n','');
       if (a.tool_calls) {
         a.tool_calls.forEach(b => {
-          text += '\n+#' + JSON.stringify(b).slice(0,200);
+          text += '\n+#' + JSON.stringify(b).slice(0,200).replaceAll('\n','');
         });
       }
       return text;

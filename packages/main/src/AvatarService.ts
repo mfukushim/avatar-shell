@@ -143,7 +143,9 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       return Effect.gen(function*() {
         // const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
         const state = yield *getAvatarState(avatarId)
+
         yield *state.addContext(mes,true)
+        // yield *state.addContext(mes,true)
         yield *state.rebuildIdle()
         return []
       })

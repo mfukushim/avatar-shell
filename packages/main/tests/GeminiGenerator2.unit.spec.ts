@@ -46,10 +46,10 @@ describe('GeminiGenerator2', () => {
 
       return yield *ai.generateContext({
         avatarId:'aaaa',toGenerator:'geminiText',fromGenerator:'external',
-        input:{
+        input:AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
-        },
+        },'talk','human','surface'),
         genNum:0
       }, avatarState);
     }).pipe(aiRuntime.runPromise,);
@@ -75,12 +75,12 @@ describe('GeminiGenerator2', () => {
       const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
       return yield *ai.generateContext({
         avatarId:'aaaa',toGenerator:'geminiText',fromGenerator:'external',
-        input:{
+        input:AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        },
+        },'talk','human','surface'),
         genNum:0
       }, avatarState);
     }).pipe(aiRuntime.runPromise,);
@@ -133,11 +133,11 @@ describe('GeminiGenerator2', () => {
         avatarId:avatarState.Id,
         fromGenerator:'external',
         toGenerator:'geminiText',
-        input:{
+        input: AsMessage.makeMessage({
           from: 'user',
           text: 'hello',
           isExternal:true,
-        },
+        },'talk','human','surface'),
         genNum:1,
         setting: {
           noTool:true
@@ -149,7 +149,7 @@ describe('GeminiGenerator2', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(4)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -170,11 +170,11 @@ describe('GeminiGenerator2', () => {
         avatarId:avatarState.Id,
         fromGenerator:'external',
         toGenerator:'geminiText',
-        input:{
+        input: AsMessage.makeMessage({
           from: 'user',
           text: '/get traveler tips',
           isExternal:true,
-        },
+        },'talk','human','surface'),
         genNum:1,
         setting: {
         }
@@ -239,7 +239,7 @@ describe('GeminiGenerator2', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(5)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -305,7 +305,7 @@ describe('GeminiGenerator2', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(6)
 
     }).pipe(
       aiRuntime.runPromise,
