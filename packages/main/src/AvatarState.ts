@@ -255,13 +255,13 @@ export class AvatarState {
             Effect.gen(function* () {
               const take = yield* Queue.take(it.talkQueue);
               console.log('avatarState update talkContext');
-              yield* it.changeTalkContext(take);
               yield* SynchronizedRef.update(it.talkContext, a => a.concat(take.delta.map(a => {
                 return {
                   ...a,
                   isContextAdded: true
                 }
               })));
+              yield* it.detectTalkContext(take);
             }),
           step: c => c,
           discard: true,
@@ -421,7 +421,7 @@ export class AvatarState {
   }
 
 
-  changeTalkContext(updated: {context: AsMessage[], delta: AsMessage[]}) {
+  detectTalkContext(updated: {context: AsMessage[], delta: AsMessage[]}) {
     console.log('changeTalkContext:', updated.context.length, updated.delta.length, updated.delta.map(value => AsMessage.debugLog(value)).join('\n'));
     const it = this;
     return Effect.gen(function* () {
@@ -508,7 +508,9 @@ export class AvatarState {
               text: text,
             },
           } as AsMessage;
-          yield* state.addContext([message]);  //  ここは新規なので追加
+          const ext = yield *state.extendAndSaveContext([message],true)
+          yield *state.addContext(ext)
+          //  ここは新規なので追加
         }
         //  トリガーの場合はコンテキストはトリガー位置まででフィルタする
         const pos = context.findLastIndex(value => value.id === triggerMes.id);
@@ -526,7 +528,10 @@ export class AvatarState {
             generator: daemon.generator.Name,
             isExternal: true, //  LLMループの外からの操作なのでtrue
           }, 'daemon', 'system', 'inner');
-        yield* state.addContext([message]);  //  ここは新規なので追加
+        //  ここは新規なので追加
+        const ext = yield *state.extendAndSaveContext([message])
+        yield *state.addContext(ext)
+
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない
       const out = yield* state.execGenerator(daemon.generator, message, daemon.config.exec.setting,addToBuffer);  //  filteredContext
@@ -651,20 +656,19 @@ export class AvatarState {
    * @param bags
    * @param isExternal 外部から与えたコンテキスト これはLLMのprev contextには追加されない LLMの認識できるコンテキストはLLM自身が発生したものとdaemonが検出したものだけになるべきだから?
    */
-  addContext(bags: AsMessage[], isExternal?: boolean) {
+  extendAndSaveContext(bags: AsMessage[], isExternal?: boolean) {
     if (bags.length === 0) {
-      return Effect.void;  //  更新の無限ループ防止
+      return Effect.succeed([]);  //  更新の無限ループ防止
     }
-    console.log('addContext', bags.map(value => AsMessage.debugLog(value)).join('\n'));
+    console.log('extendAndSaveContext', bags.map(value => AsMessage.debugLog(value)).join('\n'));
     const it = this;
-    return Effect.gen(function* () {
-      const mesList = yield* Effect.forEach(bags, mes => {
+    return Effect.forEach(bags, mes => {
         return Effect.gen(function* () {
           //  TODO 本来socket.ioから自分の電文は来ないはずだが、来ることがあるのでフィルタする。。。
           const current = yield* it.talkContext.get;
           const isSame = current.find(value => value.id === mes.id);
           if (isSame) {
-            console.log('addContext same id:', mes);
+            console.log('extendAndSaveContext same id:', mes);
             return undefined;
           }
           if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
@@ -699,15 +703,17 @@ export class AvatarState {
             };
           }
         });
+      }).pipe(Effect.andThen(a => a.filter((v): v is  AsMessage => v !== undefined)));
+  }
 
-      });
-      const mesOut = mesList.filter((v): v is  AsMessage => v !== undefined);
-      if (mesOut.length > 0) {
+  addContext(bags: AsMessage[]) {
+    const it = this;
+    return Effect.gen(function* () {
+      if (bags.length > 0) {
         const context = yield* it.talkContext;
-        return yield* it.talkQueue.offer({context: context.concat(mesOut), delta: mesOut});
+        return yield* it.talkQueue.offer({context: context.concat(bags), delta: bags});
       }
-    });
-
+    })
   }
 
   MaxGen = 2;  //  TODO 世代の最適値は
@@ -1114,7 +1120,8 @@ export class AvatarState {
       if (addToBuffer) {
         return yield* it.addPrevBuffer(bags);
       }
-      return yield* it.addContext(bags);
+      const ext = yield *it.extendAndSaveContext(bags)
+      return yield *it.addContext(ext)
     });
   }
 
@@ -1126,7 +1133,8 @@ export class AvatarState {
     const it = this;
     return SynchronizedRef.updateEffect(this.prevBuffer, bags => {
       return Effect.gen(function* () {
-        yield *it.addContext(bags);
+        const ext = yield *it.extendAndSaveContext(bags)
+        yield *it.addContext(ext)
         return [];
       })
     });
@@ -1187,8 +1195,8 @@ export class AvatarState {
       const bags = a.flat();
       this.sendToWindow(bags);
       // return bags
-      return this.addContext(bags);
-    }));
+      return this.extendAndSaveContext(bags)
+    }),Effect.andThen(a => this.addContext(a)));
   }
 
 

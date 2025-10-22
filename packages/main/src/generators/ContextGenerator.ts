@@ -49,16 +49,23 @@ export abstract class ContextGenerator {
     avatarState.clearStreamingText()
   }
 
-  filterForLlmPrevContext(asMes:AsMessage[]) {
+  filterForLlmPrevContext(asMes:AsMessage[],current?:AsMessage) {
     //  TODO ここは妥当な条件を再検討が必要。。
+    //  currentを含まないこと、currentよりもtickが古いこと
     return asMes.filter(value => {
       if(value.asContext === 'outer') {
         return false;
       }
-      // if (value.content.isExternal) {
-      //   return false;
-      // }
-      return value.asRole !== 'system';
+      if(value.asRole === 'system') {
+        return false;
+      }
+      if(value.id === current?.id) {
+        return false;
+      }
+      if(current && value.tick >= current.tick) {
+        return false;
+      }
+      return true;
 
     })
 

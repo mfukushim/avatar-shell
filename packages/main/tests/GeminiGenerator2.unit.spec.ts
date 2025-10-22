@@ -328,7 +328,7 @@ describe('GeminiGenerator2', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -353,7 +353,7 @@ describe('GeminiGenerator2', () => {
         from: 'user',
         text: '/get traveler tips',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');

@@ -51,11 +51,11 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     });
   }
 
-  protected makePreviousContext(avatarState: AvatarState) {
+  protected makePreviousContext(avatarState: AvatarState,current: GenInner) {
     const it = this
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
-      const blocked = it.filterForLlmPrevContext(prevMes).map(a => {
+      const blocked = it.filterForLlmPrevContext(prevMes,current.input).map(a => {
         const role: GeminiRole = it.asRoleToRole(a.asRole).replace('assistant','model') as GeminiRole;  //  gemini はmodel
         return {
           role,
@@ -252,7 +252,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState);
+      const prev = yield* it.makePreviousContext(avatarState,current);
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
