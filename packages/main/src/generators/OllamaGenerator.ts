@@ -69,7 +69,7 @@ export class OllamaTextGenerator extends ContextGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMes = yield *avatarState.TalkContextEffect
-      const prev:Message[] = it.filterForLlmPrevContext(prevMes).flatMap(a => {
+      const prev:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
         const role = it.asRoleToRole(a.asRole)
         if(!role) return []
         return [{

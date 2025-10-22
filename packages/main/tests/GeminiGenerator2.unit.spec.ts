@@ -360,7 +360,7 @@ describe('GeminiGenerator2', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(7)
+      expect(params.length).toBe(5)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -417,7 +417,7 @@ describe('GeminiGenerator2', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -443,7 +443,7 @@ describe('GeminiGenerator2', () => {
         from: 'user',
         text: '/new game',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');

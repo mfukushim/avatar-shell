@@ -184,7 +184,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -209,7 +209,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
@@ -240,7 +240,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -265,7 +265,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
@@ -274,7 +274,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'What should I do when it\'s hot?',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res2);
 
       yield* Effect.sleep('30 seconds');
@@ -305,7 +305,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -330,7 +330,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: '/get traveler tips',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
@@ -395,7 +395,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -421,7 +421,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: '/new game',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
