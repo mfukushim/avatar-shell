@@ -495,10 +495,10 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
       //  画像生成系
       'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(settings), //PixAiImageGenerator.make(sysConfig, settings),
-      'openAiImage': (sysConfig, settings) => EmptyImageGenerator.make(settings), // openAiImageGenerator.make(sysConfig, settings),
+      'openAiImage': (sysConfig, settings) => OpenAiImageGenerator.make(sysConfig, settings),
       'geminiImage': GeminiImageGenerator.make,
       //  音声合成系
-      'openAiVoice': (sysConfig, settings) => EmptyVoiceGenerator.make(settings), //openAiVoiceGenerator.make(sysConfig, settings),
+      'openAiVoice': (sysConfig, settings) => OpenAiVoiceGenerator.make(settings), //openAiVoiceGenerator.make(sysConfig, settings),
       'geminiVoice': (sysConfig, settings) => GeminiVoiceGenerator.make(sysConfig, settings),
       // 'openAiVoice',
       // 'voiceVox',

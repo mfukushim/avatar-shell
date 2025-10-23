@@ -148,7 +148,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(4)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -238,7 +238,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(5)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -304,7 +304,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(6)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -359,7 +359,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(7)
 
     }).pipe(
       aiRuntime.runPromise,

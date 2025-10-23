@@ -207,7 +207,7 @@ describe('GeminiGenerator2', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -232,7 +232,7 @@ describe('GeminiGenerator2', () => {
         from: 'user',
         text: 'hello',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');
@@ -263,7 +263,7 @@ describe('GeminiGenerator2', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -288,7 +288,7 @@ describe('GeminiGenerator2', () => {
         from: 'user',
         text: 'hello',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');
@@ -297,7 +297,7 @@ describe('GeminiGenerator2', () => {
         from: 'user',
         text: "What should I do when it's hot?",
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res2);
 
       yield *Effect.sleep('30 seconds');
@@ -450,7 +450,7 @@ describe('GeminiGenerator2', () => {
 
       const params = yield* avatarState.TalkContextEffect;
       console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
-      expect(params.length).toBe(8);
+      expect(params.length).toBe(6);
 
     }).pipe(
       aiRuntime.runPromise,

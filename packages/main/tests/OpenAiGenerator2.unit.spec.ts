@@ -13,7 +13,7 @@ import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {OpenAiTextGenerator} from '../src/generators/OpenAiGenerator';
+import {OpenAiTextGenerator,OpenAiImageGenerator} from '../src/generators/OpenAiGenerator';
 import {AsMessage} from '../../common/Def';
 
 const cwd = process.cwd()
@@ -88,35 +88,36 @@ describe('OpenAiGenerator', () => {
     console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
   });
+  it('generateContext_image_gen', async () => {
+    const res = await Effect.gen(function* () {
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-  //  現時点ファイルはimageのみ想定っぽい。テキストファイルは展開してプロンプト扱いにしていたはず。
-  // it('generateContext_text_file', async () => {
-  //   const res = await Effect.gen(function* () {
-  //     const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-  //     // console.log(avatarState);
-  //     yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
-  //
-  //     const ai = yield* OllamaTextGenerator.make({
-  //       host: "http://192.168.11.121:11434",
-  //       model: "llava:7b-v1.6"
-  //     });
-  //
-  //     // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-  //     const fs = yield* FileSystem.FileSystem;
-  //     const file = yield *fs.readFileString(path.join(baseDir,'tests_fixtures/q1.txt'));
-  //
-  //     const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
-  //     return yield *ai.generateContext({avatarId:'aaaa',toGenerator:'ollamaText',input:{
-  //         innerId: '1234567890',
-  //         mediaUrl: url,
-  //         mimeType: 'image/png',  //  mimeの指定は必須にしている
-  //         text: 'What is in the picture?',
-  //       }
-  //     } as GenInner, avatarState);
-  //   }).pipe(aiRuntime.runPromise,);
-  //   console.log(res);
-  //   expect(typeof res === 'object').toBe(true);
-  // });
+      const ai = yield* OpenAiImageGenerator.make(vitestSysConfig);
+
+      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const fs = yield* FileSystem.FileSystem;
+      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
+      const testImageBase64 = Buffer.from(file).toString('base64');
+
+      const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
+      return yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiImage',fromGenerator:'external',
+        input:AsMessage.makeMessage({
+          innerId: '1234567890',
+          mediaUrl: url,
+          mimeType: 'image/png',  //  mimeの指定は必須にしている
+          text: 'Draw anime girl',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+    }).pipe(aiRuntime.runPromise,);
+
+
+    console.log('out:',res);
+    expect(typeof res === 'object').toBe(true);
+  });
 
   it('コンテキストステップ確認1', async () => {
     await Effect.gen(function* () {
@@ -148,7 +149,7 @@ describe('OpenAiGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(4)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -304,7 +305,7 @@ describe('OpenAiGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(6)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -359,7 +360,7 @@ describe('OpenAiGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(5)
 
     }).pipe(
       aiRuntime.runPromise,

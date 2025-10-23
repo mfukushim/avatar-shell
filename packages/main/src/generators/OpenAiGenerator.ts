@@ -10,21 +10,32 @@ import {
   OpenAiSettings,
   ContextGeneratorInfo,
   ContextGeneratorSetting,
-  GeneratorProvider,
+  GeneratorProvider, OpenAiImageSettings,
 } from '../../../common/DefGenerators.js';
 import {MediaService} from '../MediaService.js';
 import OpenAI, {APIError} from 'openai';
 import {
   EasyInputMessage,
-  ResponseCreateParams, ResponseCustomToolCallOutput, ResponseFunctionToolCall, ResponseFunctionToolCallItem,
-  ResponseInputContent, ResponseInputImage,
+  ResponseCreateParams,
+  ResponseCreateParamsNonStreaming,
+  ResponseCustomToolCallOutput,
+  ResponseFunctionToolCall,
+  ResponseFunctionToolCallItem,
+  ResponseInputContent,
+  ResponseInputImage,
   ResponseInputItem,
-  ResponseInputText, ResponseOutputItem, ResponseOutputMessage, ResponseOutputRefusal, ResponseOutputText,
+  ResponseInputText,
+  ResponseOutputItem,
+  ResponseOutputMessage,
+  ResponseOutputRefusal,
+  ResponseOutputText,
+  Response,
 } from 'openai/resources/responses/responses';
 import ResponseCreateParamsStreaming = ResponseCreateParams.ResponseCreateParamsStreaming;
 import FunctionCallOutput = ResponseInputItem.FunctionCallOutput;
 import {TimeoutException} from 'effect/Cause';
 import short from 'short-uuid';
+import {Content, GenerateContentResponse, Modality} from '@google/genai';
 
 
 export abstract class OpenAiBaseGenerator extends ContextGenerator {
@@ -77,13 +88,13 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     }
   }
 
-  protected makePreviousContext(avatarState: AvatarState) {
+  protected makePreviousContext(avatarState: AvatarState,current: GenInner) {
     const it = this;
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
       console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0,200)).join('\n'));
       const out:ResponseInputItem[] = []
-      it.filterForLlmPrevContext(prevMes).forEach(a => {
+      it.filterForLlmPrevContext(prevMes,current.input).forEach(a => {
         const role = it.asRoleToRole(a.asRole);
         if(a.asRole === 'human') {
           const parts: ResponseInputContent[] = [];
@@ -303,7 +314,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState);
+      const prev = yield* it.makePreviousContext(avatarState,current);
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -409,3 +420,94 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   }
 }
 
+export class OpenAiImageGenerator extends OpenAiBaseGenerator {
+  protected genName: GeneratorProvider = 'openAiImage';
+  protected model = 'gpt-4.1-mini';
+
+  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiImageGenerator, Error> {
+    if (!sysConfig.generators.openAiText?.apiKey) {
+      return Effect.fail(new Error('openAi API key is not set.'));
+    }
+    return Effect.succeed(new OpenAiImageGenerator(sysConfig, settings as OpenAiImageSettings | undefined));
+  }
+
+  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
+    super(new OpenAI({
+      apiKey: sysConfig.generators.openAiText?.apiKey,
+    }));
+    this.openAiSettings = settings;
+  }
+
+  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+    const it = this;
+    return Effect.gen(function* () {
+      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
+      const prev: ResponseInputItem[] = [] //   yield* it.makePreviousContext(avatarState);  //  TODO 画像生成時はいまのところ履歴は反映させずに直近プロンプトのみ反映
+      //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
+      const mes = yield* it.makeCurrentContext(current);
+
+      //  prev+currentをLLM APIに要求、レスポンスを取得
+      const contents = prev.concat(mes);
+      const body: ResponseCreateParamsNonStreaming = {
+        model: it.model,
+        input: contents,
+        tools: [({type: 'image_generation', quality: 'low'})] as OpenAI.Responses.Tool[],
+        // store:true,
+      };
+      const responseOut:Response = yield* Effect.tryPromise({
+        try: () => it.openai.responses.create(body),
+        catch: error => {
+          const e = error as APIError;
+          // console.log('error:', e.message);
+          return new Error(`openAi API error:${e.message}`);
+        },
+      }).pipe(
+        Effect.timeout('1 minute'),
+        Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
+        Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
+      );
+
+      //  確定実行結果取得
+      const resImage = responseOut.output.filter(b => b.type === 'image_generation_call').flatMap((b: ResponseOutputItem.ResponseOutputItem.ImageGenerationCall) => {
+        return {img:b.result,id:b.id}
+      })
+      const resText = responseOut.output.filter(b => b.type === 'message').flatMap((b: ResponseOutputMessage) => {
+        return b.content.map(value => {
+            if (value.type === 'output_text') {
+              return {text: value.text, id: b.id};
+            }
+            return {text: value.refusal, id: b.id};
+          });
+      })
+
+      const nextGen = current.genNum + 1
+      const genOut: GenOuter[] = []
+      if (resImage.length > 0) {
+        resImage.forEach(value => {
+          genOut.push({
+            avatarId: current.avatarId,
+            fromGenerator: it.genName,
+            toGenerator: it.genName,
+            innerId: value.id,
+            outputImage: value.img,
+            genNum: nextGen,
+          })
+        })
+      }
+      if (resText.length > 0) {
+        resText.forEach(value => {
+          genOut.push({
+            avatarId: current.avatarId,
+            fromGenerator: it.genName,
+            toGenerator:  'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
+            innerId: value.id,
+            outputText: value.text,
+            genNum: nextGen,
+          })
+        })
+      }
+      return genOut;
+    }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
+  }
+
+}

@@ -494,6 +494,7 @@ export class AvatarState {
         if (daemon.config.exec.directTrigger) {
           //  ダイレクト
           message = triggerMes;  //  すでに追加済みなのでaddContentには追加しない
+          // console.log('direct trigger:',triggerMes);
           addToBuffer = !triggerMes.isContextAdded;
         } else {
           //  再加工
