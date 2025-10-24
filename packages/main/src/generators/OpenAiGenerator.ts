@@ -61,8 +61,8 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
 
   filterToolRes(value: any) {
     try {
-      console.log('filterToolRes:',value);
-      return value.content.flatMap((a:any) => {
+      console.log('filterToolRes:', value);
+      return value.content.flatMap((a: any) => {
         // console.log('contents test:',a);
         //  @ts-ignore
         if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
@@ -81,22 +81,22 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
           }
         }
         return [a];
-      })
+      });
     } catch (error) {
-      console.log('filterToolRes error:',error);
+      console.log('filterToolRes error:', error);
       throw error;
     }
   }
 
-  protected makePreviousContext(avatarState: AvatarState,current: GenInner) {
+  protected makePreviousContext(avatarState: AvatarState, current: GenInner) {
     const it = this;
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
-      console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0,200)).join('\n'));
-      const out:ResponseInputItem[] = []
-      it.filterForLlmPrevContext(prevMes,current.input).forEach(a => {
+      console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0, 200)).join('\n'));
+      const out: ResponseInputItem[] = [];
+      it.filterForLlmPrevContext(prevMes, current.input).forEach(a => {
         const role = it.asRoleToRole(a.asRole);
-        if(a.asRole === 'human') {
+        if (a.asRole === 'human') {
           const parts: ResponseInputContent[] = [];
           if (a.content.text) {
             parts.push({
@@ -107,115 +107,115 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
           out.push({
             role: role,
             content: parts,
-          })
+          });
           //  TODO 現時点 prevで画像コンテンツは送らない方向にする 過去の参照idだけでやる方法を検討
-        } else if(a.asRole === 'bot') {
+        } else if (a.asRole === 'bot') {
           const parts: (ResponseOutputText | ResponseOutputRefusal)[] = [];
           if (a.content.text) {
             parts.push({
               type: 'output_text', //value.role === 'user' ? 'input_text':'output_text',
               text: a.content.text,
-              annotations:[]  //  TODO 未処理 どうするか
+              annotations: [],  //  TODO 未処理 どうするか
             });
           }
           out.push({
-            id:a.content.innerId || '',
+            id: a.content.innerId || '',
             type: 'message',
             role: 'assistant',
-            status:'completed',
+            status: 'completed',
             content: parts,
           });
           //  TODO 現時点 prevで画像コンテンツは送らない方向にする 過去の参照idだけでやる方法を検討
-        } else if(a.asRole === 'toolIn') {
+        } else if (a.asRole === 'toolIn') {
           out.push({
             type: 'function_call',
             call_id: a.content.toolReq.callId,
             arguments: JSON.stringify(a.content.toolReq.input),
             name: a.content.toolReq.name,
           });
-        } else if(a.asRole === 'toolOut') {
+        } else if (a.asRole === 'toolOut') {
           out.push({
             type: 'function_call_output',
             call_id: a.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
-            output: JSON.stringify(it.filterToolRes(a.content.toolRes).map((v:any) => it.OpenAiAnnotationFilter(v))),
+            output: JSON.stringify(it.filterToolRes(a.content.toolRes).map((v: any) => it.OpenAiAnnotationFilter(v))),
           });
         } else {
           //  system
-          console.log('OpenAi prevMes error:',a);
+          console.log('OpenAi prevMes error:', a);
         }
-      })
+      });
       return out;
-/*
-      const blocked = it.filterForLlmPrevContext(prevMes).map(a => {
-        const role = it.asRoleToRole(a.asRole);
-        return {
-          role,
-          mes: a,
-        };
-      }).reduce<{role: string; block: {role: string; mes: AsMessage}[]}[]>(
-        (acc, cur) => {
-          const last = acc[acc.length - 1];
-          if (last && last.role === cur.role) {
-            // 直前のブロックと同じ role → まとめる
-            last.block.push(cur);
-          } else {
-            // 新しいブロックを開始
-            acc.push({role: cur.role, block: [cur]});
-          }
-          return acc;
-        },
-        [],
-      );
-      return blocked.map(a => {
-        const toolReqRes:ResponseInputItem[] = []
-        // const toolReq:ResponseFunctionToolCall[] = []
-        // const toolRes:FunctionCallOutput[] = []
-        const p = a.block.flatMap(value => {
-          const parts: ResponseInputContent[] = [];
-          if (value.mes.content.text) {
-            parts.push({
-              type: 'input_text', //value.role === 'user' ? 'input_text':'output_text',
-              text: value.mes.content.text,
-            });
-          }
-          //  TODO 現時点 prevで画像コンテンツは送らない方向にする 過去の参照idだけでやる方法を検討
-          if (value.mes.content.toolReq) {
-            toolReqRes.push({
-              type: 'function_call',
-              call_id: value.mes.content.toolReq.callId,
-              arguments: JSON.stringify(value.mes.content.toolReq.input),
-              name: value.mes.content.toolReq.name,
-            });
-          }
-          if (value.mes.content.toolRes) {
-            toolReqRes.push({
-              type: 'function_call_output',
-              call_id: value.mes.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
-              output: JSON.stringify(it.filterToolRes(value.mes.content.toolRes).map((v:any) => it.OpenAiAnnotationFilter(v))),
-            });
-            // const list = it.filterToolRes(value.mes.content.toolRes).map((v:any) => it.OpenAiAnnotationFilter(v));
-            // list.forEach((v:any) => {
-            //   toolRes.push({
-            //     type: 'function_call_output',
-            //     call_id: value.mes.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
-            //     output: JSON.stringify(v),
-            //   });
-            // })
-          }
-          //  TODO 現時点画像の過去展開はしていない
-          return parts;
-        });
-        const list:ResponseInputItem[] = []
-        if(p.length > 0) {
-          list.push({
-            role: a.role,
-            content: p,
-          } as EasyInputMessage)
-        }
-        list.push(...toolReqRes)
-        return list
-      }).flat() as ResponseInputItem[];
-*/
+      /*
+            const blocked = it.filterForLlmPrevContext(prevMes).map(a => {
+              const role = it.asRoleToRole(a.asRole);
+              return {
+                role,
+                mes: a,
+              };
+            }).reduce<{role: string; block: {role: string; mes: AsMessage}[]}[]>(
+              (acc, cur) => {
+                const last = acc[acc.length - 1];
+                if (last && last.role === cur.role) {
+                  // 直前のブロックと同じ role → まとめる
+                  last.block.push(cur);
+                } else {
+                  // 新しいブロックを開始
+                  acc.push({role: cur.role, block: [cur]});
+                }
+                return acc;
+              },
+              [],
+            );
+            return blocked.map(a => {
+              const toolReqRes:ResponseInputItem[] = []
+              // const toolReq:ResponseFunctionToolCall[] = []
+              // const toolRes:FunctionCallOutput[] = []
+              const p = a.block.flatMap(value => {
+                const parts: ResponseInputContent[] = [];
+                if (value.mes.content.text) {
+                  parts.push({
+                    type: 'input_text', //value.role === 'user' ? 'input_text':'output_text',
+                    text: value.mes.content.text,
+                  });
+                }
+                //  TODO 現時点 prevで画像コンテンツは送らない方向にする 過去の参照idだけでやる方法を検討
+                if (value.mes.content.toolReq) {
+                  toolReqRes.push({
+                    type: 'function_call',
+                    call_id: value.mes.content.toolReq.callId,
+                    arguments: JSON.stringify(value.mes.content.toolReq.input),
+                    name: value.mes.content.toolReq.name,
+                  });
+                }
+                if (value.mes.content.toolRes) {
+                  toolReqRes.push({
+                    type: 'function_call_output',
+                    call_id: value.mes.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
+                    output: JSON.stringify(it.filterToolRes(value.mes.content.toolRes).map((v:any) => it.OpenAiAnnotationFilter(v))),
+                  });
+                  // const list = it.filterToolRes(value.mes.content.toolRes).map((v:any) => it.OpenAiAnnotationFilter(v));
+                  // list.forEach((v:any) => {
+                  //   toolRes.push({
+                  //     type: 'function_call_output',
+                  //     call_id: value.mes.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
+                  //     output: JSON.stringify(v),
+                  //   });
+                  // })
+                }
+                //  TODO 現時点画像の過去展開はしていない
+                return parts;
+              });
+              const list:ResponseInputItem[] = []
+              if(p.length > 0) {
+                list.push({
+                  role: a.role,
+                  content: p,
+                } as EasyInputMessage)
+              }
+              list.push(...toolReqRes)
+              return list
+            }).flat() as ResponseInputItem[];
+      */
     });
   }
 
@@ -231,7 +231,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     const it = this;
     return Effect.gen(function* () {
       const mesList: ResponseInputItem[] = [];
-      const mesContent = [] as ResponseInputContent[]
+      const mesContent = [] as ResponseInputContent[];
       if (current.input?.content.text) {
         mesContent.push({
           type: 'input_text',
@@ -242,7 +242,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
           mesList.push({
             type: 'function_call_output',
             call_id: value.callId,
-            output: JSON.stringify(it.filterToolRes(value.results).map((v:any) => it.OpenAiAnnotationFilter(v))) //.map((v:any) => it.OpenAiAnnotationFilter(v)),
+            output: JSON.stringify(it.filterToolRes(value.results).map((v: any) => it.OpenAiAnnotationFilter(v))), //.map((v:any) => it.OpenAiAnnotationFilter(v)),
           });
           // const list = it.filterToolRes(value.results).map((v:any) => it.OpenAiAnnotationFilter(v));
           // list.forEach((v:any) => {
@@ -279,11 +279,12 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
         //   mes.parts.push(imagePart);
         // }
       }
-      if(mesContent.length > 0) {
+      if (mesContent.length > 0) {
         return [{
+          type: 'message',
           role: 'user',
           content: mesContent,
-        } as ResponseInputItem].concat(mesList)
+        } as ResponseInputItem].concat(mesList);
       }
       return mesList;
     });
@@ -314,7 +315,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState,current);
+      const prev = yield* it.makePreviousContext(avatarState, current);
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -329,7 +330,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
-      console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0,200)).join('\n'));
+      console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 200)).join('\n'));
       console.log('OpenAi context end:');
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
@@ -372,14 +373,14 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       const responseOut = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
         Chunk.toReadonlyArray,
       ).map(a => a.response.output).flat();
-      console.log('responseOut:',JSON.stringify(responseOut));
+      console.log('responseOut:', JSON.stringify(responseOut));
       const textOut = responseOut.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
         //  TODO mesIdは1件のはず?
-        return {id:b.id,text:b.content.filter(c => c.type === 'output_text').map(c => c.text).join('\n')}
+        return {id: b.id, text: b.content.filter(c => c.type === 'output_text').map(c => c.text).join('\n')};
       });
-      console.log('textOut:',JSON.stringify(textOut));
+      console.log('textOut:', JSON.stringify(textOut));
       if (textOut.length > 1) {
-        return yield *Effect.fail(new Error(`response.completed > 1:${textOut.length}`))
+        return yield* Effect.fail(new Error(`response.completed > 1:${textOut.length}`));
       }
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
@@ -393,15 +394,15 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
           genNum: nextGen,
         });
       }
-      const funcCallReq:ResponseFunctionToolCall[] = responseOut.filter(b => b.type === 'function_call');
+      const funcCallReq: ResponseFunctionToolCall[] = responseOut.filter(b => b.type === 'function_call');
       if (funcCallReq.length > 0) {
-        console.log('OpenAi toolCallParam:', JSON.stringify(funcCallReq),textOut);
+        console.log('OpenAi toolCallParam:', JSON.stringify(funcCallReq), textOut);
         //  TODO ここのfunc call の書式がまだ合ってない
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           toGenerator: it.genName,
-          innerId: (textOut.length > 0 ? textOut[0].id:undefined) || current.input?.content.innerId ||  short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
+          innerId: (textOut.length > 0 ? textOut[0].id : undefined) || current.input?.content.innerId || short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {
             return {
               callId: v.call_id,
@@ -442,7 +443,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev: ResponseInputItem[] = [] //   yield* it.makePreviousContext(avatarState);  //  TODO 画像生成時はいまのところ履歴は反映させずに直近プロンプトのみ反映
+      const prev: ResponseInputItem[] = []; //   yield* it.makePreviousContext(avatarState);  //  TODO 画像生成時はいまのところ履歴は反映させずに直近プロンプトのみ反映
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -454,7 +455,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
         tools: [({type: 'image_generation', quality: 'low'})] as OpenAI.Responses.Tool[],
         // store:true,
       };
-      const responseOut:Response = yield* Effect.tryPromise({
+      const responseOut: Response = yield* Effect.tryPromise({
         try: () => it.openai.responses.create(body),
         catch: error => {
           const e = error as APIError;
@@ -468,20 +469,20 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
       );
 
       //  確定実行結果取得
-      const resImage = responseOut.output.filter(b => b.type === 'image_generation_call').flatMap((b: ResponseOutputItem.ResponseOutputItem.ImageGenerationCall) => {
-        return {img:b.result,id:b.id}
-      })
+      const resImage = responseOut.output.filter(b => b.type === 'image_generation_call').flatMap((b: ResponseOutputItem.ImageGenerationCall) => {
+        return {img: b.result, id: b.id};
+      });
       const resText = responseOut.output.filter(b => b.type === 'message').flatMap((b: ResponseOutputMessage) => {
         return b.content.map(value => {
-            if (value.type === 'output_text') {
-              return {text: value.text, id: b.id};
-            }
-            return {text: value.refusal, id: b.id};
-          });
-      })
+          if (value.type === 'output_text') {
+            return {text: value.text, id: b.id};
+          }
+          return {text: value.refusal, id: b.id};
+        });
+      });
 
-      const nextGen = current.genNum + 1
-      const genOut: GenOuter[] = []
+      const nextGen = current.genNum + 1;
+      const genOut: GenOuter[] = [];
       if (resImage.length > 0) {
         resImage.forEach(value => {
           genOut.push({
@@ -489,22 +490,115 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
             fromGenerator: it.genName,
             toGenerator: it.genName,
             innerId: value.id,
-            outputImage: value.img,
+            outputImage: value.img!,
+            outputMime: 'image/png',
             genNum: nextGen,
-          })
-        })
+          });
+        });
       }
       if (resText.length > 0) {
         resText.forEach(value => {
           genOut.push({
             avatarId: current.avatarId,
             fromGenerator: it.genName,
-            toGenerator:  'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
+            toGenerator: 'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
             innerId: value.id,
             outputText: value.text,
             genNum: nextGen,
-          })
-        })
+          });
+        });
+      }
+      return genOut;
+    }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
+  }
+
+}
+
+export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
+  protected genName: GeneratorProvider = 'openAiVoice';
+  protected model = 'gpt-4o-audio-preview';
+  protected voice = 'alloy';
+  protected cutoffTextLimit = 150;
+
+  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiVoiceGenerator, Error> {
+    if (!sysConfig.generators.openAiText?.apiKey) {
+      return Effect.fail(new Error('openAi API key is not set.'));
+    }
+    return Effect.succeed(new OpenAiVoiceGenerator(sysConfig, settings as OpenAiImageSettings | undefined));
+  }
+
+  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
+    super(new OpenAI({
+      apiKey: sysConfig.generators.openAiText?.apiKey,
+    }));
+    this.openAiSettings = settings;
+    this.voice = sysConfig.generators.openAiVoice?.voice || 'alloy';
+    this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
+  }
+
+  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+    const it = this;
+    return Effect.gen(function* () {
+      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
+      //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
+      const mes = yield* it.makeCurrentContext(current);
+      let text = mes.flatMap(value => {
+        if (value.type === 'message') {
+          if (typeof value.content === 'string') {
+            return [value.content];
+          } else {
+            return value.content.filter(a => a.type === 'input_text').map(a => a.text);
+          }
+        }
+        return [];
+      }).join(' ');
+      if (text) {
+        text = text.slice(0, it.cutoffTextLimit);
+      }
+
+      //  prev+currentをLLM APIに要求、レスポンスを取得
+      const responseOut = yield* Effect.tryPromise({
+        try: () => it.openai.chat.completions.create({
+          model: it.model,
+          modalities: ['text', 'audio'],
+          audio: {voice: it.voice, format: 'wav'},
+          messages: [
+            {
+              role: 'user',
+              content: text,
+            },
+          ],
+          // store:true,
+        }),
+        catch: error => {
+          const e = error as APIError;
+          console.log('error:', e.message);
+          return new Error(`openAi API error:${e.message}`);
+        },
+      }).pipe(
+        Effect.timeout('1 minute'),
+        Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
+        Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
+        // Effect.andThen(a => a.choices),
+      );
+      //  Voiceとして呼んだ場合は音声しか取り出さない
+      //  TODO openAiのvoiceはまだResponse非対応
+      const genOut: GenOuter[] = [];
+      const snd = (responseOut).choices[0].message.audio?.data;
+      if (snd) {
+        // console.log('outImages:', snd.slice(0, 100));
+        const id = short.generate();
+        const mime = 'audio/wav';
+        const nextGen = current.genNum + 1;
+        genOut.push({
+          avatarId: current.avatarId,
+          fromGenerator: it.genName,
+          toGenerator: it.genName,
+          innerId: responseOut.id,
+          outputImage: snd,
+          outputMime: 'audio/wav',
+          genNum: nextGen,
+        });
       }
       return genOut;
     }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));

@@ -13,7 +13,7 @@ import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {OpenAiTextGenerator,OpenAiImageGenerator} from '../src/generators/OpenAiGenerator';
+import {OpenAiTextGenerator, OpenAiImageGenerator, OpenAiVoiceGenerator} from '../src/generators/OpenAiGenerator';
 import {AsMessage} from '../../common/Def';
 
 const cwd = process.cwd()
@@ -101,17 +101,54 @@ describe('OpenAiGenerator', () => {
       const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
       const testImageBase64 = Buffer.from(file).toString('base64');
 
-      const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
-      return yield *ai.generateContext({
+      const out = yield *ai.generateContext({
         avatarId:'aaaa',toGenerator:'openAiImage',fromGenerator:'external',
         input:AsMessage.makeMessage({
           innerId: '1234567890',
-          mediaUrl: url,
-          mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'Draw anime girl',
         },'talk','human','surface'),
         genNum:0
       }, avatarState);
+      return yield *Effect.forEach(out, (o) => {
+        if (o.outputImage) {
+          return DocService.saveDocMedia('123', 'image/png', o.outputImage, 'vitestDummyId')
+        }
+        if (o.outputText) {
+          return Effect.succeed(o.outputText);
+        }
+      })
+    }).pipe(aiRuntime.runPromise,);
+
+
+    console.log('out:',res);
+    expect(typeof res === 'object').toBe(true);
+  });
+  it('generateContext_voice_gen', async () => {
+    const res = await Effect.gen(function* () {
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
+
+      const ai = yield* OpenAiVoiceGenerator.make(vitestSysConfig);
+
+      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+      const out = yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiVoice',fromGenerator:'external',
+        input:AsMessage.makeMessage({
+          innerId: '1234567890',
+          text: 'Draw anime girl',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+      return yield *Effect.forEach(out, (o) => {
+        if (o.outputImage) {
+          return DocService.saveDocMedia('456', 'audio/wav', o.outputImage, 'vitestDummyId')
+        }
+        if (o.outputText) {
+          return Effect.succeed(o.outputText);
+        }
+      })
     }).pipe(aiRuntime.runPromise,);
 
 

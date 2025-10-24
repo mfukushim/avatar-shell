@@ -30,7 +30,7 @@ import {NodeFileSystem} from '@effect/platform-node';
 import dayjs from 'dayjs';
 import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {ClaudeTextGenerator} from './generators/ClaudeGenerator.js';
-import {OpenAiTextGenerator} from './generators/OpenAiGenerator.js';
+import {OpenAiImageGenerator, OpenAiTextGenerator, OpenAiVoiceGenerator} from './generators/OpenAiGenerator.js';
 import { rm, readdir } from 'fs/promises';
 
 let debugConfigFile: string | undefined = undefined;
@@ -498,7 +498,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       'openAiImage': (sysConfig, settings) => OpenAiImageGenerator.make(sysConfig, settings),
       'geminiImage': GeminiImageGenerator.make,
       //  音声合成系
-      'openAiVoice': (sysConfig, settings) => OpenAiVoiceGenerator.make(settings), //openAiVoiceGenerator.make(sysConfig, settings),
+      'openAiVoice': (sysConfig, settings) => OpenAiVoiceGenerator.make(sysConfig, settings),
       'geminiVoice': (sysConfig, settings) => GeminiVoiceGenerator.make(sysConfig, settings),
       // 'openAiVoice',
       // 'voiceVox',
