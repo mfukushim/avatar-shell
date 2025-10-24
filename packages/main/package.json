@@ -15,7 +15,7 @@
     "@app/preload": "*",
     "@app/renderer": "*",
     "@effect/vitest": "^0.25.0",
-    "@modelcontextprotocol/sdk": "^1.15.1",
+    "@modelcontextprotocol/sdk": "^1.20.2",
     "electron-updater": "6.6.2",
     "expand-template": "^2.0.3",
     "filenamify-url": "^3.1.0",
