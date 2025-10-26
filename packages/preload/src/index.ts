@@ -374,6 +374,14 @@ export async function getLocale():Promise<string> {
   return await ipcRenderer.invoke('getLocale');
 }
 
+export async function getPreferencePath():Promise<string> {
+  return await ipcRenderer.invoke('getPreferencePath');
+}
+
+export async function resetPreference(all:boolean):Promise<string> {
+  return await ipcRenderer.invoke('resetPreference',all);
+}
+
 export async function findInPage(text:string):Promise<string> {
   return await ipcRenderer.invoke('findInPage',avatarId, text);
 }

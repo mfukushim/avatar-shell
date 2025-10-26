@@ -115,4 +115,7 @@ export default {
   experimental:'Experimental',
   useMcpUi:'Use MCP-UI',
   mcpUiSelectTemplate:'Conversion template when UI selected',
+  reset: 'Initialize',
+  resetWithoutMedia:'Initialize without media',
+  fullReset:'Initialize all'
 }

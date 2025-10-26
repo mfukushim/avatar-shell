@@ -146,6 +146,7 @@ export const tutorialAvatarSetting: AvatarSetting =
           triggerType: 'IfContextExists', condition: {
             asClass: 'talk',
             asRole: 'bot',
+            asContext:'surface'
           },
         },
         exec: {

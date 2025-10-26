@@ -36,21 +36,14 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
 
     function addExtTalkContext(avatarId: string,bags:AsMessage[]) {
       return Effect.gen(function*() {
-        // const m = yield *Ref.get(avatars)
-        // const state = yield *HashMap.get(m,avatarId)
         const state = yield *getAvatarState(avatarId)
-        yield *state.addContext(bags,true)
-        yield* DocService.addLog(bags.map(value => (AsOutput.makeOutput(value,{
-          provider:'emptyText', //  無効値を持たせたいが
-          model:'none',
-          isExternal:true,
-        }))), state);
+        const ext = yield *state.extendAndSaveContext(bags,true)
+        yield *state.addContext(ext)
       })
     }
 
     function getScheduleList(avatarId: string) {
       return getAvatarState(avatarId).pipe(
-        // Ref.get, Effect.andThen(HashMap.get(avatarId)),
         Effect.andThen(a => a.ScheduleList),
         Effect.andThen(a => ({list:a,status:'ok'}) ),
         Effect.catchAll(() => Effect.succeed({status:'Wait a moment',list:[]}))
@@ -143,7 +136,9 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
       return Effect.gen(function*() {
         // const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
         const state = yield *getAvatarState(avatarId)
-        yield *state.addContext(mes,true)
+        const ext = yield *state.extendAndSaveContext(mes,true)
+        yield *state.addContext(ext)
+        // yield *state.addContext(mes,true)
         yield *state.rebuildIdle()
         return []
       })

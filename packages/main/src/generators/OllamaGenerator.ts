@@ -69,7 +69,7 @@ export class OllamaTextGenerator extends ContextGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMes = yield *avatarState.TalkContextEffect
-      const prev:Message[] = it.filterForLlmPrevContext(prevMes).flatMap(a => {
+      const prev:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
         const role = it.asRoleToRole(a.asRole)
         if(!role) return []
         return [{
@@ -80,8 +80,8 @@ export class OllamaTextGenerator extends ContextGenerator {
       })
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
-      if (current.input?.text) {
-        mes.content  = current.input.text;
+      if (current.input?.content.text) {
+        mes.content  = current.input.content.text;
       } else if (current.toolCallRes) {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
         mes.content = JSON.stringify(current.toolCallRes.map(value => {
@@ -90,8 +90,8 @@ export class OllamaTextGenerator extends ContextGenerator {
         }));
         console.log('toolCallRes:',mes.content);
       }
-      if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
-        const media = yield* DocService.readDocMedia(current.input?.mediaUrl);
+      if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
+        const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer);  //  , it.claudeSettings?.inWidth
         mes.images = [b1.toString('base64')];
       }
@@ -171,10 +171,10 @@ export class OllamaTextGenerator extends ContextGenerator {
   private debugContext(messages: Message[]) {
     console.log('ollama context start:');
     console.log(messages.map(a => {
-      let text = '##'+a.role+':' + a.content?.slice(0,200);
+      let text = '##'+a.role+':' + a.content?.slice(0,200).replaceAll('\n','');
       if (a.tool_calls) {
         a.tool_calls.forEach(b => {
-          text += '\n+#' + JSON.stringify(b).slice(0,200);
+          text += '\n+#' + JSON.stringify(b).slice(0,200).replaceAll('\n','');
         });
       }
       return text;

@@ -219,7 +219,6 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
     }
 
     function addLog(log: AsOutput[], avatarState: AvatarState) {
-      console.log('addLog', log.length);
       //  appendなのでfiberにはしない
       if (log.length === 0) {
         return Effect.void;
@@ -243,9 +242,9 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
         //     })
         //   }
         // })
-        const writeLogs = log.map(value => AsOutput.makeOutput(value.mes, value.genType));
+        // const writeLogs = log.map(value => AsOutput.makeOutput(value.mes, value.genType));
         //  書き込みファイルは完全なjsonファイルではなくオブジェクト配列で前後の[]をないという形にして追記にするか
-        const s = JSON.stringify(writeLogs);
+        const s = JSON.stringify(log);
         yield* fs.writeFileString(path.join(docBasePath, 'contents', avatarState.TemplateId, avatarState.LogFileName), s + '\n', {flag: 'a'});
       });
     }

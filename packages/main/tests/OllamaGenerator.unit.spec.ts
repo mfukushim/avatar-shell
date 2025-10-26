@@ -52,10 +52,10 @@ describe('OllamaGenerator', () => {
       });
 
       return yield* ai.generateContext({
-        avatarId: 'aaaa', toGenerator: 'ollamaText', input: {
+        avatarId: 'aaaa', toGenerator: 'ollamaText', input: AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
-        },
+        },'talk','human','surface'),
       } as GenInner, avatarState);
     }).pipe(aiRuntime.runPromise);
 
@@ -82,12 +82,12 @@ describe('OllamaGenerator', () => {
 
       const url = yield* DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId');
       return yield* ai.generateContext({
-        avatarId: 'aaaa', toGenerator: 'ollamaText', input: {
+        avatarId: 'aaaa', toGenerator: 'ollamaText', input: AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        },
+        },'talk','human','surface'),
       } as GenInner, avatarState);
     }).pipe(aiRuntime.runPromise);
 
@@ -110,11 +110,11 @@ describe('OllamaGenerator', () => {
         avatarId: avatarState.Id,
         fromGenerator: 'external',
         toGenerator: 'ollamaText',
-        input: {
+        input: AsMessage.makeMessage({
           from: 'user',
           text: 'hello',
           isExternal: true,
-        },
+        }, 'talk', 'human', 'surface'),
         genNum: 1,
         setting: {
           noTool: true,
@@ -127,7 +127,7 @@ describe('OllamaGenerator', () => {
       const params = yield* avatarState.TalkContextEffect;
       console.log('context:',
         params);
-      expect(params.length).toBe(4);
+      expect(params.length).toBe(3);
 
     }).pipe(
       aiRuntime.runPromise,
@@ -148,11 +148,11 @@ describe('OllamaGenerator', () => {
         avatarId: avatarState.Id,
         fromGenerator: 'external',
         toGenerator: 'ollamaText',
-        input: {
+        input: AsMessage.makeMessage({
           from: 'user',
           text: '/get traveler tips',
           isExternal: true,
-        },
+        },'talk','human','surface'),
         genNum: 1,
         setting: {},
       });
@@ -184,7 +184,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -209,14 +209,14 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
 
       const params = yield* avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(5);
+      expect(params.length).toBe(3);
 
     }).pipe(
       aiRuntime.runPromise,
@@ -240,7 +240,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -265,7 +265,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
@@ -274,7 +274,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: 'What should I do when it\'s hot?',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res2);
 
       yield* Effect.sleep('30 seconds');
@@ -282,7 +282,7 @@ describe('OllamaGenerator', () => {
 
       const params = yield* avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10);
+      expect(params.length).toBe(6);
 
     }).pipe(
       aiRuntime.runPromise,
@@ -305,7 +305,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -330,7 +330,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: '/get traveler tips',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');
@@ -395,7 +395,7 @@ describe('OllamaGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -421,7 +421,7 @@ describe('OllamaGenerator', () => {
         from: 'user',
         text: '/new game',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');

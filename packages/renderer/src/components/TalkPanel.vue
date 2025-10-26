@@ -186,7 +186,7 @@ const imageCache = ref<Record<string, string>>({});
             <q-chip dense>{{ item.content.from }}</q-chip>
             <q-chip dense>{{ getItemType(item) }}</q-chip>
             <div>{{ item.asClass }}/{{ item.asRole }}/{{ item.asContext }}</div>
-            <div>{{ item.genName ? `/${item.genName}`: '' }}</div>
+            <div>{{ item.fromGenerator ? `/${item.fromGenerator}`: '' }}</div>
             <div>{{ item.content.toolName }}</div>
             <q-space />
             <div class="text-caption">{{ dayjs(item.tick).format('YYYY-MM-DD HH:mm:ss') }}</div>

@@ -46,10 +46,10 @@ describe('ClaudeGenerator', () => {
 
       return yield *ai.generateContext({
         avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
-        input:{
+        input: AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
-        },
+        },"talk","human","surface"),
         genNum:0
       }, avatarState);
     }).pipe(aiRuntime.runPromise,);
@@ -74,12 +74,12 @@ describe('ClaudeGenerator', () => {
       const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
       return yield *ai.generateContext({
         avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
-        input:{
+        input: AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        },
+        },"talk","human","surface"),
         genNum:0
       }, avatarState);
     }).pipe(aiRuntime.runPromise,);
@@ -132,11 +132,11 @@ describe('ClaudeGenerator', () => {
         avatarId:avatarState.Id,
         fromGenerator:'external',
         toGenerator:'claudeText',
-        input:{
+        input:AsMessage.makeMessage({
           from: 'user',
           text: 'hello',
           isExternal:true,
-        },
+        },'talk','human','surface'),
         genNum:1,
         setting: {
           noTool:true
@@ -148,7 +148,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(4)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -169,11 +169,11 @@ describe('ClaudeGenerator', () => {
         avatarId:avatarState.Id,
         fromGenerator:'external',
         toGenerator:'claudeText',
-        input:{
+        input:AsMessage.makeMessage({
           from: 'user',
           text: '/get traveler tips',
           isExternal:true,
-        },
+        },'talk','human','surface'),
         genNum:1,
         setting: {
         }
@@ -206,7 +206,7 @@ describe('ClaudeGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -231,14 +231,14 @@ describe('ClaudeGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(5)
+      expect(params.length).toBe(3)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -262,7 +262,7 @@ describe('ClaudeGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -287,7 +287,7 @@ describe('ClaudeGenerator', () => {
         from: 'user',
         text: 'hello',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');
@@ -296,7 +296,7 @@ describe('ClaudeGenerator', () => {
         from: 'user',
         text: "What should I do when it's hot?",
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res2);
 
       yield *Effect.sleep('30 seconds');
@@ -304,7 +304,7 @@ describe('ClaudeGenerator', () => {
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(6)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -327,7 +327,7 @@ describe('ClaudeGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -352,14 +352,14 @@ describe('ClaudeGenerator', () => {
         from: 'user',
         text: '/get traveler tips',
         isExternal:true,
-      },'talk','human','outer')])
+      },'talk','human','surface')])
       console.log('askAvatar:',res);
 
       yield *Effect.sleep('30 seconds');
 
       const params = yield *avatarState.TalkContextEffect;
       console.log('context:', params);
-      expect(params.length).toBe(10)
+      expect(params.length).toBe(7)
 
     }).pipe(
       aiRuntime.runPromise,
@@ -417,7 +417,7 @@ describe('ClaudeGenerator', () => {
               condition: {
                 asClass: 'talk',
                 asRole: 'human',
-                asContext: 'outer',
+                asContext: 'surface',
               },
             },
             exec: {
@@ -443,7 +443,7 @@ describe('ClaudeGenerator', () => {
         from: 'user',
         text: '/new game',
         isExternal: true,
-      }, 'talk', 'human', 'outer')]);
+      }, 'talk', 'human', 'surface')]);
       console.log('askAvatar:', res);
 
       yield* Effect.sleep('30 seconds');

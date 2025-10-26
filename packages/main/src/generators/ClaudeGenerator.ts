@@ -69,11 +69,11 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
     }
   }
 
-  protected makePreviousContext(avatarState: AvatarState) {
+  protected makePreviousContext(avatarState: AvatarState,current: GenInner) {
     const it = this;
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
-      const blocked = it.filterForLlmPrevContext(prevMes).map(a => {
+      const blocked = it.filterForLlmPrevContext(prevMes,current.input).map(a => {
         const role = it.asRoleToRole(a.asRole);
         return {
           role,
@@ -142,10 +142,10 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
       const mes = {
         role: 'user', content: [] as Anthropic.Messages.ContentBlockParam[]
       };
-      if (current.input?.text) {
+      if (current.input?.content.text) {
         mes.content.push({
           type: 'text',
-          text: current.input.text,
+          text: current.input.content.text,
         } as Anthropic.Messages.ContentBlockParam);
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
@@ -156,9 +156,9 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
           });
         });
       }
-      if (current.input?.mediaUrl && current.input?.mimeType && current.input?.mimeType.startsWith('image')) {
+      if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
         //  Claudeの場合、画像ファイルはinput_imageとしてbase64で送る
-        const media = yield* DocService.readDocMedia(current.input.mediaUrl);
+        const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.claudeSettings?.inWidth);
         //  縮小した画像をLLMには送る
         mes.content.push({
@@ -223,7 +223,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState);
+      const prev = yield* it.makePreviousContext(avatarState,current);
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 

@@ -115,4 +115,7 @@ export default {
   experimental:'実験機能',
   useMcpUi: 'MCP-UIを使う',
   mcpUiSelectTemplate:'UI選択時の変換テンプレート',
+  reset:'初期化',
+  resetWithoutMedia:'コンテンツ以外初期化',
+  fullReset:'全初期化'
 }
