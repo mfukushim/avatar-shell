@@ -146,7 +146,7 @@ const setTimeline = async (tl0: AsMessage[]) => {
         mimeType: 'text/html',
         text: text,
       });
-      if(ui.content?.generator && ui.content.generator !== 'external' && ui.content.generator !== 'mcp'){
+      if(ui.content?.generator && ui.content.generator !== 'external' && ui.content.generator !== 'mcp' && ui.content.generator !== 'daemon'){
         calledMcpUiGenerator.value = ui.content.generator;
       } else {
         calledMcpUiGenerator.value = 'emptyText';

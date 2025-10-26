@@ -1,557 +1,606 @@
 //  注意: インポート順序に順序があるようだ。誤るとAvatarState.makeでエラーになる
-import {Effect} from 'effect';
+import {Effect, Layer, ManagedRuntime, Schema} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
 import {AvatarState} from '../src/AvatarState';
-import {ConfigServiceLive} from '../src/ConfigService';
-import {McpServiceLive} from '../src/McpService';
-import {DocServiceLive} from '../src/DocService';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
+import {McpService, McpServiceLive} from '../src/McpService';
+import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestSysConfig} from '../../common/vitestConfig';
-import { openAiTextGenerator, openAiImageGenerator, openAiVoiceGenerator } from '../src/OpenAiGenerator';
-import {ResponseInputItem} from 'openai/resources/responses/responses';
+import {vitestAvatarConfig, vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {NodeFileSystem} from '@effect/platform-node';
+import {FileSystem} from '@effect/platform';
+import path from 'node:path';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {OpenAiTextGenerator, OpenAiImageGenerator, OpenAiVoiceGenerator} from '../src/generators/OpenAiGenerator';
 import {AsMessage} from '../../common/Def';
-import {ChatCompletion} from 'openai/resources';
+
+const cwd = process.cwd()
+let baseDir = cwd;
+if (cwd.endsWith('main')) {
+  baseDir = path.join(baseDir,'../..');
+}
+
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
+const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('OpenAiGenerator', () => {
   beforeEach(() => {
   });
 
   it('make', async () => {
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
+    const ai = await OpenAiTextGenerator.make(vitestSysConfig).pipe(runPromise);
 
+    console.log(ai);
     expect(typeof ai === 'object').toBe(true);
   });
 
-  it('getGeneratorInfo', async () => {
+  it('generateContext_text', async () => {
     const res = await Effect.gen(function* () {
-      const ai = yield* openAiTextGenerator.make(vitestSysConfig, {
-        previousContextSize: 0,
-        useContextType: ['text']
-      });
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      return ai.getGeneratorInfo();
-    }).pipe(runPromise);
+      const ai = yield* OpenAiTextGenerator.make(vitestSysConfig);
 
+      return yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiText',fromGenerator:'external',
+        input: AsMessage.makeMessage({
+          innerId: '1234567890',
+          text: 'hello',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+    }).pipe(aiRuntime.runPromise,);
 
-    console.log(res);
+    console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
   });
 
-  it('setPreviousContext', async () => {
-    const context: AsMessage[] = [
-      {
-        id: 'aaa',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'hello'
-        }
-      },
-      {
-        id: 'bbbb',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'mi',
-          text: 'hello'
-        }
-      },
-    ]
+  it('generateContext_image', async () => {
     const res = await Effect.gen(function* () {
-      const ai = yield* openAiTextGenerator.make(vitestSysConfig, {
-        previousContextSize: 0,
-        useContextType: ['text']
-      });
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      yield* ai.setPreviousContext(context);
-      return ai
+      const ai = yield* OpenAiTextGenerator.make(vitestSysConfig);
+
+      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const fs = yield* FileSystem.FileSystem;
+      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
+      const testImageBase64 = Buffer.from(file).toString('base64');
+
+      const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
+      return yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiText',fromGenerator:'external',
+        input:AsMessage.makeMessage({
+          innerId: '1234567890',
+          mediaUrl: url,
+          mimeType: 'image/png',  //  mimeの指定は必須にしている
+          text: 'What is in the picture?',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+    }).pipe(aiRuntime.runPromise,);
+
+
+    console.log('out:',res);
+    expect(typeof res === 'object').toBe(true);
+  });
+  it('generateContext_image_gen', async () => {
+    const res = await Effect.gen(function* () {
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
+
+      const ai = yield* OpenAiImageGenerator.make(vitestSysConfig);
+
+      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const fs = yield* FileSystem.FileSystem;
+      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
+      const testImageBase64 = Buffer.from(file).toString('base64');
+
+      const out = yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiImage',fromGenerator:'external',
+        input:AsMessage.makeMessage({
+          innerId: '1234567890',
+          text: 'Draw anime girl',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+      return yield *Effect.forEach(out, (o) => {
+        if (o.outputRaw) {
+          return DocService.saveDocMedia('123', 'image/png', o.outputRaw, 'vitestDummyId')
+        }
+        if (o.outputText) {
+          return Effect.succeed(o.outputText);
+        }
+      })
+    }).pipe(aiRuntime.runPromise,);
+
+
+    console.log('out:',res);
+    expect(typeof res === 'object').toBe(true);
+  });
+  it('generateContext_voice_gen', async () => {
+    const res = await Effect.gen(function* () {
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      // console.log(avatarState);
+      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
+
+      const ai = yield* OpenAiVoiceGenerator.make(vitestSysConfig);
+
+      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+      const out = yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:'openAiVoice',fromGenerator:'external',
+        input:AsMessage.makeMessage({
+          innerId: '1234567890',
+          text: 'Draw anime girl',
+        },'talk','human','surface'),
+        genNum:0
+      }, avatarState);
+      return yield *Effect.forEach(out, (o) => {
+        if (o.outputRaw) {
+          return DocService.saveDocMedia('456', 'audio/wav', o.outputRaw, 'vitestDummyId')
+        }
+        if (o.outputText) {
+          return Effect.succeed(o.outputText);
+        }
+      })
+    }).pipe(aiRuntime.runPromise,);
+
+
+    console.log('out:',res);
+    expect(typeof res === 'object').toBe(true);
+  });
+
+  it('コンテキストステップ確認1', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        fromGenerator:'external',
+        toGenerator:'openAiText',
+        input: AsMessage.makeMessage({
+          from: 'user',
+          text: 'hello',
+          isExternal:true,
+        },'talk','human','surface'),
+        genNum:1,
+        setting: {
+          noTool:true
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(3)
+
     }).pipe(
-      Effect.provide([DocServiceLive, ConfigServiceLive]),
-      runPromise
-    );
+      aiRuntime.runPromise,
+    )
+  })
 
-    console.log(res);
-    expect(typeof res === 'object').toBe(true);
-    expect(res).toHaveProperty('prevContexts');
+  it('コンテキストステップ確認2', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *avatarState.enterInner({
+        avatarId:avatarState.Id,
+        fromGenerator:'external',
+        toGenerator:'openAiText',
+        input: AsMessage.makeMessage({
+          from: 'user',
+          text: '/get traveler tips',
+          isExternal:true,
+        },'talk','human','surface'),
+        genNum:1,
+        setting: {
+        }
+      })
+      console.log('enterInner:',res);
+
+      yield *Effect.sleep('20 seconds');
+
+      console.log('context:',yield *avatarState.TalkContextEffect)
+
+    }).pipe(
+      aiRuntime.runPromise,
+    )
   });
-  it('setCurrentContext', async () => {
-    const context: AsMessage[] = [
-      {
-        id: 'aaa',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'hello'
-        }
-      },
-      {
-        id: 'bbbb',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'mi',
-          text: 'hello'
-        }
-      },
-    ]
-    const talk: AsMessage[] = [
-      {
-        id: 'ccc',
-        tick: 3,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'How are you?'
-        }
+
+  it('コンテキストステップ確認3', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'openAiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
       }
-    ]
-    const res = await Effect.gen(function* () {
-      const ai = yield* openAiTextGenerator.make(vitestSysConfig, {
-        previousContextSize: 0,
-        useContextType: ['text']
-      });
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
 
-      yield* ai.setPreviousContext(context);
-      return yield* ai.setCurrentContext(talk.flatMap(v => [v.content]));
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
+
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: 'hello',
+        isExternal:true,
+      },'talk','human','surface')])
+      console.log('askAvatar:',res);
+
+      yield *Effect.sleep('30 seconds');
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(5)
+
     }).pipe(
-      Effect.provide([DocServiceLive, ConfigServiceLive]),
-      runPromise
-    );
+      aiRuntime.runPromise,
+    )
+  })
 
-    console.log(res);
-    expect(typeof res === 'object').toBe(true);
-    expect(res).toHaveProperty('task');
-  });
+  it('コンテキストステップ確認4', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
 
-  it('execLlm', async () => {
-    //  vitest --run --testNamePattern=execLlm OpenAiGenerator.unit.spec.ts
-    const context: AsMessage[] = [
-      {
-        id: 'aaa',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'hello'
-        }
-      },
-      {
-        id: 'bbbb',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'mi',
-          text: 'hello'
-        }
-      },
-    ]
-    const talk: AsMessage[] = [
-      {
-        id: 'ccc',
-        tick: 3,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'How are you?'
-        }
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'openAiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
       }
-    ]
-    const res = await Effect.gen(function* () {
-      const ai = yield* openAiTextGenerator.make(vitestSysConfig, {
-        previousContextSize: 0,
-        useContextType: ['text']
-      });
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
 
-      yield* ai.setPreviousContext(context);
-      const {task} = yield* ai.setCurrentContext(talk.flatMap(v => [v.content]));
-      const taskVal = yield* task
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
 
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: 'hello',
+        isExternal:true,
+      },'talk','human','surface')])
+      console.log('askAvatar:',res);
 
-      return yield* ai.execLlm(taskVal as ResponseInputItem[], avatarState);
+      yield *Effect.sleep('30 seconds');
+
+      const res2 = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: "What should I do when it's hot?",
+        isExternal:true,
+      },'talk','human','surface')])
+      console.log('askAvatar:',res2);
+
+      yield *Effect.sleep('30 seconds');
+
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(6)
+
     }).pipe(
-      Effect.provide([
-        DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
-    );
+      aiRuntime.runPromise,
+    )
+  })
 
-    console.log(JSON.stringify(res, null, 2));
-    expect(typeof res === 'object').toBe(true);
-    expect(Array.isArray(res)).toBe(true);
-  });
-  it('toAnswerOut', async () => {
-    //  vitest --run --testNamePattern=execLlm OpenAiGenerator.unit.spec.ts
-    const context: AsMessage[] = [
-      {
-        id: 'aaa',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'hello'
-        }
-      },
-      {
-        id: 'bbbb',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'mi',
-          text: 'hello'
-        }
-      },
-    ]
-    const talk: AsMessage[] = [
-      {
-        id: 'ccc',
-        tick: 3,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {
-          from: 'user',
-          text: 'How are you?'
-        }
+  it('コンテキストステップ確認5', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'openAiText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk', //  TODO このto指定はdaemon hookのtoになっているな。変換出力のtoは各generatorが指定しているっぽい。。
+                toRole:'bot', //  TODO ここのロールはフックしたものがtextならば自動でbotかhumanを選んでいる。なので指定の必要がない。。
+                toContext:'surface' //  TODO このto指定はdaemon hookのtoになっているな。変換出力のtoは各generatorが指定しているっぽい。。
+              },
+            },
+          }]
+        )
       }
-    ]
-    const res = await Effect.gen(function* () {
-      const ai = yield* openAiTextGenerator.make(vitestSysConfig, {
-        previousContextSize: 0,
-        useContextType: ['text']
-      });
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
 
-      yield* ai.setPreviousContext(context);
-      const {task} = yield* ai.setCurrentContext(talk.flatMap(v => [v.content]));
-      const taskVal = yield* task
+      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
+      const avatarState = yield *AvatarService.makeAvatar(null)
+      yield *Effect.sleep('1 seconds');
 
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: '/get traveler tips',
+        isExternal:true,
+      },'talk','human','surface')])
+      console.log('askAvatar:',res);
 
-      const res = yield* ai.execLlm(taskVal as ResponseInputItem[], avatarState);
-      return yield* ai.toAnswerOut(res, avatarState);
+      yield *Effect.sleep('30 seconds');
+
+      const params = yield *avatarState.TalkContextEffect;
+      console.log('context:', params);
+      expect(params.length).toBe(5)
+
     }).pipe(
-      Effect.provide([
-        DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
-    );
+      aiRuntime.runPromise,
+    )
+  })
 
-    console.log(JSON.stringify(res, null, 2));
-    expect(typeof res === 'object').toBe(true);
-    expect(Array.isArray(res)).toBe(true);
-  });
-  /*
-    it('execFuncCall', async () => {
-      //  vitest --run --testNamePattern=execLlm OpenAiGenerator.unit.spec.ts
-      const context:AsMessage[] = []
-      const talk:AsMessage[] = [
-        {
-          id:'ccc',
-          tick:3,
-          asClass:'talk',
-          asRole:'human',
-          asContext:'surface',
-          isRequestAction:false,
-          content:{
-            from:'user',
-            text:'get_traveler_view_info'
-          }
-        }
-      ]
-      const res = await Effect.gen(function* () {
-        yield* McpService.initial();
+  it('コンテキストステップ確認6', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield* Effect.sleep('1 seconds');
 
-        const ai = yield *openAiTextGenerator.make(vitestSysConfig, {
-          previousContextSize: 0,
-          useContextType: ['text']
-        });
-
-        yield *ai.setPreviousContext(context);
-        const {task} = yield *ai.setCurrentContext(talk.flatMap(v=>[v.content]));
-        const taskVal =yield *task
-
-        const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
-
-        const res = yield *ai.execLlm(taskVal as ResponseInputItem[], avatarState);
-        console.log('execLlm',res);
-        const ans = yield *ai.toAnswerOut(res, avatarState);
-        console.log('ans',ans);
-        return yield *ai.execFuncCall(res, avatarState);
-      }).pipe(
-        Effect.provide([
-          DocServiceLive,McpServiceLive, ConfigServiceLive,BuildInMcpServiceLive,MediaServiceLive]),
-        runPromise
-      );
-
-      console.log(JSON.stringify(res,null,2));
-      expect(typeof res === 'object').toBe(true);
-      expect(Array.isArray(res.output)).toBe(true);
-      expect(res).toHaveProperty('nextTask');
-    });
-  */
-
-//  追加テスト: setPreviousContext が user/assistant に変換されること
-  it('setPreviousContext transforms roles into user/assistant messages', async () => {
-    const context: AsMessage[] = [
-      {
-        id: 'h1',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {from: 'mfuku', text: 'hi'}
-      },
-      {
-        id: 'b1',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {from: 'mi', text: 'hello'}
-      },
-    ];
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(
-      Effect.provide([ConfigServiceLive]),
-      runPromise
-    );
-    await ai.setPreviousContext(context).pipe(
-      Effect.provide([DocServiceLive, ConfigServiceLive]),
-      runPromise
-    );
-    // @ts-ignore テストのため内部を確認
-    const roles = (ai.prevContexts || []).map((m: any) => m.role);
-    expect(roles).toEqual(expect.arrayContaining(['user', 'assistant']));
-  });
-
-//  追加テスト: getNativeContext は空配列
-  it('getNativeContext returns empty array', async () => {
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
-    const res = await ai.getNativeContext().pipe(
-      Effect.provide([ConfigServiceLive, McpServiceLive]),
-      runPromise
-    );
-    expect(Array.isArray(res)).toBe(true);
-    expect(res.length).toBe(0);
-  });
-
-//  追加テスト: toAnswerOut (text のみ) で AsOutput が生成される
-  it('toAnswerOut converts text response to outputs', async () => {
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
-
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      const responseOut: any[] = [
-        {
-          type: 'message',
-          id: 'm1',
-          role: 'assistant',
-          content: [{type: 'output_text', text: 'hello', annotations: []}],
-        }
-      ];
-      return yield* ai.toAnswerOut(responseOut as any[], avatarState);
-    }).pipe(
-      Effect.provide([DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
-    );
-
-    expect(Array.isArray(res)).toBe(true);
-    expect(res.length).toBeGreaterThan(0);
-  });
-
-//  追加テスト: OpenAiImageGenerator の toAnswerOut で画像出力が保存される
-  it('openAiImageGenerator.toAnswerOut saves image and returns output', async () => {
-    const ai = await openAiImageGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['image']
-    }).pipe(runPromise);
-
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      const responseOut: any[] = [
-        {type: 'image_generation_call', id: 'img1', result: 'aGVsbG8='}
-      ];
-      return yield* ai.toAnswerOut(responseOut as any[], avatarState);
-    }).pipe(
-      Effect.provide([DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
-    );
-
-    expect(Array.isArray(res)).toBe(true);
-    expect(res.length).toBe(1);
-    expect(typeof res[0]).toBe('object');
-  });
-
-//  追加テスト: OpenAiVoiceGenerator の toAnswerOut で音声出力が保存される
-  it('openAiVoiceGenerator.toAnswerOut saves audio when present', async () => {
-    const ai:openAiVoiceGenerator = await openAiVoiceGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
-
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      const responseOut: ChatCompletion = {
-        id: '',
-        choices: [ {
-          message: {
-            content: null,
-            refusal: null,
-            role: 'assistant',
-            audio: {
-              id: '',
-              data: 'UklGRg==',
-              expires_at: 0,
-              transcript: ''
-            }
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {
+          reversi: {
+            enable: true,
+            useTools: {
+              "new-game": {
+                enable: true,
+                allow: 'any',
+              },
+              'get-board': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-user': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-assistant': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'session-auth': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'add': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'calculate': {
+                'enable': true,
+                'allow': 'ask',
+              },
+            },
           },
-          finish_reason: 'stop',
-          index: 0,
-          logprobs: null
+        },
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'openAiText',
+              directTrigger: true,
+              setting: {
+                toClass: 'talk',
+                toRole: 'bot',
+                toContext: 'surface',
+              },
+            },
+          }],
+        ),
+      };
+      //  @ts-ignore
+      yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
+
+      yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
+      const avatarState = yield* AvatarService.makeAvatar(null);
+      yield* Effect.sleep('1 seconds');
+
+      const res = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: '/new game',
+        isExternal: true,
+      }, 'talk', 'human', 'surface')]);
+      console.log('askAvatar:', res);
+
+      yield* Effect.sleep('30 seconds');
+
+      const params = yield* avatarState.TalkContextEffect;
+      console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
+      expect(params.length).toBe(8);
+
+    }).pipe(
+      aiRuntime.runPromise,
+    );
+  });
+
+  it('コンテキストステップ確認7', async () => {
+    await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield* Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {
+          reversi: {
+            enable: true,
+            useTools: {
+              "new-game": {
+                enable: true,
+                allow: 'any',
+              },
+              'get-board': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-user': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'select-assistant': {
+                'enable': true,
+                'allow': 'any',
+              },
+              'session-auth': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'add': {
+                'enable': true,
+                'allow': 'ask',
+              },
+              'calculate': {
+                'enable': true,
+                'allow': 'ask',
+              },
+            },
+          },
+        },
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'openAiText',
+              directTrigger: true,
+              setting: {
+                toClass: 'talk',
+                toRole: 'bot',
+                toContext: 'surface',
+              },
+            },
+          }],
+        ),
+      };
+      //  @ts-ignore
+      yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
+
+      yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
+      const avatarState = yield* AvatarService.makeAvatar(null);
+      yield* Effect.sleep('1 seconds');
+
+      const res = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+        from: 'user',
+        text: '/new game',
+        isExternal: true,
+      }, 'talk', 'human', 'surface')]);
+      console.log('askAvatar:', res);
+
+      yield* Effect.sleep('30 seconds');
+
+      const res2 = yield *avatarState.callMcpToolByExternal({
+        callId: '123',
+        name: 'reversi_select-user',
+        input: {
+          move:'D3'
         }
-          ],
-        created: 0,
-        model: '',
-        object: 'chat.completion'
-      }
+      },'openAiText')
+      console.log('callMcpToolByExternal:',res2);
 
-      return yield* ai.toAnswerOut(responseOut, avatarState);
+      yield* Effect.sleep('30 seconds');
+      // const res2 = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
+      //   from: 'user',
+      //   text: '/new game',
+      //   isExternal: true,
+      // }, 'talk', 'human', 'outer')]);
+      // console.log('askAvatar:', res2);
+
+      const params = yield* avatarState.TalkContextEffect;
+      console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
+      expect(params.length).toBe(8);
+
     }).pipe(
-      Effect.provide([DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
+      aiRuntime.runPromise,
     );
-
-    expect(Array.isArray(res)).toBe(true);
-    expect(res.length).toBe(1);
   });
 
-//  追加テスト: execFuncCall 失敗時にフォールバック動作し、nextTask が返る
-  it('execFuncCall falls back with text when tool invocation fails', async () => {
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
-
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      const responseOut: any[] = [
-        {
-          type: 'function_call',
-          call_id: 'call1',
-          name: 'unknown_tool_unknown_func',
-          arguments: '{"x":1}'
-        }
-      ];
-      return yield* ai.execFuncCall(responseOut as any[], avatarState);
-    }).pipe(
-      Effect.provide([DocServiceLive, McpServiceLive, ConfigServiceLive, MediaServiceLive]),
-      runPromise
-    );
-
-    expect(typeof res === 'object').toBe(true);
-    expect(Array.isArray(res.output)).toBe(true);
-    expect(res).toHaveProperty('nextTask');
-  });
-//  追加テスト: setPreviousContext が user/assistant に変換されること
-  it('setPreviousContext transforms roles into user/assistant messages', async () => {
-    const context: AsMessage[] = [
-      {
-        id: 'h1',
-        tick: 1,
-        asClass: 'talk',
-        asRole: 'human',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {from: 'user', text: 'hi'}
-      },
-      {
-        id: 'b1',
-        tick: 2,
-        asClass: 'talk',
-        asRole: 'bot',
-        asContext: 'surface',
-        isRequestAction: false,
-        content: {from: 'mi', text: 'hello'}
-      },
-    ];
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(
-      Effect.provide([ConfigServiceLive]),
-      runPromise
-    );
-    const res = await ai.setPreviousContext(context).pipe(
-      Effect.provide([DocServiceLive, ConfigServiceLive]),
-      runPromise
-    );
-    // クラスインスタンスを返さないので ai をそのまま確認
-    // 保護プロパティだがテストでは実体を確認する
-    // @ts-ignore
-    const roles = (ai.prevContexts || []).map((m: any) => m.role);
-    expect(roles).toEqual(expect.arrayContaining(['user', 'assistant']));
-  });
-
-//  追加テスト: getNativeContext は空配列
-  it('getNativeContext returns empty array', async () => {
-    const ai = await openAiTextGenerator.make(vitestSysConfig, {
-      previousContextSize: 0,
-      useContextType: ['text']
-    }).pipe(runPromise);
-    const res = await ai.getNativeContext().pipe(
-      Effect.provide([ConfigServiceLive, McpServiceLive]),
-      runPromise
-    );
-    expect(Array.isArray(res)).toBe(true);
-    expect(res.length).toBe(0);
-  });
-
-//  追加テスト: toAnswerOut (text のみ) で AsOutput が生成される
-// it('toAnswerOut converts text response to outputs', async () => {
-//   const ai = await openAiTextGenerator.make(vitestSysConfig, {
 },5*60*1000);

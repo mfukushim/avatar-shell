@@ -6,7 +6,7 @@ import {
   AlertTask,
   AsMessage,
   AsMessageContent,
-  AsMessageContentMutable,
+  AsMessageContentMutable, AsOutput,
   AvatarSetting, ContentGenerator,
   ContextTrigger,
   ContextTriggerList,
@@ -69,7 +69,7 @@ export interface GenOuter {
   innerId: string;
   toolCallParam?: ToolCallParam[];
   outputText?: string;
-  outputImage?: string;
+  outputRaw?: string;
   outputMediaUrl?: string;
   outputMime?: string;
   genNum: number
@@ -255,12 +255,14 @@ export class AvatarState {
             Effect.gen(function* () {
               const take = yield* Queue.take(it.talkQueue);
               console.log('avatarState update talkContext');
-              yield* SynchronizedRef.update(it.talkContext, a => a.concat(take.delta.map(a => {
+              const items = take.delta.map(a => {
                 return {
                   ...a,
-                  isContextAdded: true
-                }
-              })));
+                  isContextAdded: true,
+                };
+              });
+              yield* SynchronizedRef.update(it.talkContext, a => a.concat(items));
+              yield* DocService.addLog(items.map(value => (AsOutput.makeOutput(value))), it);
               yield* it.detectTalkContext(take);
             }),
           step: c => c,
@@ -507,6 +509,7 @@ export class AvatarState {
             content: {
               ...triggerMes.content,
               text: text,
+              generator:'daemon',
             },
           } as AsMessage;
           const ext = yield *state.extendAndSaveContext([message],true)
@@ -526,7 +529,7 @@ export class AvatarState {
           AsMessage.makeMessage({
             from: state.Name,
             text: text,
-            generator: daemon.generator.Name,
+            generator: 'daemon', //daemon.generator.Name,
             isExternal: true, //  LLMループの外からの操作なのでtrue
           }, 'daemon', 'system', 'inner');
         //  ここは新規なので追加
@@ -1155,14 +1158,13 @@ export class AvatarState {
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
         }
-        if (a.outputImage) {
-          const mime = 'image/png';
-          const mediaUrl = yield* DocService.saveDocMedia(a.innerId, mime, a.outputImage, it.TemplateId);
+        if (a.outputRaw && a.outputMime) {
+          const mediaUrl = yield* DocService.saveDocMedia(a.innerId, a.outputMime, a.outputRaw, it.TemplateId);
           const content: AsMessageContent = {
             innerId: a.innerId,
             from: it.Name,
             mediaUrl,
-            mimeType: mime,
+            mimeType: a.outputMime,
             generator: a.fromGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
@@ -1206,7 +1208,7 @@ export class AvatarState {
   }
 
   debugGenOuter(a: GenOuter) {
-    return `&&${a.fromGenerator},${a.toGenerator},${a.outputText},${a.outputImage?.slice(0, 100)},${a.outputMediaUrl},${a.toolCallParam?.map(value => value.name).join(',')}`;
+    return `&&${a.fromGenerator},${a.toGenerator},${a.outputText},${a.outputRaw?.slice(0, 100)},${a.outputMediaUrl},${a.toolCallParam?.map(value => value.name).join(',')}`;
   }
 
   /*

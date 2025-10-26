@@ -6,16 +6,7 @@ Japanese / [English](./README.md)
 
 アバター/メディア指向の高機能MCPクライアントです。
 
-注意: まだ動作が安定していない部分があります。またデーモン処理付近で大きく仕様を変更する場合があります。  
-
-> 現在、LLM付近の処理を大きく変更を加えています。  
-> Geminiと新規にローカルOllamaのLLM APIが使用可能です。
-> まだ不安定ですが、リバーシ MCP-UIが動く状態での一時的公開です。  
-> https://github.com/mfukushim/reversi-mcp-ui
-
-> Note: 以前の版を使っている方はコンテキストデーモンのmainLLMの設定を以下のように設定してください(条件項のasContext=outer)
-設定ファイルの初期化については近々追加予定です。  
-<img width="400" alt="COntext daemon setting" src="./page_images/img2.png" />
+> Note: 以前の版を使っている方で、動作が不安定になった方はSystemSetting > initialize で一旦設定の初期化をお願いします。
 
 
 ## 機能
@@ -132,6 +123,10 @@ MCPがtool呼び出しのレスポンスでui埋め込みリソース(html+js等
 
 まとめると「MCPは複数個のuiリソースを1画面で対話的に表示することでユーザと対話する」「UI画面でユーザに示される画面とユーザの選択はLLMには知らされない」ことにより  
 ゲームなどのMCP-UIで行う場合に、ユーザの手筋をLLMから隠すことが出来る仕組みとなります。
+
+以下のMCPサーバーはAvatar-Shellに最適化されています。
+
+- リバーシMCP-UI https://github.com/mfukushim/reversi-mcp-ui_
 
 
 

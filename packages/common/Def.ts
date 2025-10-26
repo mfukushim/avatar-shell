@@ -103,7 +103,7 @@ const SubCommandSchema = Schema.Literal(
 );
 
 
-const ContentGeneratorSchema = Schema.Union(GeneratorProviderSchema,Schema.Literal('external','mcp'));
+const ContentGeneratorSchema = Schema.Union(GeneratorProviderSchema,Schema.Literal('external','mcp','daemon'));
 
 export type ContentGenerator = typeof ContentGeneratorSchema.Type
 
@@ -205,23 +205,23 @@ export const DaemonConfigSchema = Schema.Struct({
 
 export type DaemonConfig = typeof DaemonConfigSchema.Type
 
-const GenTypeSchema = Schema.Struct( {
-  provider: Schema.optional(GeneratorProviderSchema),
-  model: Schema.String,
-  isExternal: Schema.Boolean,
-})
-
-export type GenType = typeof GenTypeSchema.Type
+// const GenTypeSchema = Schema.Struct( {
+//   provider: Schema.optional(GeneratorProviderSchema),
+//   model: Schema.String,
+//   isExternal: Schema.Boolean,
+// })
+//
+// export type GenType = typeof GenTypeSchema.Type
 
 export class AsOutput extends Schema.Class<AsOutput>('AsOutput')({
   genNative: Schema.Array(Schema.Any),
-  genType: GenTypeSchema,
+  // genType: GenTypeSchema,
   mes: AsMessage
 }) {
-static makeOutput(mes: AsMessage, genType: GenType,genNative: any[]=[]) {
+static makeOutput(mes: AsMessage, genNative: any[]=[]) {  //  genType: GenType,
   return {
     genNative:genNative,
-    genType:genType,
+    // genType:genType,
     mes:mes
   } as AsOutput;
 }

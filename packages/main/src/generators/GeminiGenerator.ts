@@ -323,7 +323,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           fromGenerator: it.genName,
           toGenerator: it.genName,
           innerId: responseId,
-          outputImage: outImages,
+          outputRaw: outImages,
           genNum: nextGen,
         })
       }
@@ -411,7 +411,8 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
           fromGenerator: it.genName,
           toGenerator: it.genName,
           innerId: responseId,
-          outputImage: outImages,
+          outputRaw: outImages,
+          outputMime: 'image/png',
           genNum: nextGen,
         })
       }

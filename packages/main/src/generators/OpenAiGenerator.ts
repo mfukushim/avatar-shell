@@ -421,6 +421,11 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   }
 }
 
+/**
+ * OpenAI 画像合成
+ * 画像と一緒に説明テキストを追加してしまうので、現時点テキストを外す。
+ * daemonか設定に選択を追加すべき
+ */
 export class OpenAiImageGenerator extends OpenAiBaseGenerator {
   protected genName: GeneratorProvider = 'openAiImage';
   protected model = 'gpt-4.1-mini';
@@ -490,30 +495,35 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
             fromGenerator: it.genName,
             toGenerator: it.genName,
             innerId: value.id,
-            outputImage: value.img!,
+            outputRaw: value.img!,
             outputMime: 'image/png',
             genNum: nextGen,
           });
         });
       }
-      if (resText.length > 0) {
-        resText.forEach(value => {
-          genOut.push({
-            avatarId: current.avatarId,
-            fromGenerator: it.genName,
-            toGenerator: 'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
-            innerId: value.id,
-            outputText: value.text,
-            genNum: nextGen,
-          });
-        });
-      }
+      //  TODO 画像と一緒に説明テキストを追加してしまうので、現時点テキストを外す。
+      // if (resText.length > 0) {
+      //   resText.forEach(value => {
+      //     genOut.push({
+      //       avatarId: current.avatarId,
+      //       fromGenerator: it.genName,
+      //       toGenerator: 'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
+      //       innerId: value.id,
+      //       outputText: value.text,
+      //       genNum: nextGen,
+      //     });
+      //   });
+      // }
       return genOut;
     }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
   }
 
 }
 
+/**
+ * OpenAi 音声合成
+ * gpt-4o-audio-preview だと会話を造ってしまうので daemonのテンプレートで ""を読み上げてください の形にする必要がある
+ */
 export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
   protected genName: GeneratorProvider = 'openAiVoice';
   protected model = 'gpt-4o-audio-preview';
@@ -595,7 +605,7 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
           fromGenerator: it.genName,
           toGenerator: it.genName,
           innerId: responseOut.id,
-          outputImage: snd,
+          outputRaw: snd,
           outputMime: 'audio/wav',
           genNum: nextGen,
         });
