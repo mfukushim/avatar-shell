@@ -76,7 +76,7 @@ const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mim
   if (flag.showAll) {
     return true;
   }
-  if (asClass === 'daemon' && flag.showDaemon && view && (!mimeType || mimeType.startsWith('text'))) {
+  if (asClass === 'daemon' && (flag.showDaemon || view) ) { //  && (!mimeType || mimeType.startsWith('text'))
     showFlag = true;
   }
   if (flag.showMedia && (mimeType && !mimeType.startsWith('text'))) {

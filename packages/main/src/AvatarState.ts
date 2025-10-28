@@ -1,12 +1,11 @@
 import {
-  Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef, Option,
-  FiberStatus,
+  Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef, FiberStatus,
 } from 'effect';
 import {
   AlertTask,
   AsMessage,
   AsMessageContent,
-  AsMessageContentMutable, AsOutput,
+  AsOutput,
   AvatarSetting, ContentGenerator,
   ContextTrigger,
   ContextTriggerList,
@@ -39,11 +38,13 @@ const expand = expand_template();
 interface DaemonState {
   config: DaemonConfig,
   generator: ContextGenerator,
+  info?: string,
 }
 
 interface TimeDaemonState {
   config: DaemonConfig,
   generator: ContextGenerator,
+  info?: string,
   fiber: Fiber.RuntimeFiber<any, any>
 }
 
@@ -284,6 +285,7 @@ export class AvatarState {
       const sysConfig = yield* ConfigService.getSysConfig();
       const timeDaemonList =
         daemons.filter(a => a.isEnabled && TimerTriggerList.some(value => a.trigger.triggerType === value));
+      console.log('timeDaemonList:',timeDaemonList);
       const daemonList = yield* Effect.forEach(timeDaemonList, a => it.makeDaemonSet(a, sysConfig));
       yield* it.fiberTimers.get.pipe(Effect.andThen(a1 => Effect.forEach(a1, value => Fiber.interrupt(value.fiber))));
       const now = dayjs();
@@ -306,6 +308,7 @@ export class AvatarState {
   }
 
   makeTimeDaemon(daemon: DaemonState, now: dayjs.Dayjs) {
+    console.log('makeTimeDaemon:', daemon);
     let schedule: Schedule.Schedule<any> | undefined;
     let interval: Duration.Duration | undefined; // = Duration.decode('1 second')
     let sec = 0;
@@ -331,9 +334,12 @@ export class AvatarState {
         }
         break;
       case 'TimerMin':
-        // case 'TalkAfterMin': リスタート時は登録しない。askAi以降で実行
         sec = (daemon.config.trigger.condition.min || 1) * 60;
         console.log('TimerMin:', sec);
+        break;
+      case 'TalkAfterMin': //リスタート時は登録しない。askAi以降で実行
+        sec = 10000
+        console.log('TalkAfterMin:', sec);
         break;
       case 'DateTimeDirect':
         let dateTime = now.format('YYYY-MM-DD');
@@ -387,6 +393,7 @@ export class AvatarState {
 
   rebuildIdle(): Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService> {
     //  現在機能しているTimerMinとTalkAfterMin(繰り返しが発生しうるもののみ,context追加でリセットがかかるもの)のみについて再タイマーを設定する
+    console.log('rebuildIdle');
     return this.resetTimerDaemon(a => a.isEnabled && a.trigger.triggerType === 'TalkAfterMin');
   }
 
@@ -395,15 +402,18 @@ export class AvatarState {
     const it = this;
     //  既存の動いているfiberの中で指定条件で動いているfiberをすべて止める。generatorは破棄しない
     //  新たにdaemonsリストから再起動するべきdaemonを選ぶ
-    //
+    console.log('resetTimerDaemon:')
     return Effect.gen(function* () {
       // const stopList = (yield *it.timeDaemonStates.get).filter(a => resetFilter(a.config));
       yield* it.fiberTimers.get.pipe(Effect.andThen(a1 => {
+        console.log('fiberTimers:',a1);
         return Effect.forEach(a1.filter(value => resetFilter(value.config)), a => Fiber.interrupt(a.fiber));
       }));
       const now = dayjs();
       return yield* SynchronizedRef.updateEffect(it.fiberTimers, b => {
+        console.log('fiberTimers2:',b);
         return Effect.forEach(b.filter(value => resetFilter(value.config)), a => {
+          console.log('oneTimer reset:',a.config);
           return Effect.gen(function* () {
             yield* Fiber.interrupt(a.fiber);
 
@@ -546,22 +556,25 @@ export class AvatarState {
 
 
   get ScheduleList() {
-    const state = this;
-    console.log('ScheduleList:');
+    const it = this;
     return Effect.gen(function* () {
-      const daemons = yield* state.daemonStates.pipe(Ref.get, Effect.andThen(a => {
+      const daemons = yield* it.daemonStates.pipe(Ref.get, Effect.andThen(a => {
         return a.map(v => ({
           id: v.config.id,
           name: v.config.name,
           trigger: v.config.trigger,
+          info: v.info
         }));
       }));
-      return daemons.concat(yield* state.fiberTimers.pipe(Ref.get, Effect.andThen(a => {
-        return a.map(v => ({
-          id: v.config.id,
-          name: v.config.name,
-          trigger: v.config.trigger,
-        }));
+      return daemons.concat(yield* it.fiberTimers.pipe(Ref.get, Effect.andThen(a => {
+        return a.map(v => {
+          return ({
+            id: v.config.id,
+            name: v.config.name,
+            trigger: v.config.trigger,
+            info: v.info,
+          });
+        });
       })));
     });
   }

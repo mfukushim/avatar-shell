@@ -4,8 +4,7 @@ import {AvatarState} from './AvatarState.js';
 import {ConfigService} from './ConfigService.js';
 import short from 'short-uuid';
 import {BrowserWindow} from 'electron';
-import {AsMessage, AsOutput} from '../../common/Def.js';
-import {DocService} from './DocService.js';
+import {AsMessage} from '../../common/Def.js';
 import * as os from 'node:os';
 import {defaultAvatarSetting} from '../../common/DefaultSetting.js';
 
@@ -135,6 +134,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
     function askAvatar(avatarId: string, mes: AsMessage[]) {
       return Effect.gen(function*() {
         // const state = yield *avatars.pipe(Ref.get,Effect.andThen(HashMap.get(avatarId)))
+        console.log('askAvatar:',mes);
         const state = yield *getAvatarState(avatarId)
         const ext = yield *state.extendAndSaveContext(mes,true)
         yield *state.addContext(ext)

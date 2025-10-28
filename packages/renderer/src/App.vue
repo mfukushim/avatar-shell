@@ -174,6 +174,7 @@ const setSound = async (url: string, mime: string) => {
 };
 
 const volumeVal = ref(1.0);
+const showImageSelect = ref(false);
 
 const setVolume = async (volume: number) => {
   const soundPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
@@ -333,6 +334,8 @@ const handleUIAction = async (event: CustomEvent) => {
                @change-image="setImage"
                @select-sound="setSound"
                @set-volume="setVolume"
+               @toggle-image-select="showImageSelect=!showImageSelect"
+               :show-image-select="showImageSelect"
                :volume="volumeVal"
                :name="avatarName" />
     <q-drawer
@@ -350,6 +353,7 @@ const handleUIAction = async (event: CustomEvent) => {
                  :avatar-name="avatarName"
                  :user-name="userName"
                  @reset-avatar-list="resetAvatarList"
+                 @toggle-image-select="showImageSelect=!showImageSelect"
       />
     </q-drawer>
     <!--    show-if-above overlay :mini="!rightDrawerOpen || miniState"               overlay

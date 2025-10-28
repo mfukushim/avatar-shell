@@ -9,6 +9,7 @@ import type {AsMessage} from '../../../common/Def.ts';
 const props = defineProps<{
   name: string,
   volume: number,
+  showImageSelect: boolean,
 }>();
 
 const emit = defineEmits<{
@@ -17,6 +18,7 @@ const emit = defineEmits<{
   (e: 'changeImage',url: string,mime:string): void,
   (e: 'selectSound',url: string,mime:string): void,
   (e: 'setVolume',vol: number): void,
+  (e: 'toggleImageSelect'): void,
 }>()
 
 
@@ -36,9 +38,10 @@ const toggleCom = () => {
   setSocketConnect(showCom.value === "wifi")
 }
 
-const showImageSelect = ref(false)
+// const showImageSelect = ref(false)
 const toggleImageSelect = () => {
-  showImageSelect.value = !showImageSelect.value
+  emit('toggleImageSelect')
+  // showImageSelect.value = !showImageSelect.value
 }
 
 onMounted(async () => {
@@ -74,7 +77,7 @@ onMounted(async () => {
       <q-btn dense flat icon="crop_square" @click="toggleMaximize" />
       <q-btn dense flat icon="close" @click="closeApp" />
     </q-bar>
-    <ImageSelector v-if="showImageSelect" @change-doc="changeDoc" @change-image="changeImage" @select-sound="selectSound"></ImageSelector>
+    <ImageSelector v-if="props.showImageSelect" @change-doc="changeDoc" @change-image="changeImage" @select-sound="selectSound"></ImageSelector>
   </q-header>
 </template>
 <style scoped>
