@@ -18,11 +18,12 @@ const props = defineProps<{
   disableInput: boolean,
   avatarTemplateList: {label: string, value: string}[]
   avatarName: string,
-  userName:string
+  userName:string,
 }>();
 
 const emit = defineEmits<{
   (e: 'resetAvatarList'): void
+  (e: 'toggleImageSelect'): void
 }>()
 
 
@@ -35,7 +36,7 @@ const editUserIcon = ref('edit')
 
 const scheduleList = ref<{
   status: string,
-  list: {id: string, name: string, trigger: DaemonTriggerSchema}[]
+  list: {id: string, name: string, trigger: DaemonTriggerSchema,info?:string}[]
 }>({status: 'Wait a moment', list: []});
 
 watch(() => props.avatarName, async () => {
@@ -145,22 +146,26 @@ const editUser = async () => {
       </q-list>
     </q-menu>
   </q-icon>
+  <q-icon name="search" size="30px" class="q-pa-sm" @click="emit('toggleImageSelect')" />
   <q-icon name="schedule" size="30px" class="q-pa-sm">
     <q-menu
       anchor="top right"
       self="top left"
       @before-show="getSchedule"
     >
-      <q-list style="min-width: 100px">
-        <q-item>{{ scheduleList.status !== 'ok' ? scheduleList.status : 'Running Daemon' }}</q-item>
-        <q-item clickable v-close-popup v-for="n in scheduleList.list"
-                :key="n.id"
-                dense
+      <q-list bordered style="min-width: 100px" >
+        <q-item dense class="bg-light-blue-3">{{ scheduleList.status !== 'ok' ? scheduleList.status : 'Running Daemon' }}</q-item>
+        <q-separator size="4px"/>
+        <div v-for="n in scheduleList.list"
+             :key="n.id" >
+        <q-item clickable v-close-popup class="bg-light-green-1"
                 @click="cancelSchedule(n.id)">
+          <q-separator size="4px"/>
           <q-item-section>
             <q-item-label>{{ n.name }}</q-item-label>
-            <q-item-label>trigger:{{ n.trigger.triggerType }}</q-item-label>
-            <q-item-label>{{ n.trigger.condition }}</q-item-label>
+            <q-item-label class="q-px-md text-caption">{{ n.trigger.triggerType }}</q-item-label>
+            <q-item-label class="q-px-md text-caption">{{ Object.keys(n.trigger.condition).length > 0 ? n.trigger.condition:undefined }}</q-item-label>
+            <q-item-label class="q-px-md text-caption">{{ n.info }}</q-item-label>
           </q-item-section>
 
           <q-item-section side top>
@@ -171,6 +176,8 @@ const editUser = async () => {
 -->
           </q-item-section>
         </q-item>
+          <q-separator />
+        </div>
         <q-separator />
       </q-list>
     </q-menu>
