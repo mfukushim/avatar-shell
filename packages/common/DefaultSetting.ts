@@ -192,7 +192,7 @@ export const tutorialAvatarSetting: AvatarSetting =
             // previousContextSize: 20,
             toClass: 'daemon',
             toRole: 'bot',
-            toContext: 'inner'
+            toContext: 'surface'
           },
         },
       },
