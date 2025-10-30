@@ -72,7 +72,7 @@ const flag = reactive({
 
 const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mimeType?: string) => {
   let showFlag = false;
-  const view = asContext === 'surface' || asContext === 'outer';
+  const view = (asContext === 'surface' || asContext === 'outer') && !(mimeType && !mimeType.startsWith('text')) &&  asRole !== 'toolOut';
   if (flag.showAll) {
     return true;
   }
@@ -89,7 +89,7 @@ const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mim
     if (view && asRole === 'human') showFlag = true;
   }
   if (flag.showAssistant) {
-    if (view && asRole === 'bot' && asClass !== 'daemon' && asClass !== 'system') showFlag = true;
+    if (view && (asRole === 'bot') && asClass !== 'daemon' && asClass !== 'system') showFlag = true;
   }
   return showFlag;
 };

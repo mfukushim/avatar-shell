@@ -17,6 +17,7 @@ import {Either, ParseResult, Schema} from 'effect';
 
 import tpl from '../assets/licenseInfo.md?raw';
 import {defaultSysSetting} from '../../../common/DefaultSetting.ts';
+import {QInput} from 'quasar';
 
 const show = ref(false);
 
@@ -256,6 +257,7 @@ const disableExportAvatar = ref(false);
 const disableExportSysConfig = ref(false);
 
 const prefPath = ref('');
+const pathRef = ref<QInput | null>(null);
 
 const importSys = async () => {
   disableImportSys.value = true;
@@ -301,6 +303,17 @@ const mcpNameValidate = [
   // (val:string) => (val && val.length > 0) || 'Please type mcp name',
   (val:string) => (val && mcpRegex.test(val)) || 'Only lowercase alphanumeric characters are allowed',
 ]
+
+const copyPath = async () => {
+  try {
+    await navigator.clipboard.writeText(prefPath.value);
+    if (pathRef.value) {
+      pathRef.value.select()
+    }
+  } catch (err) {
+    alert("copy fail: " + err);
+  }
+}
 
 </script>
 
@@ -584,7 +597,7 @@ const mcpNameValidate = [
                   </q-tab-panel>
                   <q-tab-panel name="reset">
                     <div class="text-h6 q-mb-md">{{ t('reset') }}</div>
-                    <q-card>
+                    <q-card class="q-pa-sm">
                         <div class="row q-ma-sm">
                           <div class="q-ma-md">{{t('fullReset')}}</div>
                           <q-space/>
@@ -598,7 +611,11 @@ const mcpNameValidate = [
                         <div class="row">
                           <div class="q-ma-md">{{ t('preferenceDirectory') }}:</div>
                           <q-space/>
-                          <div class="q-ma-md col-8">{{prefPath}}</div>
+                          <q-input ref="pathRef" v-model="prefPath" hint="Readonly" readonly class="col-8">
+                            <template v-slot:append>
+                              <q-icon name="content_copy" @click="copyPath" />
+                            </template>
+                          </q-input>
                         </div>
                     </q-card>
                   </q-tab-panel>

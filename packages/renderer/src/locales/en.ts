@@ -117,5 +117,6 @@ export default {
   mcpUiSelectTemplate:'Conversion template when UI selected',
   reset: 'Initialize',
   resetWithoutMedia:'Initialize without media',
-  fullReset:'Initialize all'
+  fullReset:'Initialize all',
+  preferenceDirectory: 'Preference Directory',
 }

@@ -117,6 +117,7 @@ const recentSoundId = ref('');
 
 const calledMcpUiGenerator = ref<GeneratorProvider>('emptyText');
 const calledMcpUiName = ref('');
+const calledMcpUiCallId = ref('');
 const htmlResourceJson = ref<string | undefined>(undefined);
 
 const clickAlert = async (task: AlertTask, btn: string) => {
@@ -146,10 +147,10 @@ const setTimeline = async (tl0: AsMessage[]) => {
         mimeType: 'text/html',
         text: text,
       });
-      if(ui.content?.generator && ui.content.generator !== 'external' && ui.content.generator !== 'mcp' && ui.content.generator !== 'daemon'){
-        calledMcpUiGenerator.value = ui.content.generator;
-      } else {
-        calledMcpUiGenerator.value = 'emptyText';
+      console.log('mcpUiResource:',ui.content);
+      if(ui.content?.generator && ui.content?.nextGenerator && ui.content.generator === 'mcp'){
+        calledMcpUiGenerator.value = ui.content.nextGenerator;
+        calledMcpUiCallId.value = ui.content.innerId || ''
       }
     }
   } else {
@@ -289,7 +290,7 @@ const handleUIAction = async (event: CustomEvent) => {
     console.log('toolName',calledMcpUiName.value,names,event.detail?.payload?.params, toolName,calledMcpUiGenerator.value);
     try {
       await callMcpTool({
-        callId: '', //  TODO この扱いでよいか確認要
+        callId: calledMcpUiCallId.value, //  TODO この扱いでよいか確認要
         name: toolName,
         input: event.detail?.payload?.params || {},
       },calledMcpUiGenerator.value)
