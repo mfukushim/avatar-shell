@@ -13,7 +13,6 @@ import {
 } from '../../../common/DefGenerators.js';
 import Anthropic from '@anthropic-ai/sdk';
 import {MediaService} from '../MediaService.js';
-import {Content} from '@google/genai';
 
 
 export abstract class ClaudeBaseGenerator extends ContextGenerator {
@@ -43,6 +42,50 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   filterToolRes(value: any) {
     try {
       console.log('filterToolRes:',value);
+      if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
+        //  @ts-ignore
+        if (!value.resource.annotations.audience.includes('assistant')) {
+          console.log('contents test no out');
+          return [];
+        }
+      }
+      //  @ts-ignore
+      if (value?.annotations && value.annotations?.audience) {
+        //  @ts-ignore
+        if (!value.annotations.audience.includes('assistant')) {
+          console.log('contents test no out');
+          return [];
+        }
+      }
+      return [value];
+      // return value.content.flatMap((a:any) => {
+      //   // console.log('contents test:',a);
+      //   //  @ts-ignore
+      //   if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+      //     //  @ts-ignore
+      //     if (!a.resource.annotations.audience.includes('assistant')) {
+      //       console.log('contents test no out');
+      //       return [];
+      //     }
+      //   }
+      //   //  @ts-ignore
+      //   if (a?.annotations && a.annotations?.audience) {
+      //     //  @ts-ignore
+      //     if (!a.annotations.audience.includes('assistant')) {
+      //       console.log('contents test no out');
+      //       return [];
+      //     }
+      //   }
+      //   return [a];
+      // })
+    } catch (error) {
+      console.log('filterToolRes error:',error);
+      throw error;
+    }
+  }
+  filterToolResList(value: any) {
+    try {
+      console.log('filterToolResList:',value);
       return value.content.flatMap((a:any) => {
         // console.log('contents test:',a);
         //  @ts-ignore
@@ -64,7 +107,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
         return [a];
       })
     } catch (error) {
-      console.log('filterToolRes error:',error);
+      console.log('filterToolResList error:',error);
       throw error;
     }
   }
@@ -152,7 +195,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
           mes.content.push({
             type: 'tool_result',
             tool_use_id: value.callId,
-            content: it.filterToolRes(value.results).map((v:any) => it.claudeAnnotationFilter(v)),
+            content: it.filterToolResList(value.results).map((v:any) => it.claudeAnnotationFilter(v)),
           });
         });
       }
@@ -169,18 +212,6 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
             data: b1.toString('base64'),
           },
         } as Anthropic.Messages.ImageBlockParam);
-
-        // const media = yield* DocService.readDocMedia(current.input.mediaUrl);
-        // const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.ClaudeSettings?.inWidth);
-        // const blob = new Blob([b1], {type: 'image/png'});
-        // const myfile = yield* Effect.tryPromise(() => it.ai.files.upload({
-        //   file: blob,
-        //   config: {mimeType: 'image/png'},
-        // }));
-        // if (myfile.uri && myfile.mimeType) {
-        //   const imagePart = createPartFromUri(myfile.uri, myfile.mimeType);
-        //   mes.parts.push(imagePart);
-        // }
       }
       return mes as Anthropic.MessageParam;
     });
@@ -192,7 +223,12 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
       let text = '##'+a.role+':';
       if (Array.isArray(a.content)) {
         a.content.forEach(b => {
-          text += '\n+#' + JSON.stringify(b).slice(0,200);
+          const c = {
+            ...b,
+            source: b.type === 'image' && b.source ? 'image' : undefined,
+            content: b.type === 'tool_result' && b.content ? 'content' : undefined,
+          }
+          text += '\n+#' + JSON.stringify(c)//.slice(0,200);
         });
       } else {
         text+= a.content
@@ -200,8 +236,6 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
       return text;
     }).join('\n'));
     console.log('claude context end:');
-    // console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
-    // console.log('gemini context end:');
   }
 
 }

@@ -406,7 +406,6 @@ export class AvatarState {
   }
 
   doTimeSchedule(daemon: DaemonState) {
-    console.log('doTimeSchedule:', daemon);
     return this.TalkContextEffect.pipe(
       Effect.andThen(context => this.execDaemon(daemon, context)),
     );
@@ -1073,6 +1072,8 @@ export class AvatarState {
                   innerId: value.callId,
                   text: a2.text,
                   generator: a.fromGenerator,
+                  nextGenerator: a.toGenerator,
+                  toolRes:a2
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'image') {
                 // con.mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, it.TemplateId);
@@ -1083,6 +1084,8 @@ export class AvatarState {
                   mediaUrl: yield* DocService.saveDocMedia(value.callId || short.generate(), a2.mimeType, a2.data, it.TemplateId), //  TODO
                   mimeType: 'image/png',
                   generator: a.fromGenerator,
+                  nextGenerator: a.toGenerator,
+                  toolRes:a2
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'resource') {
                 //  resourceはuriらしい resourceはLLMに回さないらしい
@@ -1102,6 +1105,8 @@ export class AvatarState {
                   toolName: value.name,
                   mimeType: a2.resource.mimeType,
                   generator: a.fromGenerator,
+                  nextGenerator: a.toGenerator,
+                  toolRes:a2
                 }, 'daemon', 'toolOut', 'outer')];
               }
               return [];
@@ -1151,6 +1156,7 @@ export class AvatarState {
             from: it.Name,
             text: a.outputText,
             generator: a.fromGenerator,
+            nextGenerator: a.toGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
         }
@@ -1162,6 +1168,7 @@ export class AvatarState {
             mediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
+            nextGenerator: a.toGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1173,6 +1180,7 @@ export class AvatarState {
             mediaUrl: a.outputMediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
+            nextGenerator: a.toGenerator,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
         }
@@ -1184,6 +1192,7 @@ export class AvatarState {
               toolName: value.name,
               toolReq: value,
               generator: a.fromGenerator,
+              nextGenerator: a.toGenerator,
             };
           });
           list.push(...content.map(value => AsMessage.makeMessage(value, 'daemon', 'toolIn', 'inner')));
