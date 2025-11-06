@@ -7,13 +7,25 @@ import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
 import {McpService} from '../McpService.js';
 import {MediaService} from '../MediaService.js';
 import sharp from 'sharp';
+import short from 'short-uuid';
 
+
+export class ContextGenInstance {
+  constructor(
+    public previousContexts: {id: string, Context: any}[],
+  ) {
+  }
+}
 
 export abstract class ContextGenerator {
   protected logTag: string;
+  protected previousNativeContexts: any[] = []
+  protected uniqueId = '';
+
 
   constructor() {
     this.logTag = this.constructor.name;
+    this.uniqueId = short.generate() as string;
   }
 
   abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
@@ -27,6 +39,10 @@ export abstract class ContextGenerator {
 
   get Model() {
     return this.model;
+  }
+
+  get UniqueId() {
+    return this.uniqueId;
   }
 
   //  安全のため画像を小さくしておく

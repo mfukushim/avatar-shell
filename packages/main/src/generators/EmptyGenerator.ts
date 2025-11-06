@@ -25,17 +25,19 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
       //  prev+currentをLLM APIに要求、レスポンスを取得
       //  確定実行結果取得
       //  GenOuterを整理生成
+      const nextGen = current.genNum + 1;
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
-        toGenerator: it.genName,
+        toGenerator: it,
         innerId: short.generate() as string,
         outputText: "You haven't configured LLM yet, please do so first./まだLLMを設定していません。最初に設定を行ってください。",
         toolCallParam: undefined,
         setting: {
           ...current.setting,
           toClass: 'system'
-        }
+        },
+        genNum: nextGen
       }] as GenOuter[];
     })
   }

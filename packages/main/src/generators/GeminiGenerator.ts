@@ -30,7 +30,6 @@ import {Message} from 'ollama';
 export abstract class GeminiBaseGenerator extends ContextGenerator {
   protected geminiSettings: GeminiSettings | undefined;
   protected ai: GoogleGenAI;
-  //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model:string;
   protected abstract genName:GeneratorProvider;
 
@@ -91,6 +90,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
               }
             })
           }
+          console.log('value.mes.content.toolRes:',value.mes.content.toolRes);
           if (value.mes.content.toolRes) {
             parts.push({
               functionResponse: {
@@ -111,34 +111,37 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     })
   }
 
-  filterToolRes(value: any) {
+  filterToolRes(a: any) {
+    if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+      //  @ts-ignore
+      if (!a.resource.annotations.audience.includes('assistant')) {
+        console.log('contents test no out');
+        return ;
+      }
+    }
+    //  @ts-ignore
+    if (a?.annotations && a.annotations?.audience) {
+      //  @ts-ignore
+      if (!a.annotations.audience.includes('assistant')) {
+        console.log('contents test no out');
+        return ;
+      }
+    }
+    return a
+  }
+
+  filterToolResList(value: any) {
     try {
       // console.log('filterToolRes:',value);
       return {
         ...value,
         content: value.content.flatMap((a:any) => {
-          // console.log('contents test:',a);
-          //  @ts-ignore
-          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.resource.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          //  @ts-ignore
-          if (a?.annotations && a.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          return [a];
+          const b = this.filterToolRes(a);
+          return b ? [b]:[]
         }),
       };
     } catch (error) {
-      console.log('filterToolRes error:',error);
+      console.log('filterToolResList error:',error);
       throw error;
     }
   }
@@ -158,7 +161,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
               name: value.name,
               id: value.callId,
               //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
-              response: it.filterToolRes(value.results),
+              response: it.filterToolResList(value.results),
             },
           });
         });
@@ -252,7 +255,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState,current);
+      const prevMake = yield* it.makePreviousContext(avatarState,current);
+      const prev = Array.from(it.previousNativeContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -299,6 +303,12 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const collect = yield* Stream.runCollect(stream);
       // state.clearStreamingText(avatarState)
       const responseOut = Chunk.toArray(collect);
+      console.log('gemini text out:',responseOut);
+      responseOut.forEach(a => {
+        if(a.candidates && a.candidates.length > 0 && a.candidates[0].content) {
+          it.previousNativeContexts.push(a.candidates[0].content) //  TODO
+        }
+      })
       const responseId = responseOut.reduce((previousValue, currentValue) => currentValue.responseId,undefined as string|undefined) || short.generate();
       const outText = responseOut.flatMap(b => b.text ? [b.text] : []).join('');
       const outImages = responseOut.flatMap(b => b.data ? [b.data] : []).join('');
@@ -311,7 +321,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: responseId,
           outputText: outText,
           genNum: nextGen,
@@ -321,7 +331,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
           genNum: nextGen,
@@ -333,7 +343,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: responseId,
           toolCallParam:funcCalls.map((v:FunctionCall) => {
             return {
@@ -409,7 +419,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
           outputMime: 'image/png',
@@ -491,7 +501,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
           {
             avatarId: current.avatarId,
             fromGenerator: it.genName,
-            toGenerator: it.genName,
+            toGenerator: it,
             innerId: id,
             outputMediaUrl: mediaUrl,
             outputMime: mime,

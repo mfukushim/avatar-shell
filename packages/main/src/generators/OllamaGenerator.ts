@@ -10,7 +10,6 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {Ollama, Message} from 'ollama';
-import {AsMessage} from '../../../common/Def.js';
 
 
 export class OllamaTextGenerator extends ContextGenerator {
@@ -155,15 +154,17 @@ export class OllamaTextGenerator extends ContextGenerator {
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
       // console.log('last:',last);
       // it.clearStreamingText(avatarState)
+      const nextGen = current.genNum+1
       const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
-        toGenerator: it.genName,
+        toGenerator: it,
         innerId: innerId,
         outputText: text,
         toolCallParam:toolCallParam.length > 0 ? toolCallParam : undefined,
-        setting: current.setting
+        setting: current.setting,
+        genNum: nextGen,
       }] as GenOuter[];
     }).pipe(Effect.tapError(error => Effect.log('OllamaTextGenerator error:', error.message,error.stack)));
   }
