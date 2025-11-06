@@ -14,9 +14,6 @@ import {
 } from '@app/preload';
 import {type AlertTask, AsMessage, type McpInfo} from '../../common/Def.ts';
 import TalkPanel from './components/TalkPanel.vue';
-// const TalkPanel = defineAsyncComponent(() =>
-//   import('./components/TalkPanel.vue')
-// )
 import type {QDrawer} from 'quasar';
 // @ts-ignore
 import expand_template from 'expand-template';
@@ -27,11 +24,8 @@ const Wizard = defineAsyncComponent(() =>
 );
 import MenuPanel from './components/MenuPanel.vue';
 import McpUiWapper from './components/McpUiWapper.vue';
-import type {GeneratorProvider} from '../../common/DefGenerators.ts';
-// const MenuPanel = defineAsyncComponent(() =>
-//   import('./components/MenuPanel.vue')
-// )
-const showWizaed = ref(false);
+
+const showWizard = ref(false);
 const leftDrawerOpen = ref(false);
 const toggleLeftDrawer = () => {
   leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -75,7 +69,7 @@ onMounted(async () => {
       avatarName.value = name;
       userName.value = getUserName();
       disableInput.value = false;
-      showWizaed.value = needWizard;
+      showWizard.value = needWizard;
       await resetAvatarList();
       mcpServers.value = await getMcpServerInfos();
     },
@@ -115,7 +109,7 @@ const showAsAlert = ref(false);
 
 const recentSoundId = ref('');
 
-const calledMcpUiGenerator = ref<GeneratorProvider>('emptyText');
+const calledMcpUiGenerator = ref<string>('');
 const calledMcpUiName = ref('');
 const calledMcpUiCallId = ref('');
 const htmlResourceJson = ref<string | undefined>(undefined);
@@ -148,8 +142,8 @@ const setTimeline = async (tl0: AsMessage[]) => {
         text: text,
       });
       console.log('mcpUiResource:',ui.content);
-      if(ui.content?.generator && ui.content?.nextGenerator && ui.content.generator === 'mcp'){
-        calledMcpUiGenerator.value = ui.content.nextGenerator;
+      if(ui.content?.generator && ui.content?.nextGeneratorId && ui.content.generator === 'mcp'){
+        calledMcpUiGenerator.value = ui.content.nextGeneratorId;
         calledMcpUiCallId.value = ui.content.innerId || ''
       }
     }
@@ -313,7 +307,7 @@ const handleUIAction = async (event: CustomEvent) => {
       });
     }
     console.log('inText', inText);
-    const mes = AsMessage.makeMessage({from: getUserName(), text: inText}, 'talk', 'human', 'inner')
+    const mes = AsMessage.makeMessage({from: getUserName(), text: inText,toolRes:event.detail.payload}, 'talk', 'human', 'inner')
     await doAskAi([mes])
     await sendMessageIn([mes]);
   } else if(event.detail.type === 'notify') {
@@ -446,7 +440,7 @@ const handleUIAction = async (event: CustomEvent) => {
         </div>
       </q-card>
     </q-dialog>
-    <wizard :show="showWizaed" />
+    <wizard :show="showWizard" />
   </q-layout>
 
 </template>

@@ -114,7 +114,7 @@ export const AsMessageContentSchema = Schema.partial(
     text: Schema.String,
     subCommand: SubCommandSchema,
     generator: ContentGeneratorSchema,
-    nextGenerator: GeneratorProviderSchema,
+    nextGeneratorId: Schema.String,
     mediaUrl: Schema.String,
     mediaBin: Schema.Any, //  ArrayBuffer
     mimeType: Schema.String,

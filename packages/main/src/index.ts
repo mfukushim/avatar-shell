@@ -236,9 +236,9 @@ ipcMain.handle('findInPage',  async (_,avatarId:string,text:string) => await Ava
 
 ipcMain.handle('stopAvatar',  async (_,avatarId:string) => await AvatarService.stopAvatar(avatarId).pipe(Effect.catchAll(showAlertIfFatal('stopAvatar')), aiRuntime.runPromise));
 
-ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,gen:GeneratorProvider) => {
+ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,genId:string) => {
   return await AvatarService.getAvatarState(avatarId).pipe(
-    Effect.andThen(a => a.callMcpToolByExternal(params, gen)),
+    Effect.andThen(a => a.callMcpToolByExternal(params, genId)),
     Effect.catchAll(showAlertIfFatal('callMcpTool')),
     aiRuntime.runPromise)
 });

@@ -2,7 +2,13 @@
 
 import {onMounted, ref} from 'vue';
 import AvatarSettingPanel from './AvatarSettingPanel.vue';
-import {copyAvatarConfig, deleteAvatarConfig, getAvatarConfigList, getCurrentAvatarList} from '@app/preload';
+import {
+  copyAvatarConfig,
+  currentAvatarSetting,
+  deleteAvatarConfig,
+  getAvatarConfigList,
+  getCurrentAvatarList,
+} from '@app/preload';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -24,11 +30,13 @@ const selectAvatar = ref();
 const avatarConfigList = ref<{label: string, value: string}[]>([])
 const avatars = ref<{id: string, name: string, templateId: string}[]>([])
 
-const open = async (templateId?:string) => {
+const open = async () => {
+  const templateId = currentAvatarSetting()?.templateId
   const list = await getAvatarConfigList()
   avatars.value = await getCurrentAvatarList()
   avatarConfigList.value = list.map(e => ({value: e.templateId, label: e.name}))
   const select = templateId ? avatarConfigList.value.find(e => e.value === templateId) : undefined
+  console.log('check:',templateId,select,avatarConfigList.value,);
   if (avatarConfigList.value.length > 0) {
     selectAvatar.value = select || avatarConfigList.value[0]
   }
