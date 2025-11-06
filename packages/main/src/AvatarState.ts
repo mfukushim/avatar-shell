@@ -29,7 +29,7 @@ import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
 import {z} from 'zod';
 import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
-import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
+import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
 
 dayjs.extend(duration);
 
@@ -277,11 +277,13 @@ export class AvatarState {
 
   makeDaemonSet(config: DaemonConfig, sysConfig: SysConfig) {
     if (config.exec.generator) {
-      return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a =>
-        ({
+      return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
+        this.generators.set(a.UniqueId,a)
+        return ({
           config: config,
           generatorId: a.UniqueId,
-        } as DaemonState)));
+        } as DaemonState);
+      }));
     }
     return Effect.succeed({
       config,

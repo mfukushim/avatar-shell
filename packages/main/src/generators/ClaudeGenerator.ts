@@ -18,7 +18,6 @@ import {MediaService} from '../MediaService.js';
 export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
-  //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
 
@@ -40,71 +39,30 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   }
 
   filterToolRes(value: any) {
-    try {
-      console.log('filterToolRes:',value);
-      if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
-        //  @ts-ignore
-        if (!value.resource.annotations.audience.includes('assistant')) {
-          console.log('contents test no out');
-          return [];
-        }
-      }
+    if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
       //  @ts-ignore
-      if (value?.annotations && value.annotations?.audience) {
-        //  @ts-ignore
-        if (!value.annotations.audience.includes('assistant')) {
-          console.log('contents test no out');
-          return [];
-        }
+      if (!value.resource.annotations.audience.includes('assistant')) {
+        console.log('contents test no out');
+        return;
       }
-      return [value];
-      // return value.content.flatMap((a:any) => {
-      //   // console.log('contents test:',a);
-      //   //  @ts-ignore
-      //   if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-      //     //  @ts-ignore
-      //     if (!a.resource.annotations.audience.includes('assistant')) {
-      //       console.log('contents test no out');
-      //       return [];
-      //     }
-      //   }
-      //   //  @ts-ignore
-      //   if (a?.annotations && a.annotations?.audience) {
-      //     //  @ts-ignore
-      //     if (!a.annotations.audience.includes('assistant')) {
-      //       console.log('contents test no out');
-      //       return [];
-      //     }
-      //   }
-      //   return [a];
-      // })
-    } catch (error) {
-      console.log('filterToolRes error:',error);
-      throw error;
     }
+    //  @ts-ignore
+    if (value?.annotations && value.annotations?.audience) {
+      //  @ts-ignore
+      if (!value.annotations.audience.includes('assistant')) {
+        console.log('contents test no out');
+        return;
+      }
+    }
+    return value;
   }
   filterToolResList(value: any) {
     try {
-      console.log('filterToolResList:',value);
       return value.content.flatMap((a:any) => {
-        // console.log('contents test:',a);
-        //  @ts-ignore
-        if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-          //  @ts-ignore
-          if (!a.resource.annotations.audience.includes('assistant')) {
-            console.log('contents test no out');
-            return [];
-          }
-        }
-        //  @ts-ignore
-        if (a?.annotations && a.annotations?.audience) {
-          //  @ts-ignore
-          if (!a.annotations.audience.includes('assistant')) {
-            console.log('contents test no out');
-            return [];
-          }
-        }
-        return [a];
+        return value.content.flatMap((a: any) => {
+          const b = this.filterToolRes(a);
+          return b ? [b]:[]
+        });
       })
     } catch (error) {
       console.log('filterToolResList error:',error);
@@ -137,6 +95,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
         [],
       );
       return blocked.map(a => {
+        const toolOutMap: Map<string, Anthropic.Messages.ContentBlockParam[]> = new Map();
         const p = a.block.flatMap(value => {
           const parts: Anthropic.Messages.ContentBlockParam[] = [];
           if (value.mes.content.text) {
@@ -154,15 +113,27 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
             });
           }
           if (value.mes.content.toolRes) {
-            parts.push({
-              type: 'tool_result',
-              tool_use_id: value.mes.content.innerId,
-              content: it.filterToolRes(value.mes.content.toolRes).map((v:any) => it.claudeAnnotationFilter(v)),
-            } as Anthropic.Messages.ToolResultBlockParam);
+            const r = it.filterToolRes(value.mes.content.toolRes)
+            if (r && value.mes.content.innerId) {
+              const r1 = it.claudeAnnotationFilter(r)
+              const m = toolOutMap.get(value.mes.content.innerId)
+              if (m) {
+                m.push(r1)
+              } else {
+                toolOutMap.set(value.mes.content.innerId,[r1])
+              }
+            }
           }
           //  TODO 現時点画像の過去展開はしていない
           return parts;
         });
+        toolOutMap.forEach((value, key) => {
+          p.push({
+            type: 'tool_result',
+            tool_use_id: key,
+            content: value,
+          } as Anthropic.Messages.ToolResultBlockParam);
+        })
         return {
           role: a.role,
           content: p,
@@ -257,7 +228,8 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev = yield* it.makePreviousContext(avatarState,current);
+      const prevMake = yield* it.makePreviousContext(avatarState,current);
+      const prev = Array.from(it.previousNativeContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -331,6 +303,11 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
             //  確定実行結果取得
             const collect = yield* Stream.runCollect(stream);
       */
+      it.previousNativeContexts.push({
+        role: message.role,
+        content:message.content,
+      } as Anthropic.Messages.MessageParam)
+
       const outText = message.content.flatMap(b => {
         if (b.type === 'text') {
           return [b.text];
@@ -349,7 +326,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: message.id,
           outputText: outText,
           genNum: nextGen,
@@ -361,7 +338,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
-          toGenerator: it.genName,
+          toGenerator: it,
           innerId: message.id,
           toolCallParam: funcCalls.map((v) => {
             return {

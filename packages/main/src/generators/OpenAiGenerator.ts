@@ -1,7 +1,7 @@
 import {ContextGenerator} from './ContextGenerator.js';
 import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
-import {Chunk, Effect, Schedule, Stream, Option} from 'effect';
-import {AsMessage, SysConfig} from '../../../common/Def.js';
+import {Chunk, Effect, Schedule, Stream} from 'effect';
+import {SysConfig} from '../../../common/Def.js';
 import {DocService} from '../DocService.js';
 import {McpService} from '../McpService.js';
 import {ConfigService} from '../ConfigService.js';
@@ -15,12 +15,9 @@ import {
 import {MediaService} from '../MediaService.js';
 import OpenAI, {APIError} from 'openai';
 import {
-  EasyInputMessage,
   ResponseCreateParams,
   ResponseCreateParamsNonStreaming,
-  ResponseCustomToolCallOutput,
   ResponseFunctionToolCall,
-  ResponseFunctionToolCallItem,
   ResponseInputContent,
   ResponseInputImage,
   ResponseInputItem,
@@ -78,7 +75,6 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
 
   filterToolResList(value: any) {
     try {
-      console.log('filterToolResList:', value);
       return value.content.flatMap((a: any) => {
         const b = this.filterToolRes(a);
         return b ? [b]:[]
@@ -153,19 +149,12 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
               toolOutMap.set(a.content.innerId, items);
             }
           }
-          // out.push({
-          //   type: 'function_call_output',
-          //   call_id: a.content.innerId || '', //  TODO 型定義をunionにしたほうがよいのか。。
-          //   output: JSON.stringify(it.filterToolRes(a.content.toolRes)((v: any) => it.OpenAiAnnotationFilter(v))),
-          //   // output: JSON.stringify(it.filterToolResList(a.content.toolRes).map((v: any) => it.OpenAiAnnotationFilter(v))),
-          // });
         } else {
           //  system
           console.log('OpenAi prevMes error:', a);
         }
       })
       console.log('OpenAi prevMes out:', out.map(a => '@@' + JSON.stringify(a).slice(0, 200)).join('\n'));
-      return out;
       return out;
     });
   }
