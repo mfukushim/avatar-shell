@@ -45,7 +45,7 @@ describe('ClaudeGenerator', () => {
       const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
 
       return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
+        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
         input: AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
@@ -73,7 +73,7 @@ describe('ClaudeGenerator', () => {
 
       const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
       return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
+        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
         input: AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
@@ -118,20 +118,59 @@ describe('ClaudeGenerator', () => {
   //   expect(typeof res === 'object').toBe(true);
   // });
 
+  function setupNormalTalkTest() {
+    return Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      yield* Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'claudeText',
+              directTrigger: true,
+              setting: {
+                toClass: 'talk',
+                toRole: 'bot',
+                toContext: 'surface',
+              },
+            },
+          }],
+        ),
+      };
+      yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
+
+      yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
+      const avatarState = yield* AvatarService.makeAvatar(null);
+
+      yield* Effect.sleep('1 seconds');
+
+      const normalTalk = (yield* avatarState.ScheduleList).find(d => d.name === 'normalTalk');
+      const gen = yield* avatarState.getDefGenerator(normalTalk.genId);
+      return {avatarState, gen};
+    })
+  }
+
   it('コンテキストステップ確認1', async () => {
     await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
+      const {avatarState, gen} = yield* setupNormalTalkTest();
 
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *avatarState.enterInner({
+      yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'claudeText',
+        toGenerator:gen,
         input:AsMessage.makeMessage({
           from: 'user',
           text: 'hello',
@@ -142,7 +181,6 @@ describe('ClaudeGenerator', () => {
           noTool:true
         }
       })
-      console.log('enterInner:',res);
 
       yield *Effect.sleep('30 seconds');
 
@@ -159,6 +197,35 @@ describe('ClaudeGenerator', () => {
     await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
       yield *Effect.sleep('1 seconds');
+
+      const vitestConf = {
+        ...vitestAvatarConfigNone,
+        mcp: {},
+        daemons: vitestAvatarConfigNone.daemons.concat([{
+            id: 'xx1',
+            name: 'normalTalk',
+            isEnabled: true,
+            trigger: {
+              triggerType: 'IfContextExists',
+              condition: {
+                asClass: 'talk',
+                asRole: 'human',
+                asContext: 'surface',
+              },
+            },
+            exec: {
+              generator: 'claudeText',
+              directTrigger: true,
+              setting: {
+                toClass:'talk',
+                toRole:'bot',
+                toContext:'surface'
+              },
+            },
+          }]
+        )
+      }
+      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
 
       yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
       const avatarState = yield *AvatarService.makeAvatar(null)

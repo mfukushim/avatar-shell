@@ -150,6 +150,10 @@ export class AvatarState {
     return this.avatarConfig;
   }
 
+  getDefGenerator(genId: string) {
+    return Effect.fromNullable(this.generators.get(genId)).pipe(Effect.catchAll(e => Effect.fail(new Error(`generator not found:${genId}`))));
+  }
+
   private changeApplyAvatarConfig(config: AvatarSetting) {
     console.log('update changeApplyAvatarConfig:');
     this.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
@@ -212,7 +216,7 @@ export class AvatarState {
         return Effect.gen(function* () {
           if (a.exec.generator) {
             const gen = yield* ConfigService.makeGenerator(a.exec.generator, sysConfig, a.exec.setting);
-            it.generators.set(gen.UniqueId,gen)
+            it.generators.set(gen.UniqueId, gen);
             return {
               config: a,
               generatorId: gen.UniqueId,
@@ -266,7 +270,7 @@ export class AvatarState {
       const sysConfig = yield* ConfigService.getSysConfig();
       const timeDaemonList =
         daemons.filter(a => a.isEnabled && TimerTriggerList.some(value => a.trigger.triggerType === value));
-      console.log('timeDaemonList:', timeDaemonList);
+      // console.log('timeDaemonList:', timeDaemonList);
       const daemonList = yield* Effect.forEach(timeDaemonList, a => it.makeDaemonSet(a, sysConfig));
       yield* it.fiberTimers.get.pipe(Effect.andThen(a1 => Effect.forEach(a1, value => value.fiber ? Fiber.interrupt(value.fiber) : Effect.void)));
       const now = dayjs();
@@ -278,7 +282,7 @@ export class AvatarState {
   makeDaemonSet(config: DaemonConfig, sysConfig: SysConfig) {
     if (config.exec.generator) {
       return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
-        this.generators.set(a.UniqueId,a)
+        this.generators.set(a.UniqueId, a);
         return ({
           config: config,
           generatorId: a.UniqueId,
@@ -291,7 +295,7 @@ export class AvatarState {
   }
 
   makeTimeDaemon(startup: boolean, daemon: DaemonState, now: dayjs.Dayjs) {
-    console.log('makeTimeDaemon:', daemon);
+    // console.log('makeTimeDaemon:', daemon);
     let schedule: Schedule.Schedule<any> | undefined;
     let interval: Duration.Duration | undefined; // = Duration.decode('1 second')
     let startInterval: Duration.Duration | undefined; // = Duration.decode('1 second')
@@ -320,14 +324,14 @@ export class AvatarState {
         break;
       case 'TimerMin':
         sec = (daemon.config.trigger.condition.min || 1) * 60;
-        console.log('TimerMin:', sec);
+        // console.log('TimerMin:', sec);
         break;
       case 'TalkAfterMin': //リスタート時は登録しない。askAi以降で実行
         // if(startup) {
         //   stopped = true
         // }
         sec = startup ? 0 : (daemon.config.trigger.condition.min || 1) * 60;
-        console.log('TalkAfterMin:', sec);
+        // console.log('TalkAfterMin:', sec);
         break;
       case 'DateTimeDirect':
         let dateTime = now.format('YYYY-MM-DD');
@@ -554,6 +558,7 @@ export class AvatarState {
           name: v.config.name,
           trigger: v.config.trigger,
           info: v.info,
+          genId: v.generatorId
         }));
       }));
       return daemons.concat(yield* it.fiberTimers.pipe(Ref.get, Effect.andThen(a => {
@@ -566,6 +571,7 @@ export class AvatarState {
               name: v.config.name,
               trigger: v.config.trigger,
               info: `${status} ${v.info || ''}`,
+              genId: v.generatorId,
             });
 
           });
@@ -883,10 +889,7 @@ export class AvatarState {
     console.log('in execGenerator:', addToBuffer, AsMessage.debugLog(message));
     // console.log('in execGenerator:', JSON.stringify(message).slice(0, 200), JSON.stringify(context).slice(0, 200));
     return Effect.gen(function* () {
-      const gen = it.generators.get(genId);
-      if (!gen) {
-        return yield *Effect.fail(new Error(`no generatorId ${genId}`))
-      }
+      const gen = yield* it.getDefGenerator(genId);
       it.sendRunningMark(message.id, true, gen.Name);
       //  log出力はgenerateContext内で行っている
       yield* it.enterInner({
@@ -980,38 +983,22 @@ export class AvatarState {
           toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
         });
       }));
-      let text = '';
-      // if (typeof res.toLlm.content === 'string') {
-      //   text = res.toLlm.content;
-      // } else {
-        text = (res.toLlm.content as {text: string}[]).map(value => value.text).join('\n');
-      // }
+      const text = (res.toLlm.content as {text: string}[]).map(value => value.text).join('\n');
       console.log('callMcpToolByExternal text:', text);
       //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
       //         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
-      const gen = it.generators.get(genId);
-      if (!gen) {
-        return yield *Effect.fail(new Error(`no genId ${genId}`))
-      }
-
-        yield* it.enterInner({
+      yield* it.enterInner({
         avatarId: it.id,
         fromGenerator: 'external',
-        toGenerator: gen,
+        toGenerator: yield* it.getDefGenerator(genId),
         input: AsMessage.makeMessage({
           from: it.Name,
           text: text,
           toolRes: res.toLlm.content,
           isExternal: true,
         }, 'physics', 'human', 'inner'),
-        // }, 'physics', 'toolOut', 'inner'),
-        // input: {
-        //   from: it.Name,
-        //   text: text,
-        //   isExternal: true,
-        // },
         genNum: 0,
-      },true);
+      }, true);
       return 'ok';
     });
 
@@ -1097,7 +1084,7 @@ export class AvatarState {
                   text: a2.text,
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes:a2
+                  toolRes: a2,
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'image') {
                 // con.mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, it.TemplateId);
@@ -1109,7 +1096,7 @@ export class AvatarState {
                   mimeType: 'image/png',
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes:a2
+                  toolRes: a2,
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'resource') {
                 //  resourceはuriらしい resourceはLLMに回さないらしい
@@ -1130,7 +1117,7 @@ export class AvatarState {
                   mimeType: a2.resource.mimeType,
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes:a2
+                  toolRes: a2,
                 }, 'daemon', 'toolOut', 'outer')];
               }
               return [];
