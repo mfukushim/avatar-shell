@@ -80,6 +80,7 @@ export const GeneratorProviderSchema = Schema.Literal(
   'emptyText',
   'emptyImage',
   'emptyVoice',
+  'copy'
 );
 
 export type GeneratorProvider = typeof GeneratorProviderSchema.Type

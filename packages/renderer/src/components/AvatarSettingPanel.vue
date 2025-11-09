@@ -129,7 +129,7 @@ const addScheduler = () => {
       exec: {
         generator: 'emptyText',
         templateGeneratePrompt: 'Are you ready?',
-        directTrigger: false,
+        copyContext: false,
         setting: {
           toClass: 'daemon',
           toRole: 'bot',
@@ -335,9 +335,9 @@ onMounted(async () => {
                         <div class="col-8">
                           <div class="q-ma-md q-pa-md shadow-2">
                             {{$t('execution')}}
+                            <q-toggle v-model="daemon.exec.copyContext" :label="$t('copyContext')" :data-testid="`daemon-${daemon.id}-exec-direct`"/>
                             <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense :label="$t('generatorName')" :data-testid="`daemon-${daemon.id}-exec-generator`" />
-                            <q-toggle v-model="daemon.exec.directTrigger" :label="$t('directTrigger')" :data-testid="`daemon-${daemon.id}-exec-direct`"/>
-                            <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateGeneratePrompt" label="Generator prompt template" outlined :disable="daemon.exec.generator == 'emptyText' || daemon.exec.directTrigger" :data-testid="`daemon-${daemon.id}-exec-template`" />
+                            <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateGeneratePrompt" label="Generator prompt template" outlined :disable="daemon.exec.generator == 'emptyText' || daemon.exec.copyContext" :data-testid="`daemon-${daemon.id}-exec-template`" />
                             <div>{{$t('outputContextAttr')}}</div>
                             <div class="row">
                             <q-select v-model="daemon.exec.setting.toClass" :options="AsClassList" options-dense :label="$t('outputClass')" class="col-6" :data-testid="`daemon-${daemon.id}-out-class`" />

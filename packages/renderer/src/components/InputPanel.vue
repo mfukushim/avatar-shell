@@ -26,12 +26,12 @@ async function sendMessage() {
   talkText.value = '';
   const datas:AsMessage[] = []
   if (inText) {
-    datas.push(AsMessage.makeMessage({from: getUserName(), text: inText},'talk','human','surface'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
+    datas.push(AsMessage.makeMessage({from: getUserName(), text: inText},'talk','human','outer'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
     // datas.push(AsMessage.makeMessage({from: getUserName(), text: inText},'talk','human','outer'));
   }
   if (fileUpload.value) {
     const arrayBuffer = await fileUpload.value.arrayBuffer();
-    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','surface'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
+    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','outer'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
     // datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','outer'));
   }
   if(mcpResource.value) {

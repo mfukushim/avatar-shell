@@ -1,4 +1,4 @@
-import {AsRole, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {AsRole, ContextGeneratorSetting, GeneratorProvider} from '../../../common/DefGenerators.js';
 import {AsMessage} from '../../../common/Def.js';
 import {Effect} from 'effect';
 import {DocService} from '../DocService.js';
@@ -104,4 +104,40 @@ export abstract class ContextGenerator {
     }
   }
 
+}
+
+export class CopyGenerator extends ContextGenerator {
+  protected genName: GeneratorProvider = 'copy';
+  protected model = 'none';
+
+  static make() {
+    return Effect.succeed(new CopyGenerator());
+  }
+
+  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+    const nextGen = current.genNum + 1;
+    const out:GenOuter = {
+      avatarId: current.avatarId,
+      fromGenerator: 'copy',
+      toGenerator: this,
+      innerId: short.generate() as string,
+      // toolCallParam?: ToolCallParam[]
+      // outputText?: string
+      // outputRaw?: string
+      // outputMediaUrl?: string
+      // outputMime?: string
+      genNum: nextGen,
+      setting: {
+        ...current.setting,
+      },
+    };
+    if (current.input?.content.text) {
+      out.outputText = current.input?.content.text
+    }
+    if(current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
+      out.outputMediaUrl = current.input.content.mediaUrl;
+      out.outputMime = current.input.content.mimeType;
+    }
+    return Effect.succeed([out]);
+  }
 }

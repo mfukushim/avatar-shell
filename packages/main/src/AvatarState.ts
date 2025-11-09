@@ -280,18 +280,13 @@ export class AvatarState {
   }
 
   makeDaemonSet(config: DaemonConfig, sysConfig: SysConfig) {
-    if (config.exec.generator) {
-      return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
-        this.generators.set(a.UniqueId, a);
-        return ({
-          config: config,
-          generatorId: a.UniqueId,
-        } as DaemonState);
-      }));
-    }
-    return Effect.succeed({
-      config,
-    } as DaemonState);
+    return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
+      this.generators.set(a.UniqueId, a);
+      return {
+        config: config,
+        generatorId: a.UniqueId,
+      };
+    }));
   }
 
   makeTimeDaemon(startup: boolean, daemon: DaemonState, now: dayjs.Dayjs) {
@@ -494,17 +489,28 @@ export class AvatarState {
       let toLlm: AsMessage[];
       let text: any;
       let message: AsMessage | undefined;
-      let addToBuffer = true;
+      let addToBuffer = false;
       if (triggerMes) {
         //  TODO trigger型の場合、そのメッセージはすでにcontextに追加されているものであり、以前のcontextはそのメッセージの前までになる 電文は基本再加工されない。電文の再加工が許されるのは入出力ともにコンテキストに追加しない場合のみ
-        if (daemon.config.exec.directTrigger) {
-          //  ダイレクト
-          message = triggerMes;  //  すでに追加済みなのでaddContentには追加しない
+/*
+        if (daemon.config.exec.copyContext) {
+          //  コンテキスト先を変更してコピーする
+          // message = triggerMes;  //  すでに追加済みなのでaddContentには追加しない
+          message = {
+            ...triggerMes,
+            asClass: daemon.config.exec.setting.toClass || 'daemon',
+            asRole: daemon.config.exec.setting.toRole || 'system',
+            asContext: daemon.config.exec.setting.toContext || 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+            content: {
+              ...triggerMes.content,
+              generator: 'daemon',
+            },
+          } as AsMessage;
           // console.log('direct trigger:',triggerMes);
           addToBuffer = !triggerMes.isContextAdded;
         } else {
           //  再加工
-          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes;
+          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
           message = {
             ...triggerMes,
             asClass: 'daemon',
@@ -516,15 +522,30 @@ export class AvatarState {
               generator: 'daemon',
             },
           } as AsMessage;
-          const ext = yield* state.extendAndSaveContext([message], true);
-          yield* state.addContext(ext);
-          //  ここは新規なので追加
         }
+*/
+        text = daemon.config.exec.templateGeneratePrompt && !daemon.config.exec.copyContext ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
+        message = {
+          ...triggerMes,
+          asClass: daemon.config.exec.setting.toClass || 'daemon',
+          asRole: daemon.config.exec.setting.toRole || 'system',
+          asContext: daemon.config.exec.setting.toContext || 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
+          content: {
+            ...triggerMes.content,
+            text: text,
+            generator: 'daemon',
+          },
+        } as AsMessage;
+        // console.log('direct trigger:',triggerMes);
+        addToBuffer = false //!triggerMes.isContextAdded;
+        // const ext = yield* state.extendAndSaveContext([message], true);
+        // yield* state.addContext(ext);
+        //  ここは新規なので追加
         //  トリガーの場合はコンテキストはトリガー位置まででフィルタする
-        const pos = context.findLastIndex(value => value.id === triggerMes.id);
-        if (pos >= 0) {
-          context = context.slice(0, pos);
-        }
+        // const pos = context.findLastIndex(value => value.id === triggerMes.id);
+        // if (pos >= 0) {
+        //   context = context.slice(0, pos);
+        // }
       } else {
         //  非トリガー
         text = daemon.config.exec.templateGeneratePrompt;
@@ -537,8 +558,8 @@ export class AvatarState {
             isExternal: true, //  LLMループの外からの操作なのでtrue
           }, 'daemon', 'system', 'inner');
         //  ここは新規なので追加
-        const ext = yield* state.extendAndSaveContext([message]);
-        yield* state.addContext(ext);
+        // const ext = yield* state.extendAndSaveContext([message]);
+        // yield* state.addContext(ext);
 
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない

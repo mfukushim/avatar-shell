@@ -103,8 +103,8 @@ export const tutorialAvatarSetting: AvatarSetting =
     },
     daemons: [
       {
-        'id': 'aaa',
-        'name': 'mainLLM',
+        'id': 'aaaa',
+        'name': 'pickOuter',
         'isEnabled': true,
         'trigger': {'triggerType': 'IfContextExists', 'condition': {
             asClass: 'talk',
@@ -112,8 +112,29 @@ export const tutorialAvatarSetting: AvatarSetting =
             asContext:'outer'
           }},
         'exec': {
+          copyContext:true,
+          generator: 'copy',
+          // templateGeneratePrompt: '{body}',
+          setting: {
+            toClass: 'talk',
+            toRole: 'human',
+            toContext: 'surface'
+          },
+        },
+      },
+      {
+        'id': 'aaa',
+        'name': 'mainLLM',
+        'isEnabled': true,
+        'trigger': {'triggerType': 'IfContextExists', 'condition': {
+            asClass: 'talk',
+            asRole: 'human',
+            asContext:'surface'
+          }},
+        'exec': {
+          copyContext: false,
           generator: 'geminiText',
-          directTrigger: true,
+          // directTrigger: true,
           // templateGeneratePrompt: '{body}',
           setting: {
             toClass: 'talk',
@@ -128,8 +149,9 @@ export const tutorialAvatarSetting: AvatarSetting =
         isEnabled: true,
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
+          copyContext: false,
           generator: 'geminiText',
-          directTrigger: false,
+          // directTrigger: false,
           templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
           setting: {
             toClass: 'talk',
@@ -151,7 +173,8 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiVoice',
-          directTrigger: true,
+          copyContext: false,
+          // directTrigger: true,
           setting: {
             toClass: 'daemon',
             toRole: 'bot',
@@ -166,7 +189,8 @@ export const tutorialAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'geminiImage',
-          directTrigger: false,
+          copyContext: false,
+          // directTrigger: false,
           templateGeneratePrompt: 'Generate a anime-style drawing of a girl saying hello',
           setting: {
             toClass: 'daemon',
@@ -186,7 +210,8 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiText',
-          directTrigger: false,
+          copyContext: false,
+          // directTrigger: false,
           templateGeneratePrompt: 'Please respond by summarizing the conversation so far and showing your understanding.',
           setting: {
             // previousContextSize: 20,
@@ -207,7 +232,8 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiImage',
-          directTrigger: false,
+          copyContext: false,
+          // directTrigger: false,
           templateGeneratePrompt: 'Create a diagram that summarizes the conversation so far.',
           setting: {
             previousContextSize: 4,
@@ -240,12 +266,34 @@ export const emptyAvatarSetting: AvatarSetting =
     },
     daemons: [
       {
+        'id': 'aaaa',
+        'name': 'pickOuter',
+        'isEnabled': true,
+        'trigger': {'triggerType': 'IfContextExists', 'condition': {
+            asClass: 'talk',
+            asRole: 'human',
+            asContext:'outer'
+          }},
+        'exec': {
+          copyContext: true,
+          generator: 'copy',
+          // directTrigger: true,
+          // templateGeneratePrompt: '{body}',
+          setting: {
+            toClass: 'talk',
+            toRole: 'bot',
+            toContext: 'surface'
+          },
+        },
+      },
+      {
         'id': 'aaa',
         'name': 'mainLLM',
         'isEnabled': true,
         'trigger': {'triggerType': 'IfContextExists', 'condition': {
             asClass: 'talk',
             asRole: 'human',
+            asContext: 'surface'
           }},
         'exec': {
           generator: 'emptyText',
@@ -265,7 +313,8 @@ export const emptyAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'emptyText',
-          directTrigger: false,
+          copyContext: false,
+          // directTrigger: false,
           templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
           setting: {
             toClass: 'talk',
@@ -282,6 +331,7 @@ export const emptyAvatarSetting: AvatarSetting =
           triggerType: 'IfContextExists', condition: {
             asClass: 'talk',
             asRole: 'bot',
+            asContext: 'surface'
           },
         },
         exec: {
