@@ -1,4 +1,4 @@
-import {AsRole, ContextGeneratorSetting, GeneratorProvider} from '../../../common/DefGenerators.js';
+import {AsRole, GeneratorProvider} from '../../../common/DefGenerators.js';
 import {AsMessage} from '../../../common/Def.js';
 import {Effect} from 'effect';
 import {DocService} from '../DocService.js';
@@ -131,8 +131,11 @@ export class CopyGenerator extends ContextGenerator {
         ...current.setting,
       },
     };
+    if (current.input?.content.from) {
+      out.outputFrom = current.input?.content.from;
+    }
     if (current.input?.content.text) {
-      out.outputText = current.input?.content.text
+      out.outputText = current.input?.content.text;
     }
     if(current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
       out.outputMediaUrl = current.input.content.mediaUrl;

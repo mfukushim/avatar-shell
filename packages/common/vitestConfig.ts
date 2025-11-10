@@ -66,18 +66,18 @@ export const vitestSysConfig: SysConfig = {
       "type": "streamable-http",
       "url": "https://reversi-mcp-ui.daisycodes.workers.dev/mcp"
     },
-    "slack": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-slack"
-      ],
-      "env": {
-        "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string || 'aaa',
-        "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string || 'aaa',
-        "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
-      },
-    }
+    // "slack": {
+    //   "command": "npx",
+    //   "args": [
+    //     "-y",
+    //     "@modelcontextprotocol/server-slack"
+    //   ],
+    //   "env": {
+    //     "SLACK_BOT_TOKEN": process.env.VITE_SK_SLACK_BOT_TOKEN as string || 'aaa',
+    //     "SLACK_TEAM_ID": process.env.VITE_SK_SLACK_TEAM_ID as string || 'aaa',
+    //     "SLACK_CHANNEL_IDS": process.env.VITE_SK_SLACK_CHANNEL_IDS as string
+    //   },
+    // }
   },
   experimental:{
     mcpUi:false,
@@ -126,19 +126,19 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "reset_avatar_prompt": {"enable": true, "allow": "no"}
       }
     },
-    "slack": {
-      "enable": true,
-      "useTools": {
-        "slack_list_channels": {"enable": true, "allow": "ask"},
-        "slack_post_message": {"enable": true, "allow": "ask"},
-        "slack_reply_to_thread": {"enable": true, "allow": "ask"},
-        "slack_add_reaction": {"enable": true, "allow": "ask"},
-        "slack_get_channel_history": {"enable": true, "allow": "ask"},
-        "slack_get_thread_replies": {"enable": true, "allow": "ask"},
-        "slack_get_users": {"enable": true, "allow": "ask"},
-        "slack_get_user_profile": {"enable": true, "allow": "ask"}
-      }
-    },
+    // "slack": {
+    //   "enable": true,
+    //   "useTools": {
+    //     "slack_list_channels": {"enable": true, "allow": "ask"},
+    //     "slack_post_message": {"enable": true, "allow": "ask"},
+    //     "slack_reply_to_thread": {"enable": true, "allow": "ask"},
+    //     "slack_add_reaction": {"enable": true, "allow": "ask"},
+    //     "slack_get_channel_history": {"enable": true, "allow": "ask"},
+    //     "slack_get_thread_replies": {"enable": true, "allow": "ask"},
+    //     "slack_get_users": {"enable": true, "allow": "ask"},
+    //     "slack_get_user_profile": {"enable": true, "allow": "ask"}
+    //   }
+    // },
     // "echoDaemon": {
     //   "enable": true,
     //   "notice": "注意: Echo Scheduler組み込みMCPは強力ですがセキュリティと動作安全性の上でリスクがあります。リスクを判断の上、使用するか判断してください。",
@@ -264,44 +264,44 @@ export const vitestAvatarConfigNone: AvatarSetting = {
     },
   },
   daemons: [
-    {
-      'id': '77ndZPy3UXHkjot7wu7d4U',
-      'name': 'StartupPict',
-      'isEnabled': true,
-      'trigger': {
-        'triggerType': 'TimerMin',
-        'condition': {min: 2},
-      },
-      'exec': {
-        generator: 'emptyImage',
-        copyContext: false,
-        // directTrigger: false,
-        templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
-        setting: {
-          toClass:'daemon',
-          toRole:'bot'
-        },
-      },
-    },
-    {
-      'id': 'aaab',
-      'name': '2min1',
-      'isEnabled': true,
-      'trigger': {
-        'triggerType': 'TimerMin',
-        'condition': {min: 2},
-      },
-      'exec': {
-        generator: 'emptyText',
-        copyContext: false,
-        // directTrigger: false,
-        templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
-        setting: {
-          toClass:'talk',
-          toRole:'bot'
-        },
-      },
-    },
+    // {
+    //   'id': '77ndZPy3UXHkjot7wu7d4U',
+    //   'name': 'StartupPict',
+    //   'isEnabled': true,
+    //   'trigger': {
+    //     'triggerType': 'TimerMin',
+    //     'condition': {min: 2},
+    //   },
+    //   'exec': {
+    //     generator: 'emptyImage',
+    //     copyContext: false,
+    //     // directTrigger: false,
+    //     templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
+    //     setting: {
+    //       toClass:'daemon',
+    //       toRole:'bot'
+    //     },
+    //   },
+    // },
+    // {
+    //   'id': 'aaab',
+    //   'name': '2min1',
+    //   'isEnabled': true,
+    //   'trigger': {
+    //     'triggerType': 'TimerMin',
+    //     'condition': {min: 2},
+    //   },
+    //   'exec': {
+    //     generator: 'emptyText',
+    //     copyContext: false,
+    //     // directTrigger: false,
+    //     templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
+    //     setting: {
+    //       toClass:'talk',
+    //       toRole:'bot'
+    //     },
+    //   },
+    // },
     {
       'id': 'aaac',
       'name': 'toVoice',

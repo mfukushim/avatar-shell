@@ -24,7 +24,6 @@ import {
   Part,
 } from '@google/genai';
 import {MediaService} from '../MediaService.js';
-import {Message} from 'ollama';
 
 
 export abstract class GeminiBaseGenerator extends ContextGenerator {
@@ -266,21 +265,23 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const contents = prev.concat(mes);
       console.log('gemini text:');
       it.debugContext(contents);
-      const res = yield* Effect.tryPromise({
-        try: () => it.ai.models.generateContentStream({
-          model: it.model,
-          contents: contents,
-          config: {
-            thinkingConfig: {
-              thinkingBudget: 0, // Disables thinking
-            },
-            tools: tools && !(option?.noTool) ? [{
-              functionDeclarations: tools,
-            }] : undefined,
+      const params = {
+        model: it.model,
+        contents: contents,
+        config: {
+          thinkingConfig: {
+            thinkingBudget: 0, // Disables thinking
           },
-        }),
+          tools: tools && !(option?.noTool) ? [{
+            functionDeclarations: tools,
+          }] : undefined,
+        },
+      };
+      const res = yield* Effect.tryPromise({
+        try: () => it.ai.models.generateContentStream(params),
         catch: error => {
           console.log('gemini llm error:', `${error}`);
+          console.log('gemini llm error params:', `${JSON.stringify(params)}`);
           return new Error(`gemini llm error:${(error as any)}`);
         },
       }).pipe(
@@ -304,6 +305,10 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       // state.clearStreamingText(avatarState)
       const responseOut = Chunk.toArray(collect);
       console.log('gemini text out:',responseOut);
+      it.previousNativeContexts.push({
+        role: mes.role,
+        parts:mes.parts,
+      })
       responseOut.forEach(a => {
         if(a.candidates && a.candidates.length > 0 && a.candidates[0].content) {
           it.previousNativeContexts.push(a.candidates[0].content) //  TODO
@@ -314,7 +319,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const outImages = responseOut.flatMap(b => b.data ? [b.data] : []).join('');
       const funcCalls = responseOut.flatMap(b => b.functionCalls && b.functionCalls.length > 0 ? b.functionCalls : []); //  1回のllm実行がstreamで複数分割されているのを結合するが、1回のllm実行で複数のfuncがあることはありうる
 
-      console.log('gemini text outText:',outText);
+      // console.log('gemini text outText:',outText);
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outText) {

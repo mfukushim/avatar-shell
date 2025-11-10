@@ -72,6 +72,7 @@ export interface GenOuter {
   // toGenerator: GeneratorProvider;
   innerId: string;
   toolCallParam?: ToolCallParam[];
+  outputFrom?: string;
   outputText?: string;
   outputRaw?: string;
   outputMediaUrl?: string;
@@ -397,12 +398,12 @@ export class AvatarState {
     return Effect.gen(function* () {
       // const stopList = (yield *it.timeDaemonStates.get).filter(a => resetFilter(a.config));
       yield* it.fiberTimers.get.pipe(Effect.andThen(a1 => {
-        console.log('fiberTimers:', a1);
+        // console.log('fiberTimers:', a1);
         return Effect.forEach(a1.filter(value => resetFilter(value.config)), a => a.fiber ? Fiber.interrupt(a.fiber) : Effect.void);
       }));
       const now = dayjs();
       return yield* SynchronizedRef.updateEffect(it.fiberTimers, b => {
-        console.log('fiberTimers2:', b);
+        // console.log('fiberTimers2:', b);
         return Effect.forEach(b.filter(value => resetFilter(value.config)), a => {
           console.log('oneTimer reset:', a.config);
           return Effect.gen(function* () {
@@ -794,7 +795,7 @@ export class AvatarState {
         yield* it.resetPrevBuffer();
         yield* it.appendContextGenOut(res);
         //  TODO 単純テキストをコンソールに出力するのはcontext処理内なのか、io処理内なのか
-        console.log('genLoop gen out:', res.map(value => it.debugGenOuter(value)).join('\n'));
+        // console.log('genLoop gen out:', res.map(value => it.debugGenOuter(value)).join('\n'));
         //  出力に回ることになるのはtool指示のみ
         const io = res.filter(a => a.toolCallParam).map(b => ({
           ...b,
@@ -899,7 +900,7 @@ export class AvatarState {
   /**
    * Executes a generator function with the provided messages and context.
    * ジェネレーター単体実行 ログに追加するかどうかは呼び元で考える
-   * @param {ContextGenerator} gen - The generator instance to handle context generation and processing.
+   * @param genId
    * @param {AsMessage[]} message - An array of messages to be processed by the generator.
    * @param setting
    * @param addToBuffer
@@ -1185,7 +1186,7 @@ export class AvatarState {
         if (a.outputText) {
           const content: AsMessageContent = {
             innerId: a.innerId,
-            from: it.Name,
+            from: a.outputFrom || it.Name,
             text: a.outputText,
             generator: a.fromGenerator,
             nextGeneratorId: a.toGenerator.UniqueId,
@@ -1196,7 +1197,7 @@ export class AvatarState {
           const mediaUrl = yield* DocService.saveDocMedia(a.innerId, a.outputMime, a.outputRaw, it.TemplateId);
           const content: AsMessageContent = {
             innerId: a.innerId,
-            from: it.Name,
+            from: a.outputFrom || it.Name,
             mediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
@@ -1208,7 +1209,7 @@ export class AvatarState {
           //  TODO 画像はこっちまでもってきて保存しているが、ボイスは生成時に保存しているがつじつまよいのか
           const content: AsMessageContent = {
             innerId: a.innerId,
-            from: it.Name,
+            from: a.outputFrom || it.Name,
             mediaUrl: a.outputMediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
@@ -1220,7 +1221,7 @@ export class AvatarState {
           const content: AsMessageContent[] = a.toolCallParam.map(value => {
             return {
               innerId: a.innerId,
-              from: it.Name,
+              from: a.outputFrom || it.Name,
               toolName: value.name,
               toolReq: value,
               generator: a.fromGenerator,
