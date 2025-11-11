@@ -34,7 +34,7 @@ export default {
   generatorCommonSettingsDescription: 'Configure common settings for generators (including LLM)',
   generatorName: 'Generator Name',
   directTrigger: 'Use the trigger context directly as the input context',
-  copyContext: 'Simple copy of trigger context with context attributes changed',
+  // copyContext: 'Simple copy of trigger context with context attributes changed',
   outputContextAttr: 'Output Context Attributes',
   addContextDaemon:'Add context daemon',
   outputClass: 'Output Class',

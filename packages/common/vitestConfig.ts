@@ -160,7 +160,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiImage',
         // 'toRole': 'human',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
         // 'templateContextPrompt': '',
@@ -181,7 +181,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiText',
         // 'toRole': 'human',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
         // 'templateContextPrompt': 'フランクに日本語で挨拶をしてください',
@@ -204,7 +204,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiVoice',
         templateGeneratePrompt: '{body}',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: true,
         setting: {
           toClass:'daemon',
@@ -316,7 +316,7 @@ export const vitestAvatarConfigNone: AvatarSetting = {
         generator: 'emptyVoice',
         // 'toRole': 'human',
         // templateGeneratePrompt: '{body}',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: true,
         setting: {
           toClass:'daemon',
@@ -354,7 +354,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: 'Hello',
         setting: {
@@ -373,7 +373,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyText',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: '30 seconds has passed',
         setting: {
@@ -392,7 +392,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: '1 minute has passed',
         setting: {
@@ -411,7 +411,7 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: '2 minutes has passed',
         setting: {
@@ -448,7 +448,7 @@ export const vitestAvatarConfigDaemon2: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        copyContext: false,
+        // copyContext: false,
         // directTrigger: false,
         templateGeneratePrompt: 'Repeated for 15 seconds',
         setting: {

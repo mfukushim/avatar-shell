@@ -112,7 +112,7 @@ export const tutorialAvatarSetting: AvatarSetting =
             asContext:'outer'
           }},
         'exec': {
-          copyContext:true,
+          // copyContext:true,
           generator: 'copy',
           // templateGeneratePrompt: '{body}',
           setting: {
@@ -132,7 +132,7 @@ export const tutorialAvatarSetting: AvatarSetting =
             asContext:'surface'
           }},
         'exec': {
-          copyContext: false,
+          // copyContext: false,
           generator: 'geminiText',
           // directTrigger: true,
           // templateGeneratePrompt: '{body}',
@@ -149,7 +149,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         isEnabled: true,
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
-          copyContext: false,
+          // copyContext: false,
           generator: 'geminiText',
           // directTrigger: false,
           templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
@@ -173,7 +173,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiVoice',
-          copyContext: false,
+          // copyContext: false,
           // directTrigger: true,
           setting: {
             toClass: 'daemon',
@@ -189,7 +189,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'geminiImage',
-          copyContext: false,
+          // copyContext: false,
           // directTrigger: false,
           templateGeneratePrompt: 'Generate a anime-style drawing of a girl saying hello',
           setting: {
@@ -210,7 +210,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiText',
-          copyContext: false,
+          // copyContext: false,
           // directTrigger: false,
           templateGeneratePrompt: 'Please respond by summarizing the conversation so far and showing your understanding.',
           setting: {
@@ -232,7 +232,7 @@ export const tutorialAvatarSetting: AvatarSetting =
         },
         exec: {
           generator: 'geminiImage',
-          copyContext: false,
+          // copyContext: false,
           // directTrigger: false,
           templateGeneratePrompt: 'Create a diagram that summarizes the conversation so far.',
           setting: {
@@ -275,7 +275,7 @@ export const emptyAvatarSetting: AvatarSetting =
             asContext:'outer'
           }},
         'exec': {
-          copyContext: true,
+          // copyContext: true,
           generator: 'copy',
           // directTrigger: true,
           // templateGeneratePrompt: '{body}',
@@ -313,7 +313,7 @@ export const emptyAvatarSetting: AvatarSetting =
         trigger: {'triggerType': 'Startup', condition: {}},
         exec: {
           generator: 'emptyText',
-          copyContext: false,
+          // copyContext: false,
           // directTrigger: false,
           templateGeneratePrompt: 'Please write a friendly, short, one-line greeting. Please reply with the greeting only.',
           setting: {

@@ -122,7 +122,7 @@ describe('GeminiGenerator', () => {
             'condition': {asClass: 'talk', asRole: 'human', asContext: 'outer'},
           },
           'exec': {
-            copyContext: true,
+            // copyContext: true,
             generator: 'copy',/* templateGeneratePrompt: '{body}', */
             setting: {toClass: 'talk', toRole: 'human', toContext: 'surface'},
           },
@@ -136,7 +136,7 @@ describe('GeminiGenerator', () => {
           },
           exec: {
             generator: 'geminiText',
-            copyContext: false,/* directTrigger: true, */
+            // copyContext: false,/* directTrigger: true, */
             setting: {toClass: 'talk', toRole: 'bot', toContext: 'surface'},
           },
         }]),
@@ -176,7 +176,7 @@ describe('GeminiGenerator', () => {
                 asContext:'outer'
               }},
             'exec': {
-              copyContext:true,
+              // copyContext:true,
               generator: 'copy',
               // templateGeneratePrompt: '{body}',
               setting: {
@@ -200,7 +200,7 @@ describe('GeminiGenerator', () => {
               },
               exec: {
                 generator: 'geminiText',
-                copyContext: false,
+                // copyContext: false,
                 // directTrigger: true,
                 setting: {
                   toClass: 'talk',
@@ -245,7 +245,7 @@ describe('GeminiGenerator', () => {
                   asContext:'outer'
                 }},
               'exec': {
-                copyContext:true,
+                // copyContext:true,
                 generator: 'copy',
                 // templateGeneratePrompt: '{body}',
                 setting: {
@@ -269,7 +269,7 @@ describe('GeminiGenerator', () => {
                 },
                 exec: {
                   generator: 'geminiText',
-                  copyContext: false,
+                  // copyContext: false,
                   // directTrigger: true,
                   setting: {
                     toClass: 'talk',
@@ -315,7 +315,7 @@ describe('GeminiGenerator', () => {
                   asContext:'outer'
                 }},
               'exec': {
-                copyContext:true,
+                // copyContext:true,
                 generator: 'copy',
                 // templateGeneratePrompt: '{body}',
                 setting: {
@@ -339,7 +339,7 @@ describe('GeminiGenerator', () => {
                 },
                 exec: {
                   generator: 'geminiText',
-                  copyContext: false,
+                  // copyContext: false,
                   // directTrigger: true,
                   setting: {
                     toClass: 'talk',
@@ -431,7 +431,7 @@ describe('GeminiGenerator', () => {
                 asContext:'outer'
               }},
             'exec': {
-              copyContext:true,
+              // copyContext:true,
               generator: 'copy',
               // templateGeneratePrompt: '{body}',
               setting: {
@@ -454,7 +454,7 @@ describe('GeminiGenerator', () => {
             },
             exec: {
               generator: 'geminiText',
-              copyContext: false,
+              // copyContext: false,
               setting: {
                 toClass: 'talk',
                 toRole: 'bot',
@@ -533,7 +533,7 @@ describe('GeminiGenerator', () => {
                 asContext:'outer'
               }},
             'exec': {
-              copyContext:true,
+              // copyContext:true,
               generator: 'copy',
               // templateGeneratePrompt: '{body}',
               setting: {
@@ -556,7 +556,7 @@ describe('GeminiGenerator', () => {
             },
             exec: {
               generator: 'geminiText',
-              copyContext: false,
+              // copyContext: false,
               setting: {
                 toClass: 'talk',
                 toRole: 'bot',

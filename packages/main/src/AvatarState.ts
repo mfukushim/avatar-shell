@@ -525,7 +525,7 @@ export class AvatarState {
           } as AsMessage;
         }
 */
-        text = daemon.config.exec.templateGeneratePrompt && !daemon.config.exec.copyContext ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
+        text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
         message = {
           ...triggerMes,
           asClass: daemon.config.exec.setting.toClass || 'daemon',
