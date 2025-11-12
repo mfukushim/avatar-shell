@@ -15,11 +15,29 @@ import Anthropic from '@anthropic-ai/sdk';
 import {MediaService} from '../MediaService.js';
 
 
+/**
+ * Claude用ジェネレーター基底
+ * The `ClaudeBaseGenerator` class extends the `ContextGenerator` and provides
+ * an abstract base implementation for generating context-based messages
+ * compliant with Anthropic's Claude language model.
+ *
+ * This class defines an infrastructure that handles:
+ * - Filtering of tool results to ensure compatibility with the Claude model.
+ * - Assembling context blocks for the previous and current messages.
+ * - Debugging generated contexts for exploratory purposes.
+ *
+ * Derived classes are expected to provide specific implementations for the
+ * abstract members such as `model` and `genName`.
+ */
 export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
+
+  protected get previousContexts() {
+    return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
+  }
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -227,9 +245,9 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
-      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
+      //  TODO prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
-      const prev = Array.from(it.previousNativeContexts)
+      const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -264,13 +282,12 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           return new Error(`claude error:${error}`);
         },
       });
-      // console.log(message);
 
-      it.previousNativeContexts.push({
+      it.previousContexts.push({
         role: mes.role,
         content:mes.content,
       })
-      it.previousNativeContexts.push({
+      it.previousContexts.push({
         role: message.role,
         content:message.content,
       } as Anthropic.Messages.MessageParam)

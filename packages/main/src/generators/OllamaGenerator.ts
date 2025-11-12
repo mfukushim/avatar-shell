@@ -12,10 +12,21 @@ import {ContextGenerator} from './ContextGenerator.js';
 import {Ollama, Message} from 'ollama';
 
 
+/**
+ * OllamaTextジェネレーター
+ *
+ * OllamaTextGenerator extends the ContextGenerator class to provide text generation functionality
+ * using the Ollama service. This class is responsible for managing the context, interacting with
+ * the Ollama service, and generating appropriate responses.
+ */
 export class OllamaTextGenerator extends ContextGenerator {
   protected genName: GeneratorProvider = 'ollamaText';
   protected model = 'llama3.2';
   private ollama: Ollama;
+
+  protected get previousContexts() {
+    return this.previousNativeContexts as Message[];
+  }
 
   static make(settings?: OllamaSysConfig) {
     return Effect.succeed(new OllamaTextGenerator(settings));
@@ -68,7 +79,7 @@ export class OllamaTextGenerator extends ContextGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMes = yield *avatarState.TalkContextEffect
-      const prev:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
+      const prevMake:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
         const role = it.asRoleToRole(a.asRole)
         if(!role) return []
         return [{
@@ -77,6 +88,7 @@ export class OllamaTextGenerator extends ContextGenerator {
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
+      const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
       if (current.input?.content.text) {
@@ -124,13 +136,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       const stream =
         Stream.fromAsyncIterable(response, (e) => new Error(String(e))).pipe(
           Stream.tap((ck) => {
-            // console.log('ck:',ck);
             it.sendStreamingText(ck.message.content, avatarState);
-            // if (ck.done === false) {
-            //   it.sendStreamingText(ck.message.content, avatarState);
-            // } else if (ck.type === `error`) {
-            //   console.log('error');
-            // }
             return Effect.void;
           }),
         );
@@ -146,14 +152,21 @@ export class OllamaTextGenerator extends ContextGenerator {
           input:value.function.arguments,
         }
       })
-      // console.log('toolcall:',JSON.stringify(toolCallParam));
+      it.previousContexts.push({
+        role: mes.role,
+        content:mes.content,
+      })
+      it.previousContexts.push({
+        role: 'assistant',
+        content:'text',
+        tool_calls:toolReq,
+      } as Message)
+
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
 
       //  GenOuterを整理生成
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
-      // console.log('last:',last);
-      // it.clearStreamingText(avatarState)
       const nextGen = current.genNum+1
       const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{

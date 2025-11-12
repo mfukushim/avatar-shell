@@ -85,11 +85,6 @@ export const testAvatarConfigMi = {
   templateId: 'abcd1',
   general: {
     'name': 'Mi',
-    // useLlm: 'claudeText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
@@ -228,16 +223,9 @@ export const testAvatarConfigMiAnt = {
   templateId: 'abcd3',
   'general': {
     'name': 'Mu',
-    // 'defaultIdleMin': 10,
-    // useLlm: 'claudeText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
-    // useRoom:undefined,
   },
   mcp: {
     "traveler": {
@@ -302,12 +290,6 @@ export const testAvatarConfigMaid = {
   templateId: 'abcd2',
   'general': {
     'name': 'MarMaid',
-    // 'defaultIdleMin': 10,
-    // useLlm: 'openAiText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: false,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,

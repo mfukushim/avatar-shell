@@ -25,7 +25,14 @@ import {
 } from '@google/genai';
 import {MediaService} from '../MediaService.js';
 
-
+/**
+ * Geminiジェネレーター基底
+ * An abstract class representing the base functionality for a Gemini generator.
+ * It extends the `ContextGenerator` class to specialize the handling of generator-specific operations.
+ * The class includes support for generating context, managing previous and current context, and processing tool responses.
+ *
+ * Subclasses must implement abstract properties to define specific behaviors such as model type and generator name.
+ */
 export abstract class GeminiBaseGenerator extends ContextGenerator {
   protected geminiSettings: GeminiSettings | undefined;
   protected ai: GoogleGenAI;
@@ -40,6 +47,11 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     contextRole: 'bot',
     addToMainContext: true,
   };
+
+  protected get previousContexts() {
+    return this.previousNativeContexts as Content[];
+  }
+
 
   constructor(sysConfig: SysConfig, settings?: GeminiSettings) {
     super();
@@ -197,43 +209,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       return text;
     }).join('\n'));
     console.log('gemini context end:');
-    // console.log('gemini context:',contents.map(a => a.parts?.map(b => '##'+JSON.stringify(b).slice(0.200)).join(',')).join('\n'));
-    // console.log('gemini context end:');
   }
-
-  /*
-    private filterToolRes(value: any) {
-      try {
-        console.log('filterToolRes:',value);
-        return {
-          ...value,
-          content: value.content.flatMap((a:any) => {
-            // console.log('contents test:',a);
-            //  @ts-ignore
-            if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-              //  @ts-ignore
-              if (!a.resource.annotations.audience.includes('assistant')) {
-                console.log('contents test no out');
-                return [];
-              }
-            }
-            //  @ts-ignore
-            if (a?.annotations && a.annotations?.audience) {
-              //  @ts-ignore
-              if (!a.annotations.audience.includes('assistant')) {
-                console.log('contents test no out');
-                return [];
-              }
-            }
-            return [a];
-          }),
-        };
-      } catch (error) {
-        console.log('filterToolRes error:',error);
-        throw error;
-      }
-    }
-  */
 }
 
 type GeminiRole = 'user' | 'model';
@@ -255,7 +231,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
-      const prev = Array.from(it.previousNativeContexts)
+      const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -302,16 +278,15 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
 
       //  確定実行結果取得
       const collect = yield* Stream.runCollect(stream);
-      // state.clearStreamingText(avatarState)
       const responseOut = Chunk.toArray(collect);
       console.log('gemini text out:',responseOut);
-      it.previousNativeContexts.push({
+      it.previousContexts.push({
         role: mes.role,
         parts:mes.parts,
       })
       responseOut.forEach(a => {
         if(a.candidates && a.candidates.length > 0 && a.candidates[0].content) {
-          it.previousNativeContexts.push(a.candidates[0].content) //  TODO
+          it.previousContexts.push(a.candidates[0].content) //  TODO
         }
       })
       const responseId = responseOut.reduce((previousValue, currentValue) => currentValue.responseId,undefined as string|undefined) || short.generate();
@@ -319,7 +294,6 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const outImages = responseOut.flatMap(b => b.data ? [b.data] : []).join('');
       const funcCalls = responseOut.flatMap(b => b.functionCalls && b.functionCalls.length > 0 ? b.functionCalls : []); //  1回のllm実行がstreamで複数分割されているのを結合するが、1回のllm実行で複数のfuncがあることはありうる
 
-      // console.log('gemini text outText:',outText);
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outText) {
@@ -356,11 +330,6 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
               name: v.name || '',
               input: v.args,
             }
-            // return {
-            //   callId: (v.args?.callId as string) || responseId,
-            //   name: (v.args?.name as string) || v.name || '',
-            //   input: v.args?.input || '',
-            // }
           }),
           genNum: nextGen,
         })
