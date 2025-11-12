@@ -167,7 +167,7 @@ describe('ClaudeGenerator', () => {
     await contextStepTest6('claudeText',9)
   });
   it('コンテキストステップ確認7', async () => {
-    await contextStepTest7('claudeText',12)
+    await contextStepTest7('claudeText',17)
   });
 
 }, 5 * 60 * 1000);

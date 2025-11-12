@@ -568,7 +568,28 @@ export async function contextStepTest7(generatorName:GeneratorProvider,expectedS
           },
         },
       },
-      daemons: vitestAvatarConfigNone.daemons.concat([{
+      daemons: vitestAvatarConfigNone.daemons.concat([        {
+          'id': 'aaaa',
+          'name': 'pickOuter',
+          'isEnabled': true,
+          'trigger': {
+            'triggerType': 'IfContextExists', 'condition': {
+              asClass: 'talk',
+              asRole: 'human',
+              asContext: 'outer',
+            },
+          },
+          'exec': {
+            // copyContext: true,
+            generator: 'copy',
+            // templateGeneratePrompt: '{body}',
+            setting: {
+              toClass: 'talk',
+              toRole: 'human',
+              toContext: 'surface',
+            },
+          },
+        }, {
           id: 'xx1',
           name: 'normalTalk',
           isEnabled: true,
@@ -618,7 +639,7 @@ export async function contextStepTest7(generatorName:GeneratorProvider,expectedS
     },normalTalk.genId)
     console.log('callMcpToolByExternal:',res2);
 
-    yield* Effect.sleep('30 seconds');
+    yield* Effect.sleep('60 seconds');
     // const res2 = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
     //   from: 'user',
     //   text: '/new game',

@@ -785,6 +785,8 @@ export class AvatarState {
           return;  //  func の無限ループを防ぐ
         }
         //  Generator処理
+        const markId = short.generate()
+        it.sendRunningMark(markId, true, inner.toGenerator.Name);
         const sysConfig = yield* ConfigService.getSysConfig();
         const gen = inner.toGenerator; //  settings?: ContextGeneratorSetting
         // const gen = (yield* ConfigService.makeGenerator(inner.toGenerator, sysConfig)); //  settings?: ContextGeneratorSetting // TODO 統合したらすべて合わせる
@@ -803,6 +805,7 @@ export class AvatarState {
         }));
         // it.clearStreamingText();
         console.log('genLoop gen io:', io.map(v => it.debugGenOuter(v)));
+        it.sendRunningMark(markId, false);
         if (io.length > 0) {
           yield* Queue.offerAll(it.outerQueue, io);
         } else {
@@ -912,7 +915,7 @@ export class AvatarState {
     // console.log('in execGenerator:', JSON.stringify(message).slice(0, 200), JSON.stringify(context).slice(0, 200));
     return Effect.gen(function* () {
       const gen = yield* it.getDefGenerator(genId);
-      it.sendRunningMark(message.id, true, gen.Name);
+      // it.sendRunningMark(message.id, true, gen.Name);
       //  log出力はgenerateContext内で行っている
       yield* it.enterInner({
         avatarId: it.id,
@@ -953,11 +956,11 @@ export class AvatarState {
     })
       .pipe(
         Effect.tap(a => {
-          it.sendRunningMark(message.id, false);
+          // it.sendRunningMark(message.id, false);
         }),
         Effect.catchAll(e => {
           console.log('execGenerator error:', e);
-          it.sendRunningMark(message.id, false);
+          // it.sendRunningMark(message.id, false);
           this.showAlert(`execGenerator error:${e}`);
           return Effect.fail(e);
         }),

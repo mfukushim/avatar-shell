@@ -20,7 +20,7 @@ import {
   contextStepTest2,
   contextStepTest3,
   contextStepTest4,
-  contextStepTest5, contextStepTest6,
+  contextStepTest5, contextStepTest6, contextStepTest7,
 } from './CommonGeneratorTest';
 
 const cwd = process.cwd()
@@ -206,111 +206,7 @@ describe('OpenAiGenerator', () => {
   });
 
   it('コンテキストステップ確認7', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield* Effect.sleep('1 seconds');
-
-      const vitestConf = {
-        ...vitestAvatarConfigNone,
-        mcp: {
-          reversi: {
-            enable: true,
-            useTools: {
-              "new-game": {
-                enable: true,
-                allow: 'any',
-              },
-              'get-board': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'select-user': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'select-assistant': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'session-auth': {
-                'enable': true,
-                'allow': 'ask',
-              },
-              'add': {
-                'enable': true,
-                'allow': 'ask',
-              },
-              'calculate': {
-                'enable': true,
-                'allow': 'ask',
-              },
-            },
-          },
-        },
-        daemons: vitestAvatarConfigNone.daemons.concat([{
-            id: 'xx1',
-            name: 'normalTalk',
-            isEnabled: true,
-            trigger: {
-              triggerType: 'IfContextExists',
-              condition: {
-                asClass: 'talk',
-                asRole: 'human',
-                asContext: 'surface',
-              },
-            },
-            exec: {
-              generator: 'openAiText',
-              directTrigger: true,
-              setting: {
-                toClass: 'talk',
-                toRole: 'bot',
-                toContext: 'surface',
-              },
-            },
-          }],
-        ),
-      };
-      //  @ts-ignore
-      yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
-
-      yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
-      const avatarState = yield* AvatarService.makeAvatar(null);
-      yield* Effect.sleep('1 seconds');
-
-      const res = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: '/new game',
-        isExternal: true,
-      }, 'talk', 'human', 'surface')]);
-      console.log('askAvatar:', res);
-
-      yield* Effect.sleep('30 seconds');
-
-      const res2 = yield *avatarState.callMcpToolByExternal({
-        callId: '123',
-        name: 'reversi_select-user',
-        input: {
-          move:'D3'
-        }
-      },'openAiText')
-      console.log('callMcpToolByExternal:',res2);
-
-      yield* Effect.sleep('30 seconds');
-      // const res2 = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-      //   from: 'user',
-      //   text: '/new game',
-      //   isExternal: true,
-      // }, 'talk', 'human', 'outer')]);
-      // console.log('askAvatar:', res2);
-
-      const params = yield* avatarState.TalkContextEffect;
-      console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
-      expect(params.length).toBe(8);
-
-    }).pipe(
-      aiRuntime.runPromise,
-    );
+    await contextStepTest7('openAiText',13)
   });
 
 },5*60*1000);
