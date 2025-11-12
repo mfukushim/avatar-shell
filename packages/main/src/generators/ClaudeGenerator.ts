@@ -266,43 +266,10 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       });
       // console.log(message);
 
-      /*
-            const res = yield* Effect.tryPromise({
-              try: () => it.ai.models.generateContentStream({
-                model: it.model,
-                contents: contents,
-                config: {
-                  thinkingConfig: {
-                    thinkingBudget: 0, // Disables thinking
-                  },
-                  tools: tools && !(option?.noTool) ? [{
-                    functionDeclarations: tools,
-                  }] : undefined,
-                },
-              }),
-              catch: error => {
-                console.log('Claude llm error:', `${error}`);
-                return new Error(`Claude llm error:${(error as any)}`);
-              },
-            }).pipe(
-              Effect.timeout('1 minute'),
-              Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
-              Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`Claude API error:timeout`))),
-            );
-            //  Stream部分実行をUIに反映
-            const stream =
-              Stream.fromAsyncIterable(res, (e) => new Error(String(e))).pipe(
-                Stream.tap((ck) => {
-                  if (ck.text) {
-                    it.sendStreamingText(ck.text, avatarState);
-                  }
-                  return Effect.void;
-                }),
-              );
-
-            //  確定実行結果取得
-            const collect = yield* Stream.runCollect(stream);
-      */
+      it.previousNativeContexts.push({
+        role: mes.role,
+        content:mes.content,
+      })
       it.previousNativeContexts.push({
         role: message.role,
         content:message.content,

@@ -189,7 +189,8 @@ export type DaemonTriggerSchema = typeof DaemonTriggerSchema.Type
 const SchedulerExecGenSchema = Schema.mutable(Schema.Struct({
   generator: GeneratorProviderSchema, //  undefinedの場合ジェネレーターは使わずにテンプレート変換のみする(多くの場合固定プロンプト)
   templateGeneratePrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
-  directTrigger: Schema.Boolean,
+  // copyContext: Schema.Boolean,
+  //directTrigger: Schema.Boolean,
   //  誰が(TELLER)
   setting: Schema.mutable(ContextGeneratorSettingSchema),
 }));
@@ -205,14 +206,6 @@ export const DaemonConfigSchema = Schema.Struct({
 });
 
 export type DaemonConfig = typeof DaemonConfigSchema.Type
-
-// const GenTypeSchema = Schema.Struct( {
-//   provider: Schema.optional(GeneratorProviderSchema),
-//   model: Schema.String,
-//   isExternal: Schema.Boolean,
-// })
-//
-// export type GenType = typeof GenTypeSchema.Type
 
 export class AsOutput extends Schema.Class<AsOutput>('AsOutput')({
   genNative: Schema.Array(Schema.Any),

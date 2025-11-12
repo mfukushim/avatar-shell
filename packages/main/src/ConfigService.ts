@@ -23,7 +23,7 @@ import {dirname} from 'path';
 import {vitestAvatarConfig, vitestSysConfig} from '../../common/vitestConfig.js';
 import {ContextGeneratorSetting, GeneratorProvider} from '../../common/DefGenerators.js';
 import {GeminiImageGenerator, GeminiTextGenerator, GeminiVoiceGenerator} from './generators/GeminiGenerator.js';
-import {ContextGenerator} from './generators/ContextGenerator.js';
+import {ContextGenerator, CopyGenerator} from './generators/ContextGenerator.js';
 import {EmptyImageGenerator, EmptyTextGenerator, EmptyVoiceGenerator} from './generators/EmptyGenerator.js';
 import {FileSystem} from '@effect/platform';
 import {NodeFileSystem} from '@effect/platform-node';
@@ -503,6 +503,8 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       // 'openAiVoice',
       // 'voiceVox',
       // 'nijiVoice',
+      //  コピージェネレーター
+      'copy': () => CopyGenerator.make(),
 
       //  ダミージェネレーター
       'emptyText': (_, settings) => EmptyTextGenerator.make(settings),

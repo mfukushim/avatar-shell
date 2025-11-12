@@ -141,7 +141,7 @@ const setTimeline = async (tl0: AsMessage[]) => {
         mimeType: 'text/html',
         text: text,
       });
-      console.log('mcpUiResource:',ui.content);
+      // console.log('mcpUiResource:',ui.content);
       if(ui.content?.generator && ui.content?.nextGeneratorId && ui.content.generator === 'mcp'){
         calledMcpUiGenerator.value = ui.content.nextGeneratorId;
         calledMcpUiCallId.value = ui.content.innerId || ''

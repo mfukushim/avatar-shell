@@ -1,5 +1,5 @@
 //  注意: インポート順序に順序があるようだ。誤るとAvatarState.makeでエラーになる
-import {Effect, Layer, ManagedRuntime, Schema} from 'effect';
+import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
 import {AvatarState} from '../src/AvatarState';
@@ -7,7 +7,7 @@ import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
 import {McpService, McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
+import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
@@ -15,14 +15,21 @@ import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator';
 import {AsMessage} from '../../common/Def';
+import {
+  contextStepTest1,
+  contextStepTest2,
+  contextStepTest3,
+  contextStepTest4,
+  contextStepTest5, contextStepTest6, contextStepTest7,
+} from './CommonGeneratorTest';
 
-const cwd = process.cwd()
+const cwd = process.cwd();
 let baseDir = cwd;
 if (cwd.endsWith('main')) {
-  baseDir = path.join(baseDir,'../..');
+  baseDir = path.join(baseDir, '../..');
 }
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer);
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('ClaudeGenerator', () => {
@@ -44,17 +51,17 @@ describe('ClaudeGenerator', () => {
 
       const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
 
-      return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
+      return yield* ai.generateContext({
+        avatarId: 'aaaa', toGenerator: ai, fromGenerator: 'external',
         input: AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
-        },"talk","human","surface"),
-        genNum:0
+        }, 'talk', 'human', 'surface'),
+        genNum: 0,
       }, avatarState);
-    }).pipe(aiRuntime.runPromise,);
+    }).pipe(aiRuntime.runPromise);
 
-    console.log('out:',res);
+    console.log('out:', res);
     expect(typeof res === 'object').toBe(true);
   });
 
@@ -68,21 +75,21 @@ describe('ClaudeGenerator', () => {
 
       // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       const fs = yield* FileSystem.FileSystem;
-      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
+      const file = yield* fs.readFile(path.join(baseDir, 'tests_fixtures/1758692794_planeImage.png'));
       const testImageBase64 = Buffer.from(file).toString('base64');
 
-      const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
-      return yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:'claudeText',fromGenerator:'external',
+      const url = yield* DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId');
+      return yield* ai.generateContext({
+        avatarId: 'aaaa', toGenerator: ai, fromGenerator: 'external',
         input: AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        },"talk","human","surface"),
-        genNum:0
+        }, 'talk', 'human', 'surface'),
+        genNum: 0,
       }, avatarState);
-    }).pipe(aiRuntime.runPromise,);
+    }).pipe(aiRuntime.runPromise);
 
 
     console.log(res);
@@ -118,343 +125,49 @@ describe('ClaudeGenerator', () => {
   //   expect(typeof res === 'object').toBe(true);
   // });
 
-  it('コンテキストステップ確認1', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *avatarState.enterInner({
-        avatarId:avatarState.Id,
-        fromGenerator:'external',
-        toGenerator:'claudeText',
-        input:AsMessage.makeMessage({
-          from: 'user',
-          text: 'hello',
-          isExternal:true,
-        },'talk','human','surface'),
-        genNum:1,
-        setting: {
-          noTool:true
-        }
-      })
-      console.log('enterInner:',res);
-
-      yield *Effect.sleep('30 seconds');
-
-      const params = yield *avatarState.TalkContextEffect;
-      console.log('context:', params);
-      expect(params.length).toBe(3)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
-  })
-
-  it('コンテキストステップ確認2', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *avatarState.enterInner({
-        avatarId:avatarState.Id,
-        fromGenerator:'external',
-        toGenerator:'claudeText',
-        input:AsMessage.makeMessage({
-          from: 'user',
-          text: '/get traveler tips',
-          isExternal:true,
-        },'talk','human','surface'),
-        genNum:1,
-        setting: {
-        }
-      })
-      console.log('enterInner:',res);
-
-      yield *Effect.sleep('20 seconds');
-
-      console.log('context:',yield *avatarState.TalkContextEffect)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
-  });
-
-  it('コンテキストステップ確認3', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      const vitestConf = {
-        ...vitestAvatarConfigNone,
-        mcp: {},
-        daemons: vitestAvatarConfigNone.daemons.concat([{
-            id: 'xx1',
-            name: 'normalTalk',
-            isEnabled: true,
-            trigger: {
-              triggerType: 'IfContextExists',
-              condition: {
-                asClass: 'talk',
-                asRole: 'human',
-                asContext: 'surface',
-              },
-            },
-            exec: {
-              generator: 'claudeText',
-              directTrigger: true,
-              setting: {
-                toClass:'talk',
-                toRole:'bot',
-                toContext:'surface'
-              },
-            },
-          }]
-        )
-      }
-      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: 'hello',
-        isExternal:true,
-      },'talk','human','surface')])
-      console.log('askAvatar:',res);
-
-      yield *Effect.sleep('30 seconds');
-
-      const params = yield *avatarState.TalkContextEffect;
-      console.log('context:', params);
-      expect(params.length).toBe(3)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
-  })
-
-  it('コンテキストステップ確認4', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      const vitestConf = {
-        ...vitestAvatarConfigNone,
-        mcp: {},
-        daemons: vitestAvatarConfigNone.daemons.concat([{
-            id: 'xx1',
-            name: 'normalTalk',
-            isEnabled: true,
-            trigger: {
-              triggerType: 'IfContextExists',
-              condition: {
-                asClass: 'talk',
-                asRole: 'human',
-                asContext: 'surface',
-              },
-            },
-            exec: {
-              generator: 'claudeText',
-              directTrigger: true,
-              setting: {
-                toClass:'talk',
-                toRole:'bot',
-                toContext:'surface'
-              },
-            },
-          }]
-        )
-      }
-      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: 'hello',
-        isExternal:true,
-      },'talk','human','surface')])
-      console.log('askAvatar:',res);
-
-      yield *Effect.sleep('30 seconds');
-
-      const res2 = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: "What should I do when it's hot?",
-        isExternal:true,
-      },'talk','human','surface')])
-      console.log('askAvatar:',res2);
-
-      yield *Effect.sleep('30 seconds');
-
-
-      const params = yield *avatarState.TalkContextEffect;
-      console.log('context:', params);
-      expect(params.length).toBe(6)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
-  })
-
-  it('コンテキストステップ確認5', async () => {
-    await Effect.gen(function* () {
-      yield* McpService.reset(vitestSysConfig);
-      yield *Effect.sleep('1 seconds');
-
-      const vitestConf = {
-        ...vitestAvatarConfigNone,
-        daemons: vitestAvatarConfigNone.daemons.concat([{
-            id: 'xx1',
-            name: 'normalTalk',
-            isEnabled: true,
-            trigger: {
-              triggerType: 'IfContextExists',
-              condition: {
-                asClass: 'talk',
-                asRole: 'human',
-                asContext: 'surface',
-              },
-            },
-            exec: {
-              generator: 'claudeText',
-              directTrigger: true,
-              setting: {
-                toClass:'talk',
-                toRole:'bot',
-                toContext:'surface'
-              },
-            },
-          }]
-        )
-      }
-      yield *ConfigService.setAvatarConfig('vitestNoneId',vitestConf)
-
-      yield *AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'})
-      const avatarState = yield *AvatarService.makeAvatar(null)
-      yield *Effect.sleep('1 seconds');
-
-      const res = yield *AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: '/get traveler tips',
-        isExternal:true,
-      },'talk','human','surface')])
-      console.log('askAvatar:',res);
-
-      yield *Effect.sleep('30 seconds');
-
-      const params = yield *avatarState.TalkContextEffect;
-      console.log('context:', params);
-      expect(params.length).toBe(7)
-
-    }).pipe(
-      aiRuntime.runPromise,
-    )
-  })
-
-  it('コンテキストステップ確認6', async () => {
-    await Effect.gen(function* () {
+  function setupNormalTalkTest(vitestConf: any) {
+    return Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
       yield* Effect.sleep('1 seconds');
 
-      const vitestConf = {
-        ...vitestAvatarConfigNone,
-        mcp: {
-          reversi: {
-            enable: true,
-            useTools: {
-              "new-game": {
-                enable: true,
-                allow: 'any',
-              },
-              'get-board': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'select-user': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'select-assistant': {
-                'enable': true,
-                'allow': 'any',
-              },
-              'session-auth': {
-                'enable': true,
-                'allow': 'ask',
-              },
-              'add': {
-                'enable': true,
-                'allow': 'ask',
-              },
-              'calculate': {
-                'enable': true,
-                'allow': 'ask',
-              },
-            },
-          },
-        },
-        daemons: vitestAvatarConfigNone.daemons.concat([{
-            id: 'xx1',
-            name: 'normalTalk',
-            isEnabled: true,
-            trigger: {
-              triggerType: 'IfContextExists',
-              condition: {
-                asClass: 'talk',
-                asRole: 'human',
-                asContext: 'surface',
-              },
-            },
-            exec: {
-              generator: 'claudeText',
-              directTrigger: true,
-              setting: {
-                toClass: 'talk',
-                toRole: 'bot',
-                toContext: 'surface',
-              },
-            },
-          }],
-        ),
-      };
-      //  @ts-ignore
       yield* ConfigService.setAvatarConfig('vitestNoneId', vitestConf);
 
       yield* AvatarService.addAvatarQueue({templateId: 'vitestNoneId', name: 'Mix'});
       const avatarState = yield* AvatarService.makeAvatar(null);
+
       yield* Effect.sleep('1 seconds');
 
-      const res = yield* AvatarService.askAvatar(avatarState.Id, [AsMessage.makeMessage({
-        from: 'user',
-        text: '/new game',
-        isExternal: true,
-      }, 'talk', 'human', 'surface')]);
-      console.log('askAvatar:', res);
+      const pickOuter = (yield* avatarState.ScheduleList).find(d => d.name === 'pickOuter');
+      const gen = yield* avatarState.getDefGenerator(pickOuter.genId);
+      return {avatarState, gen};
+    });
+  }
 
-      yield* Effect.sleep('30 seconds');
-
-      const params = yield* avatarState.TalkContextEffect;
-      console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));
-      expect(params.length).toBe(8);
-
-    }).pipe(
-      aiRuntime.runPromise,
-    );
+  it('コンテキストステップ確認1', async () => {
+    await contextStepTest1('claudeText',4)
   });
 
-},5*60*1000);
+  it('コンテキストステップ確認2', async () => {
+    await contextStepTest2('claudeText',8)
+  });
+
+  it('コンテキストステップ確認3', async () => {
+    await contextStepTest3('claudeText',4)
+  });
+
+  it('コンテキストステップ確認4', async () => {
+    await contextStepTest4('claudeText',8)
+  });
+
+  it('コンテキストステップ確認5', async () => {
+    await contextStepTest5('claudeText',9)
+  });
+
+  it('コンテキストステップ確認6', async () => {
+    await contextStepTest6('claudeText',9)
+  });
+  it('コンテキストステップ確認7', async () => {
+    await contextStepTest7('claudeText',17)
+  });
+
+}, 5 * 60 * 1000);
