@@ -32,7 +32,14 @@ import ResponseCreateParamsStreaming = ResponseCreateParams.ResponseCreateParams
 import {TimeoutException} from 'effect/Cause';
 import short from 'short-uuid';
 
-
+/**
+ * OpenAI(GPT)コンテキストジェネレーター基底
+ * Abstract base class for generating AI-based responses using OpenAI models.
+ * The class extends `ContextGenerator` and provides foundational structures for working with OpenAI APIs.
+ * It includes methods for filtering tool responses, generating previous and current context, and handling various input-output content formats.
+ *
+ * This class must be extended to define specific model configurations and behaviors.
+ */
 export abstract class OpenAiBaseGenerator extends ContextGenerator {
   protected openAiSettings: OpenAiSettings | undefined;
   protected openai: OpenAI;
@@ -223,6 +230,9 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
   }
 }
 
+/**
+ * GPT textコンテキストジェネレーター
+ */
 export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   protected genName: GeneratorProvider = 'openAiText';
   protected model = 'gpt-4.1-mini';
@@ -363,9 +373,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
 }
 
 /**
- * OpenAI 画像合成
+ * GPT 画像合成
  * 画像と一緒に説明テキストを追加してしまうので、現時点テキストを外す。
- * daemonか設定に選択を追加すべき
  */
 export class OpenAiImageGenerator extends OpenAiBaseGenerator {
   protected genName: GeneratorProvider = 'openAiImage';
@@ -462,7 +471,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
 }
 
 /**
- * OpenAi 音声合成
+ * GPT 音声合成
  * gpt-4o-audio-preview だと会話を造ってしまうので daemonのテンプレートで ""を読み上げてください の形にする必要がある
  */
 export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
@@ -530,7 +539,6 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
         Effect.timeout('1 minute'),
         Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
         Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
-        // Effect.andThen(a => a.choices),
       );
       //  Voiceとして呼んだ場合は音声しか取り出さない
       //  TODO openAiのvoiceはまだResponse非対応
