@@ -492,9 +492,9 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       'openAiText': (sysConfig, settings) => OpenAiTextGenerator.make(sysConfig, settings),
       'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig, settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
-      'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig.generators.ollama),
+      'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig, settings),
       //  画像生成系
-      'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(settings), //PixAiImageGenerator.make(sysConfig, settings),
+      'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(sysConfig,settings), //PixAiImageGenerator.make(sysConfig, settings),
       'openAiImage': (sysConfig, settings) => OpenAiImageGenerator.make(sysConfig, settings),
       'geminiImage': GeminiImageGenerator.make,
       //  音声合成系
@@ -504,12 +504,12 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       // 'voiceVox',
       // 'nijiVoice',
       //  コピージェネレーター
-      'copy': () => CopyGenerator.make(),
+      'copy': (sysConfig) => CopyGenerator.make(sysConfig),
 
       //  ダミージェネレーター
-      'emptyText': (_, settings) => EmptyTextGenerator.make(settings),
-      'emptyImage': (_, settings) => EmptyImageGenerator.make(settings),
-      'emptyVoice': (_, settings) => EmptyVoiceGenerator.make(settings),
+      'emptyText': (sysConfig, settings) => EmptyTextGenerator.make(sysConfig,settings),
+      'emptyImage': (sysConfig, settings) => EmptyImageGenerator.make(sysConfig,settings),
+      'emptyVoice': (sysConfig, settings) => EmptyVoiceGenerator.make(sysConfig,settings),
     };
 
 

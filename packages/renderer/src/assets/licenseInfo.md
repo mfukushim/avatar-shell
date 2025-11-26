@@ -10,7 +10,7 @@
 | @electron/remote          | MIT            | git+https://github.com/electron/remote.git                     | 2.1.3             | n/a                                                           |
 | @google/genai             | Apache-2.0     | git+https://github.com/googleapis/js-genai.git                 | 1.11.0            |                                                               |
 | @mcp-ui/client            | Apache-2.0     | https://registry.npmjs.org/@mcp-ui/client/-/client-5.14.1.tgz  | 5.6.2             | n/a                                                           |
-| @modelcontextprotocol/sdk | MIT            | git+https://github.com/modelcontextprotocol/typescript-sdk.git | 1.17.2            | Anthropic, PBC (https://anthropic.com)                        |
+| @modelcontextprotocol/sdk | MIT            | git+https://github.com/modelcontextprotocol/typescript-sdk.git | 1.22.0            | Anthropic, PBC (https://anthropic.com)                        |
 | @pixai-art/client         | MIT            | git+https://github.com/pixai-art/pixai-client-js.git           | 0.4.0             | Andy Frank <fandy0726@gmail.com>                              |
 | audio-loader              | MIT            | git+https://github.com/danigb/audio-loader.git                 | 1.0.3             | danigb <danigb@gmail.com>                                     |
 | audio-play                | MIT            | git+https://github.com/audiojs/audio-play.git                  | 2.3.1             | ΔY <dfcreative@gmail.com>                                     |

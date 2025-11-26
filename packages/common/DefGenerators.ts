@@ -280,5 +280,5 @@ export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
   // voiceVox: voiceVoxMutableConfigSchema,
 }))
 
-export type GeneratorsConfigSet = typeof generatorsConfigSetChema.Type
+// export type GeneratorsConfigSet = typeof generatorsConfigSetChema.Type
 export type GeneratorsMutableConfigSet = typeof generatorsMutableConfigSetChema.Type

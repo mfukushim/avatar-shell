@@ -1,6 +1,6 @@
 import {
+  ContextGeneratorSetting,
   GeneratorProvider,
-  OllamaSysConfig,
 } from '../../../common/DefGenerators.js';
 import {Chunk, Effect, Stream, Option} from 'effect';
 import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
@@ -10,65 +10,77 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {Ollama, Message} from 'ollama';
+import {SysConfig} from '../../../common/Def.js';
 
 
+/**
+ * OllamaTextジェネレーター
+ *
+ * OllamaTextGenerator extends the ContextGenerator class to provide text generation functionality
+ * using the Ollama service. This class is responsible for managing the context, interacting with
+ * the Ollama service, and generating appropriate responses.
+ */
 export class OllamaTextGenerator extends ContextGenerator {
   protected genName: GeneratorProvider = 'ollamaText';
   protected model = 'llama3.2';
   private ollama: Ollama;
 
-  static make(settings?: OllamaSysConfig) {
-    return Effect.succeed(new OllamaTextGenerator(settings));
+  protected get previousContexts() {
+    return this.previousNativeContexts as Message[];
   }
 
-  constructor(settings?: OllamaSysConfig) {
-    super();
-    this.model = settings?.model || 'llama3.1';
+  static make(sysConfig:SysConfig, settings?: ContextGeneratorSetting) {
+    return Effect.succeed(new OllamaTextGenerator(sysConfig,settings));
+  }
+
+  constructor(setting: SysConfig,settings?: ContextGeneratorSetting) {
+    super(setting);
+    this.model = setting.generators.ollama?.model || 'llama3.1';
     this.ollama = new Ollama({
-      host: settings?.host || 'http://localhost:11434',
+      host: setting.generators.ollama?.host || 'http://localhost:11434',
       // headers: {
       //   Authorization: "Bearer <api key>",
       // },
     });
   }
 
-  filterToolRes(value: any) {
-    try {
-      return {
-        ...value,
-        content: value.content.flatMap((a:any) => {
-          // console.log('contents test:',a);
-          //  @ts-ignore
-          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.resource.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          //  @ts-ignore
-          if (a?.annotations && a.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          return [a];
-        }),
-      };
-    } catch (error) {
-      console.log('filterToolRes error:',error);
-      throw error;
-    }
-  }
+  // filterToolResList(value: any) {
+  //   try {
+  //     return {
+  //       ...value,
+  //       content: value.content.flatMap((a:any) => {
+  //         // console.log('contents test:',a);
+  //         //  @ts-ignore
+  //         if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+  //           //  @ts-ignore
+  //           if (!a.resource.annotations.audience.includes('assistant')) {
+  //             console.log('contents test no out');
+  //             return [];
+  //           }
+  //         }
+  //         //  @ts-ignore
+  //         if (a?.annotations && a.annotations?.audience) {
+  //           //  @ts-ignore
+  //           if (!a.annotations.audience.includes('assistant')) {
+  //             console.log('contents test no out');
+  //             return [];
+  //           }
+  //         }
+  //         return [a];
+  //       }),
+  //     };
+  //   } catch (error) {
+  //     console.log('filterToolRes error:',error);
+  //     throw error;
+  //   }
+  // }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMes = yield *avatarState.TalkContextEffect
-      const prev:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
+      const prevMake:Message[] = it.filterForLlmPrevContext(prevMes,current.input).flatMap(a => {
         const role = it.asRoleToRole(a.asRole)
         if(!role) return []
         return [{
@@ -77,6 +89,7 @@ export class OllamaTextGenerator extends ContextGenerator {
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
+      const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
       if (current.input?.content.text) {
@@ -85,7 +98,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
         mes.content = JSON.stringify(current.toolCallRes.map(value => {
           // return value.results;
-          return it.filterToolRes(value.results);
+          return it.filterToolResList(value.results);
         }));
         console.log('toolCallRes:',mes.content);
       }
@@ -124,13 +137,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       const stream =
         Stream.fromAsyncIterable(response, (e) => new Error(String(e))).pipe(
           Stream.tap((ck) => {
-            // console.log('ck:',ck);
             it.sendStreamingText(ck.message.content, avatarState);
-            // if (ck.done === false) {
-            //   it.sendStreamingText(ck.message.content, avatarState);
-            // } else if (ck.type === `error`) {
-            //   console.log('error');
-            // }
             return Effect.void;
           }),
         );
@@ -146,14 +153,21 @@ export class OllamaTextGenerator extends ContextGenerator {
           input:value.function.arguments,
         }
       })
-      // console.log('toolcall:',JSON.stringify(toolCallParam));
+      it.previousContexts.push({
+        role: mes.role,
+        content:mes.content,
+      })
+      it.previousContexts.push({
+        role: 'assistant',
+        content:'text',
+        tool_calls:toolReq,
+      } as Message)
+
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
 
       //  GenOuterを整理生成
       //  ollamaではメッセージを決定するidはないので avatarId+epochを仮に当てる
-      // console.log('last:',last);
-      // it.clearStreamingText(avatarState)
       const nextGen = current.genNum+1
       const innerId = current.avatarId+'_' + (new Date(Option.getOrUndefined(last)?.created_at?.toString() || new Date()).getTime()).toString();
       return [{

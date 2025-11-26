@@ -35,7 +35,7 @@ export const vitestSysConfig: SysConfig = {
       voice: 'Kore',
     },
     ollama: {
-      host: 'http://192.168.11.121:11434',
+      host: process.env.VITE_OLLAMA_HOST as string || 'http://127.0.0.1:8000',
       model: 'llama3.1',
     }
     // voiceVox: {
@@ -81,14 +81,13 @@ export const vitestSysConfig: SysConfig = {
   },
   experimental:{
     mcpUi:false,
-    mcpUiTemplate:"user select '{body}'"
+    mcpUiTemplate:"user select '{body}'",
+    mcpUiFilterDisabled: false,
   },
   websocket: {
     useServer: true,
     serverPort: undefined,
     textTemplate: '{from} said, "{body}"',
-    // autoSendTextNumber: 3,
-    // manualSend: false,
   },
   configVersion:1,
 };
@@ -98,11 +97,6 @@ export const vitestAvatarConfigMi: AvatarSetting = {
   templateId: 'vitestDummyId',
   general: {
     name: 'vitestMi',
-    // useLlm: 'geminiText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
@@ -159,11 +153,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       },
       'exec': {
         generator: 'geminiImage',
-        // 'toRole': 'human',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
-        // 'templateContextPrompt': '',
         setting: {
           toClass:'daemon',
           toRole:'bot'
@@ -180,11 +170,7 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       },
       'exec': {
         generator: 'geminiText',
-        // 'toRole': 'human',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
-        // 'templateContextPrompt': 'フランクに日本語で挨拶をしてください',
         setting: {
           toClass:'talk',
           toRole:'bot'
@@ -204,8 +190,6 @@ export const vitestAvatarConfigMi: AvatarSetting = {
       'exec': {
         generator: 'geminiVoice',
         templateGeneratePrompt: '{body}',
-        // copyContext: false,
-        // directTrigger: true,
         setting: {
           toClass:'daemon',
           toRole:'bot'
@@ -264,44 +248,6 @@ export const vitestAvatarConfigNone: AvatarSetting = {
     },
   },
   daemons: [
-    // {
-    //   'id': '77ndZPy3UXHkjot7wu7d4U',
-    //   'name': 'StartupPict',
-    //   'isEnabled': true,
-    //   'trigger': {
-    //     'triggerType': 'TimerMin',
-    //     'condition': {min: 2},
-    //   },
-    //   'exec': {
-    //     generator: 'emptyImage',
-    //     copyContext: false,
-    //     // directTrigger: false,
-    //     templateGeneratePrompt: '挨拶をする可愛い女の子の絵を生成してください',
-    //     setting: {
-    //       toClass:'daemon',
-    //       toRole:'bot'
-    //     },
-    //   },
-    // },
-    // {
-    //   'id': 'aaab',
-    //   'name': '2min1',
-    //   'isEnabled': true,
-    //   'trigger': {
-    //     'triggerType': 'TimerMin',
-    //     'condition': {min: 2},
-    //   },
-    //   'exec': {
-    //     generator: 'emptyText',
-    //     copyContext: false,
-    //     // directTrigger: false,
-    //     templateGeneratePrompt: 'フランクに日本語で短く挨拶をしてください',
-    //     setting: {
-    //       toClass:'talk',
-    //       toRole:'bot'
-    //     },
-    //   },
-    // },
     {
       'id': 'aaac',
       'name': 'toVoice',
@@ -314,10 +260,6 @@ export const vitestAvatarConfigNone: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyVoice',
-        // 'toRole': 'human',
-        // templateGeneratePrompt: '{body}',
-        // copyContext: false,
-        // directTrigger: true,
         setting: {
           toClass:'daemon',
           toRole:'bot',
@@ -333,11 +275,6 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
   templateId: 'vitestDaemonId',
   'general': {
     'name': 'vitestDaemon',
-    // useLlm: 'emptyText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
@@ -354,8 +291,6 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: 'Hello',
         setting: {
           toClass:'talk',
@@ -373,8 +308,6 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       'exec': {
         generator: 'emptyText',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: '30 seconds has passed',
         setting: {
           toClass:'talk',
@@ -392,8 +325,6 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: '1 minute has passed',
         setting: {
           toClass:'talk',
@@ -411,8 +342,6 @@ export const vitestAvatarConfigDaemon: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: '2 minutes has passed',
         setting: {
           toClass:'talk',
@@ -427,11 +356,6 @@ export const vitestAvatarConfigDaemon2: AvatarSetting = {
   templateId: 'vitestDaemon2Id',
   general: {
     name: 'vitestDaemon',
-    // useLlm: 'emptyText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,
@@ -448,8 +372,6 @@ export const vitestAvatarConfigDaemon2: AvatarSetting = {
       },
       exec: {
         generator: 'emptyText',
-        // copyContext: false,
-        // directTrigger: false,
         templateGeneratePrompt: 'Repeated for 15 seconds',
         setting: {
           toClass:'talk',
@@ -464,11 +386,6 @@ export const vitestAvatarConfigDaemon999: AvatarSetting = {
   templateId: 'vitestDaemon999Id',
   general: {
     name: 'vitestDaemon',
-    // useLlm: 'emptyText',
-    // mainLlmSetting: {
-    //   previousContextSize: 0,
-    //   useContextType: ['text', 'image'],
-    // },
     useSocket: true,
     remoteServer: undefined,
     maxGeneratorUseCount: 10,

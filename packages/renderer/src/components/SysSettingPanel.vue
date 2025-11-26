@@ -627,6 +627,10 @@ const copyPath = async () => {
                           :label="t('useMcpUi')"
                           v-model="edit.experimental.mcpUi" class="col-6"
                           data-testid="exp-mcpui-toggle" />
+                        <q-toggle
+                          :label="t('mcpUiFilterDisabled')"
+                          v-model="edit.experimental.mcpUiFilterDisabled" class="col-6"
+                          data-testid="exp-mcpui-toggle" />
                         <q-input class="col-6"
                                  v-model="edit.experimental.mcpUiTemplate"
                                  placeholder="user select, &quot;{body}&quot;"

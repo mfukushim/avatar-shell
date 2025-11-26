@@ -35,6 +35,7 @@ export default {
   generatorName: 'ジェネレーター名',
   directTrigger: 'トリガーコンテキストを直接入力コンテキストに使う',
   // copyContext: 'トリガーコンテキストをコンテキスト属性を変更して単純コピーする',
+  mcpUiFilterDisabled: 'MCP-UI情報をすべてLLMに送る',
   outputContextAttr: '出力コンテキスト属性',
   outputClass: '出力クラス',
   outputRole: '出力ロール',

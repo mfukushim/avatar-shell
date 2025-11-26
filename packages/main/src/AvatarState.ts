@@ -27,9 +27,8 @@ import short from 'short-uuid';
 import expand_template from 'expand-template';
 import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
-import {z} from 'zod';
-import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
+import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 
 dayjs.extend(duration);
 
@@ -44,7 +43,6 @@ interface DaemonState {
 interface TimeDaemonState {
   config: DaemonConfig,
   generatorId: string,
-  // generator: ContextGenerator,
   info?: string,
   fiber?: Fiber.RuntimeFiber<any, any>
 }
@@ -53,13 +51,11 @@ export interface GenInner {
   avatarId: string;
   fromGenerator: ContentGenerator;
   toGenerator: ContextGenerator;
-  // toGenerator: GeneratorProvider;
   input?: AsMessage;
-  // input?: AsMessageContent;
   toolCallRes?: {
     name: string,
     callId: string,
-    results: z.infer<typeof CallToolResultSchema>
+    results: CallToolResult
   }[],
   genNum: number,
   setting?: ContextGeneratorSetting,
@@ -69,7 +65,6 @@ export interface GenOuter {
   avatarId: string;
   fromGenerator: ContentGenerator;
   toGenerator: ContextGenerator;
-  // toGenerator: GeneratorProvider;
   innerId: string;
   toolCallParam?: ToolCallParam[];
   outputFrom?: string;
@@ -81,7 +76,10 @@ export interface GenOuter {
   setting?: ContextGeneratorSetting,
 }
 
-
+/**
+ * AvatarState AIアバター状態インスタンス
+ * Represents the state of an avatar and manages its configuration, behaviors, and associated tasks.
+ */
 export class AvatarState {
   private readonly tag: string;
   private summaryCounter: number = 0;
@@ -151,10 +149,26 @@ export class AvatarState {
     return this.avatarConfig;
   }
 
+  /**
+   * genIdから実行中ジェネレーターを取得
+   * Retrieves a generator definition by its identifier.
+   *
+   * @param {string} genId - The unique identifier of the generator to be retrieved.
+   * @return {Effect} An effect containing the generator definition,
+   * or an error if the generator is not found.
+   */
   getDefGenerator(genId: string) {
     return Effect.fromNullable(this.generators.get(genId)).pipe(Effect.catchAll(e => Effect.fail(new Error(`generator not found:${genId}`))));
   }
 
+  /**
+   * アバター設定を更新する
+   * 動的に再設定を行う
+   * Updates and applies the avatar configuration settings.
+   *
+   * @param {AvatarSetting} config - The avatar configuration settings to apply.
+   * @return {Effect} A generator effect that executes the configuration application process and handles related operations such as restarting daemons, clearing generator caches, and sending updates to the associated window.
+   */
   private changeApplyAvatarConfig(config: AvatarSetting) {
     console.log('update changeApplyAvatarConfig:');
     this.avatarConfig = config; //  TODO 強制置き換えでよいか? llmの途中置き換えがあるならaskAiとの間にはロックがあるべき。。
@@ -189,6 +203,14 @@ export class AvatarState {
     });
   }
 
+  /**
+   * Electron画面側に非同期アラートを表示する
+   * Displays an alert dialog with a specified message and selection options.
+   *
+   * @param {string} message - The message to be displayed in the alert dialog.
+   * @param {string[]} [select=['OK']] - An array of options to be presented as selectable choices in the alert dialog.
+   * @return {void} Does not return a value.
+   */
   showAlert(message: string, select = ['OK']) {
     const id = short().generate();
     const task: AlertTask = {
@@ -202,10 +224,29 @@ export class AvatarState {
     }
   }
 
+  /**
+   * デーモンスケジュールを再設定する
+   * Restarts the daemon schedules by invoking context and time schedule restart mechanisms in sequence.
+   *
+   * @param {SchedulerList} daemons - The list of scheduler daemon configurations to be restarted.
+   * @return {Observable} An observable representing the completion of the restart operation.
+   */
   restartDaemonSchedules(daemons: SchedulerList) {
     return this.restartContextSchedules(daemons).pipe(Effect.andThen(_ => this.restartTimeSchedules(daemons)));
   }
 
+  /**
+   * コンテキスト検出型のデーモンを再設定する
+   * Restarts the context schedules for the given list of daemons.
+   *
+   * This method filters and processes the enabled daemons whose triggers are contained within
+   * a predefined context trigger list. It creates and stores generator instances if specified in the daemon configuration,
+   * updates daemon states, and ensures the updating of context-related daemon schedules.
+   * Additionally, it sets up the proper handling of talk context updates in a concurrent manner.
+   *
+   * @param {SchedulerList} daemons - List of daemons to be processed for restarting their schedules.
+   * @return {Effect} An effect describing the execution of the scheduling restart operation as well as any side effects or errors encountered during the process.
+   */
   restartContextSchedules(daemons: SchedulerList) {
     const it = this;
     return Effect.gen(function* () {
@@ -280,6 +321,14 @@ export class AvatarState {
     });
   }
 
+  /**
+   * 指定configからデーモン設定を生成する
+   * Creates and configures a DaemonSet based on the provided configuration.
+   *
+   * @param {DaemonConfig} config - The daemon configuration containing execution settings and the generator definition.
+   * @param {SysConfig} sysConfig - The system-level configuration required for generating the daemon.
+   * @return {Observable<{ config: DaemonConfig, generatorId: string }>} An observable that emits the completed configuration and a unique generator ID.
+   */
   makeDaemonSet(config: DaemonConfig, sysConfig: SysConfig) {
     return ConfigService.makeGenerator(config.exec.generator, sysConfig, config.exec.setting).pipe(Effect.andThen(a => {
       this.generators.set(a.UniqueId, a);
@@ -290,17 +339,24 @@ export class AvatarState {
     }));
   }
 
+  /**
+   * デーモン設定からタイマーを実行する
+   * Creates and schedules a time-based daemon operation based on the specified parameters.
+   *
+   * @param {boolean} startup Indicates whether this is the initial startup of the daemon or a subsequent run.
+   * @param {DaemonState} daemon The state object representing the configuration and state of the daemon to be executed.
+   * @param {dayjs.Dayjs} now The current Dayjs object representing the present moment, used as a reference for scheduling.
+   * @return A generator effect that manages daemon execution and scheduling. Returns an array containing the updated daemon configuration, generator ID, and the fiber for the scheduled task.
+   */
   makeTimeDaemon(startup: boolean, daemon: DaemonState, now: dayjs.Dayjs) {
-    // console.log('makeTimeDaemon:', daemon);
     let schedule: Schedule.Schedule<any> | undefined;
     let interval: Duration.Duration | undefined; // = Duration.decode('1 second')
     let startInterval: Duration.Duration | undefined; // = Duration.decode('1 second')
     let sec = 0;
-    // let stopped = false;
+
     switch (daemon.config.trigger.triggerType) {
       case 'DayTimeDirect':
         if (daemon.config.trigger.condition.time) {
-          //  TODO とりあえずシンプル化する
           try {
             const str = now.format('YYYY-MM-DD ') + daemon.config.trigger.condition.time;
             console.log(str);
@@ -320,14 +376,9 @@ export class AvatarState {
         break;
       case 'TimerMin':
         sec = (daemon.config.trigger.condition.min || 1) * 60;
-        // console.log('TimerMin:', sec);
         break;
       case 'TalkAfterMin': //リスタート時は登録しない。askAi以降で実行
-        // if(startup) {
-        //   stopped = true
-        // }
         sec = startup ? 0 : (daemon.config.trigger.condition.min || 1) * 60;
-        // console.log('TalkAfterMin:', sec);
         break;
       case 'DateTimeDirect':
         let dateTime = now.format('YYYY-MM-DD');
@@ -356,11 +407,9 @@ export class AvatarState {
     return Effect.gen(function* () {
       if (interval) {
         return yield* Effect.forkDaemon(Effect.sleep(interval).pipe(Effect.andThen(_ => it.doTimeSchedule(daemon))));
-        //.pipe(Effect.andThen(a1 => ([{config: {...daemon.config}, generator: daemon.generator, fiber: a1}])))
       }
       if (schedule && startInterval) {
         return yield* Effect.forkDaemon(Effect.sleep(startInterval).pipe(Effect.andThen(_ => it.doTimeSchedule(daemon).pipe(Effect.repeat(schedule)))));
-        //.pipe(Effect.andThen(a1 => ([{config: {...daemon.config}, generator: daemon.generator, fiber: a1}])));
       }
     }).pipe(Effect.andThen(a1 => {
       return [{config: {...daemon.config}, generatorId: daemon.generatorId, fiber: a1}];
@@ -383,13 +432,35 @@ export class AvatarState {
     });
   }
 
+  /**
+   * アイドル時間で起動するデーモンのタイマーをリセットする
+   * ユーザ入力があったときにリセットする
+   * Rebuilds the idle state by resetting timers for properties that are currently functioning.
+   * Specifically, it focuses on resetting timers for Trigger Types such as `TimerMin` and
+   * `TalkAfterMin` that may involve repeated occurrences. The method ensures appropriate timers
+   * are reconfigured based on the condition and context.
+   *
+   * @return {Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService>} An effect that either completes successfully with the service objects or returns an error.
+   */
   rebuildIdle(): Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService> {
     //  現在機能しているTimerMinとTalkAfterMin(繰り返しが発生しうるもののみ,context追加でリセットがかかるもの)のみについて再タイマーを設定する
-    console.log('rebuildIdle');
+    // console.log('rebuildIdle');
     return this.resetTimerDaemon(false, a => a.isEnabled && a.trigger.triggerType === 'TalkAfterMin');
   }
 
-  //  この中ではfiberの条件は変更しないことにする。変更できると処理が複雑すぎる。条件のものを停止してタイマー再起動するだけ、破棄生成もしない
+  /**
+   * アイドル検出デーモンのタイマーのみをリセットする
+   * この中ではfiberの条件は変更しないことにする。変更できると処理が複雑すぎる。条件のものを停止してタイマー再起動するだけ、破棄生成もしない
+   * Resets and restarts timer daemons based on specified conditions.
+   * Stops existing fibers matching the given filter without discarding their generators,
+   * and restarts the relevant daemons from the daemon list as needed.
+   *
+   * @param {boolean} startup - Indicates whether the reset is occurring during application startup.
+   * @param {function(DaemonConfig): boolean} resetFilter - A filter function to determine which daemons should be reset.
+   *                                                        The function accepts a `DaemonConfig` object and returns a boolean.
+   * @return {Effect<any>} An effect representing the reset operation, which processes stopping of existing fibers,
+   *                       and restarting of appropriate daemons, encapsulated within the fiber management system.
+   */
   resetTimerDaemon(startup: boolean, resetFilter: (a: DaemonConfig) => boolean) {
     const it = this;
     //  既存の動いているfiberの中で指定条件で動いているfiberをすべて止める。generatorは破棄しない
@@ -416,6 +487,13 @@ export class AvatarState {
     });
   }
 
+  /**
+   * タイマー完了時にデーモンを実行する
+   * Executes a time-scheduling operation by applying a daemon state and context effect.
+   *
+   * @param {DaemonState} daemon - The current state of the daemon to be executed.
+   * @return {Observable} Returns an observable that represents the result of the time schedule operation.
+   */
   doTimeSchedule(daemon: DaemonState) {
     return this.TalkContextEffect.pipe(
       Effect.andThen(context => this.execDaemon(daemon, context)),
@@ -423,6 +501,15 @@ export class AvatarState {
   }
 
 
+  /**
+   * コンテキスト検出型デーモンの検出条件が成立したかを確認し、成立したらデーモンを実行する
+   * Detects changes in the talk context and handles daemon triggers based on the updated contexts and conditions.
+   *
+   * @param {object} updated - An object containing the updated context and its deltas.
+   * @param {AsMessage[]} updated.context - The complete context array after the update.
+   * @param {AsMessage[]} updated.delta - The difference or changes in the context since the last update.
+   * @return {Effect} A computational effect that resolves to an array of results based on triggered daemons.
+   */
   detectTalkContext(updated: {context: AsMessage[], delta: AsMessage[]}) {
     console.log('changeTalkContext:', updated.context.length, updated.delta.length, updated.delta.map(value => AsMessage.debugLog(value)).join('\n'));
     const it = this;
@@ -434,7 +521,6 @@ export class AvatarState {
       }
       yield* it.daemonStates.pipe(Ref.get).pipe(Effect.andThen(Effect.forEach(a => {
         console.log('update changeTalkContext len:', updated.context.length, updated.delta.length);
-        // console.log('update changeTalkContext daemon:', a);
         switch (a.config.trigger.triggerType as ContextTrigger) {
           case 'Startup':
             if (updated.context.length === 0 && updated.delta.length == 0) {
@@ -475,6 +561,16 @@ export class AvatarState {
     });
   }
 
+  /**
+   * デーモンを実行する
+   * 生成された次実行コンテキストを実行ループに送る
+   * Executes the specified daemon process, modifying and generating message contexts as needed.
+   *
+   * @param {DaemonState} daemon - The daemon that is being executed, containing its configuration and state.
+   * @param {AsMessage[]} context - The current context of messages that informs the daemon's operation.
+   * @param {AsMessage} [triggerMes] - An optional trigger message that influences the daemon's execution flow.
+   * @return {Effect<AsMessage[]>} The result of daemon execution, typically a list of messages generated by the process.
+   */
   execDaemon(daemon: DaemonState, context: AsMessage[], triggerMes?: AsMessage) {
     console.log('call execDaemon');
     const state = this;
@@ -493,38 +589,6 @@ export class AvatarState {
       let addToBuffer = false;
       if (triggerMes) {
         //  TODO trigger型の場合、そのメッセージはすでにcontextに追加されているものであり、以前のcontextはそのメッセージの前までになる 電文は基本再加工されない。電文の再加工が許されるのは入出力ともにコンテキストに追加しない場合のみ
-/*
-        if (daemon.config.exec.copyContext) {
-          //  コンテキスト先を変更してコピーする
-          // message = triggerMes;  //  すでに追加済みなのでaddContentには追加しない
-          message = {
-            ...triggerMes,
-            asClass: daemon.config.exec.setting.toClass || 'daemon',
-            asRole: daemon.config.exec.setting.toRole || 'system',
-            asContext: daemon.config.exec.setting.toContext || 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-            content: {
-              ...triggerMes.content,
-              generator: 'daemon',
-            },
-          } as AsMessage;
-          // console.log('direct trigger:',triggerMes);
-          addToBuffer = !triggerMes.isContextAdded;
-        } else {
-          //  再加工
-          text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
-          message = {
-            ...triggerMes,
-            asClass: 'daemon',
-            asRole: 'system',
-            asContext: 'outer', //  trigger mesの場合、すでにtrigger元はcontextに追加済みである。よってこれはcontextには含まれない
-            content: {
-              ...triggerMes.content,
-              text: text,
-              generator: 'daemon',
-            },
-          } as AsMessage;
-        }
-*/
         text = daemon.config.exec.templateGeneratePrompt ? state.calcTemplate(daemon.config.exec.templateGeneratePrompt, triggerMes) : triggerMes.content.text;
         message = {
           ...triggerMes,
@@ -537,16 +601,7 @@ export class AvatarState {
             generator: 'daemon',
           },
         } as AsMessage;
-        // console.log('direct trigger:',triggerMes);
         addToBuffer = false //!triggerMes.isContextAdded;
-        // const ext = yield* state.extendAndSaveContext([message], true);
-        // yield* state.addContext(ext);
-        //  ここは新規なので追加
-        //  トリガーの場合はコンテキストはトリガー位置まででフィルタする
-        // const pos = context.findLastIndex(value => value.id === triggerMes.id);
-        // if (pos >= 0) {
-        //   context = context.slice(0, pos);
-        // }
       } else {
         //  非トリガー
         text = daemon.config.exec.templateGeneratePrompt;
@@ -559,9 +614,6 @@ export class AvatarState {
             isExternal: true, //  LLMループの外からの操作なのでtrue
           }, 'daemon', 'system', 'inner');
         //  ここは新規なので追加
-        // const ext = yield* state.extendAndSaveContext([message]);
-        // yield* state.addContext(ext);
-
       }
       //  TODO generatorが処理するprevContextはsurface,innerのみ、またaddDaemonGenToContext=falseの実行daemonは起動、結果ともにcontextには記録しない また重いメディアは今は送らない
       const out = yield* state.execGenerator(daemon.generatorId, message, daemon.config.exec.setting, addToBuffer);  //  filteredContext
@@ -606,6 +658,15 @@ export class AvatarState {
     return this.externalTalkCounter;
   }
 
+  /**
+   * アバター名を再設定する
+   * Updates the user and avatar names if provided in the setting. Sends an update to the avatar window if changes are made.
+   *
+   * @param {Object} setting - An object containing the new names to be set.
+   * @param {string} [setting.userName] - The new user name to set.
+   * @param {string} [setting.avatarName] - The new avatar name to set.
+   * @return {void} Does not return a value.
+   */
   setNames(setting: {userName?: string, avatarName?: string}) {
     let changed = false;
     if (setting.userName) {
@@ -622,6 +683,13 @@ export class AvatarState {
     }
   }
 
+  /**
+   * デーモンを中止する(未動作)
+   * Cancels a scheduled task based on the provided identifier.
+   *
+   * @param {string} id - The unique identifier for the scheduled task to be cancelled.
+   * @return {Effect} An Effect that, when executed, cancels the scheduled task and updates the relevant state.
+   */
   cancelSchedule(id: string) {
     console.log('cancelSchedule:', id);
     const state = this;
@@ -645,6 +713,17 @@ export class AvatarState {
     }
   }
 
+  /**
+   * AvatarStateインスタンス生成
+   * Creates an instance of AvatarState with initialized configurations and synchronized references.
+   *
+   * @param {string} id - The unique identifier of the avatar.
+   * @param {string} templateId - The template identifier used to create the avatar.
+   * @param {string} name - The name of the avatar.
+   * @param {BrowserWindow | null} window - The associated browser window, or null if not applicable.
+   * @param {string} userName - The username associated with the avatar.
+   * @return {Effect<AvatarState>} Returns an effect that, when executed, yields a fully initialized AvatarState instance.
+   */
   static make(id: string, templateId: string, name: string, window: BrowserWindow | null, userName: string) {
     return Effect.gen(function* () {
       // console.log('avatarstate make');
@@ -654,7 +733,6 @@ export class AvatarState {
       const prevMes = yield* SynchronizedRef.make<AsMessage[]>([]);
       const mes = yield* SynchronizedRef.make<AsMessage[]>([]);
       const daemonStates = yield* Ref.make<DaemonState[]>([]);
-      // const timeDaemonStates = yield* Ref.make<DaemonState[]>([]);
       const fiberTimers = yield* SynchronizedRef.make<TimeDaemonState[]>([]);
       const daemonStatesQueue = yield* Queue.dropping<DaemonState>(100);  //  Echo Mcpで追加された予定をキューする
 
@@ -683,6 +761,13 @@ export class AvatarState {
     });
   }
 
+  /**
+   * アバター停止(動作未確認)
+   * Stops the avatar by setting the `forcedStopDaemons` flag to true,
+   * ensuring that daemons influenced by context changes are ignored.
+   *
+   * @return {void} Indicates that the method does not return any value.
+   */
   stopAvatar() {
     //  ワンタイムでContext変動によるdaemonの実行を無視させる
     this.forcedStopDaemons = true;
@@ -690,7 +775,7 @@ export class AvatarState {
 
 
   /**
-   *
+   * AsMessageのメディアを保存しuriにする
    * @param bags
    * @param isExternal 外部から与えたコンテキスト これはLLMのprev contextには追加されない LLMの認識できるコンテキストはLLM自身が発生したものとdaemonが検出したものだけになるべきだから?
    */
@@ -744,6 +829,13 @@ export class AvatarState {
     }).pipe(Effect.andThen(a => a.filter((v): v is  AsMessage => v !== undefined)));
   }
 
+  /**
+   * AsMessageをLLMコンテキストに追加する
+   * Adds context by appending the given array of messages (bags) to the current context.
+   *
+   * @param {AsMessage[]} bags - An array of messages to be added to the existing context.
+   * @return {Effect} An effect describing the action of updating the context and queuing the new state.
+   */
   addContext(bags: AsMessage[]) {
     const it = this;
     return Effect.gen(function* () {
@@ -817,13 +909,13 @@ export class AvatarState {
     }).pipe(Effect.catchAll(a => Effect.logError('execGeneratorLoop error:', a.message, a.stack)));
   }
 
-  enterOuter(outer: GenOuter) {
-    const it = this;
-    return Effect.gen(function* () {
-      yield* Queue.offer(it.outerQueue, outer);
-      yield* it.rerunLoop();
-    });
-  }
+  // enterOuter(outer: GenOuter) {
+  //   const it = this;
+  //   return Effect.gen(function* () {
+  //     yield* Queue.offer(it.outerQueue, outer);
+  //     yield* it.rerunLoop();
+  //   });
+  // }
 
   execExternalLoop() {
     console.log('start execExternalLoop');
@@ -872,7 +964,7 @@ export class AvatarState {
                 return {
                   name: value1.name,
                   callId: a.call_id,
-                  results: a.toLlm as z.infer<typeof CallToolResultSchema>,
+                  results: a.toLlm as CallToolResult,
                 };
               }));
           });
@@ -922,15 +1014,8 @@ export class AvatarState {
         fromGenerator: message.content.generator || 'external',
         toGenerator: gen,
         input: message,
-        // input: {
-        //   from: message.content.from,
-        //   text: message.content.text,
-        //   isExternal: message.content.isExternal,
-        //   // isExternal: true  //  TODO execGeneratorから来るものを外部=userと見なしてよいのかは検討要
-        // },
         genNum: 1,  //  この入力はまだcontextに追加されていないので1から開始して追加させる
         setting: {
-          // noTool:true
           toClass: setting.toClass,
           toRole: setting.toRole,
           toContext: setting.toContext,
@@ -1044,49 +1129,6 @@ export class AvatarState {
 
   }
 
-  /*
-    appendPreBufferGenIn(a: GenInner) {
-      console.log('appendPreBufferGenIn:', this.debugGenInner(a).slice(0, 200));
-      console.log(a);
-      const list: AsMessage[] = [];
-      if (a.input) {
-        list.push(a.input);
-      }
-      // if (a.input?.text) {
-      //   const content: AsMessageContent = {
-      //     innerId: a.input.innerId || short.generate(),
-      //     from: this.Name,
-      //     text: a.input.text,
-      //     generator: a.toGenerator,
-      //     isExternal: a.input.isExternal,
-      //   };
-      //   list.push(content);
-      // }
-      if (a.toolCallRes) {
-        const content: AsMessage[] = a.toolCallRes.map(value => {
-          return AsMessage.makeMessage({
-            innerId: value.callId,
-            from: this.Name,
-            toolName: value.name,
-            toolRes: value.results,
-            generator: a.toGenerator,
-            isExternal: a.input?.content?.isExternal,
-          },'physics','toolOut','inner');
-          // return {
-          //   innerId: value.callId,
-          //   from: this.Name,
-          //   toolName: value.name,
-          //   toolRes: value.results,
-          //   generator: a.toGenerator,
-          //   isExternal: a.input?.isExternal,
-          // } as AsMessageContent;
-        });
-        list.push(...content);
-      }
-      return this.appendPrevBuffer(list, a.setting);
-    }
-  */
-
   appendPreBufferGenIn(a: GenInner, addToBuffer = true) {
     //  TODO 属性設定は再検討要
     const it = this;
@@ -1098,7 +1140,7 @@ export class AvatarState {
       if (a.toolCallRes) {
         const bags2 = yield* Effect.forEach(a.toolCallRes, value => {
           //  toolDataはここでmessage分解する
-          return Effect.forEach((value.results as z.infer<typeof CallToolResultSchema>).content, a2 => {
+          return Effect.forEach((value.results as CallToolResult).content, a2 => {
             return Effect.gen(function* () {
               console.log('add toolCallRes:', JSON.stringify(a2).slice(0, 200));
               //  ここでtool結果から抽出するのは、ユーザ都合で表示させたい画像やhtmlだけなので、これはouterで抽出する
@@ -1130,7 +1172,8 @@ export class AvatarState {
                 // con.mimeType = a2.resource.mimeType;
                 if (a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
                   console.log('to save html');
-                  //  TODO なんで型があってないんだろう。。
+                  //  なんで型があってないんだろう。。 MCP-UIの定義上かな
+                  //  @ts-ignore
                   yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
                 }
                 console.log('ui: generator:', value);

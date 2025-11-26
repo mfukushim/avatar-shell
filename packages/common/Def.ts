@@ -126,11 +126,11 @@ export const AsMessageContentSchema = Schema.partial(
     isExternal: Schema.Boolean,
   }));
 
-const AsMessageContentSchemaMutable = Schema.mutable(AsMessageContentSchema);
+// const AsMessageContentSchemaMutable = Schema.mutable(AsMessageContentSchema);
 
 export type AsMessageContent = typeof AsMessageContentSchema.Type
 
-export type AsMessageContentMutable = typeof AsMessageContentSchemaMutable.Type
+//export type AsMessageContentMutable = typeof AsMessageContentSchemaMutable.Type
 
 export class AsMessage extends Schema.Class<AsMessage>('AsMessage')({
   id: Schema.String,
@@ -164,7 +164,7 @@ export const AsContentsSchema = Schema.Struct({
   contents: Schema.mutable(Schema.Array(AsMessageContentSchema)),
 })
 
-export type AsContents = typeof AsContentsSchema.Type
+//export type AsContents = typeof AsContentsSchema.Type
 
 /*
  *  ContextGenerator
@@ -189,13 +189,10 @@ export type DaemonTriggerSchema = typeof DaemonTriggerSchema.Type
 const SchedulerExecGenSchema = Schema.mutable(Schema.Struct({
   generator: GeneratorProviderSchema, //  undefinedの場合ジェネレーターは使わずにテンプレート変換のみする(多くの場合固定プロンプト)
   templateGeneratePrompt: Schema.optional(Schema.String),  //  [TELLER]は[OUT]と言いました。
-  // copyContext: Schema.Boolean,
-  //directTrigger: Schema.Boolean,
-  //  誰が(TELLER)
   setting: Schema.mutable(ContextGeneratorSettingSchema),
 }));
 
-export type SchedulerExecGen = typeof SchedulerExecGenSchema.Type
+// export type SchedulerExecGen = typeof SchedulerExecGenSchema.Type
 
 export const DaemonConfigSchema = Schema.Struct({
   id: Schema.String,
@@ -209,13 +206,11 @@ export type DaemonConfig = typeof DaemonConfigSchema.Type
 
 export class AsOutput extends Schema.Class<AsOutput>('AsOutput')({
   genNative: Schema.Array(Schema.Any),
-  // genType: GenTypeSchema,
   mes: AsMessage
 }) {
 static makeOutput(mes: AsMessage, genNative: any[]=[]) {  //  genType: GenType,
   return {
     genNative:genNative,
-    // genType:genType,
     mes:mes
   } as AsOutput;
 }
@@ -353,6 +348,7 @@ export const webSocketMutableSchema = Schema.mutable(websocketSchema)
 const ExperimentalSchema = Schema.mutable(Schema.Struct({
   mcpUi: Schema.Boolean,
   mcpUiTemplate: Schema.String,
+  mcpUiFilterDisabled: Schema.Boolean,
 }));
 
 
@@ -402,7 +398,7 @@ export const AvatarMcpSetting = Schema.Struct({
 export type AvatarMcpSetting = typeof AvatarMcpSetting.Type
 
 export const AvatarMcpSettingMutable = Schema.mutable(AvatarMcpSetting);
-export type AvatarMcpSettingMutable = typeof AvatarMcpSettingMutable.Type
+// export type AvatarMcpSettingMutable = typeof AvatarMcpSettingMutable.Type
 
 export const AvatarMcpSettingList = Schema.Record({
   key: Schema.String,
@@ -414,7 +410,6 @@ export const AvatarMcpSettingListMutable = Schema.Record({
   value: AvatarMcpSettingMutable,
 });
 
-// export const AvatarMcpSettingListMutable = Schema.mutable(AvatarMcpSettingList);
 export type AvatarMcpSettingListMutable = typeof AvatarMcpSettingListMutable.Type
 
 export type AvatarMcpSettingList = typeof AvatarMcpSettingList.Type

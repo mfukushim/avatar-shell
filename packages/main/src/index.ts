@@ -4,7 +4,6 @@ import {disallowMultipleAppInstance} from './modules/SingleInstanceApp.js';
 import {createWindowManagerModule} from './modules/WindowManager.js';
 import {terminateAppOnLastWindowClose} from './modules/ApplicationTerminatorOnLastWindowClose.js';
 import {hardwareAccelerationMode} from './modules/HardwareAccelerationModule.js';
-import {autoUpdater} from './modules/AutoUpdater.js';
 import {allowInternalOrigins} from './modules/BlockNotAllowdOrigins.js';
 import {allowExternalUrls} from './modules/ExternalUrls.js';
 import {app, BrowserWindow, dialog, ipcMain, shell} from 'electron';
@@ -18,7 +17,6 @@ import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {SocketServiceLive} from './SocketService.js';
 import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../common/Def.js';
 import electronLog from 'electron-log';
-import {GeneratorProvider} from '../../common/DefGenerators.js';
 
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive, MediaServiceLive,AvatarServiceLive,SocketServiceLive);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
@@ -107,9 +105,11 @@ ipcMain.handle('readMcpResource', async (_,avatarId: string,userName:string,name
     Effect.andThen(a => {
       if (a && a.contents) {
         const mesList = a.contents.flatMap(b => {
-          if(b.mimeType === 'text/plain') {
+          //  @ts-ignore
+          if(b.mimeType === 'text/plain' && b?.text) {
             return [AsMessage.makeMessage({
               from: userName,
+              //  @ts-ignore
               mediaBin: Buffer.from(b.text as string).buffer,
               mimeType: 'text/plain',
             }, 'talk', 'human', 'inner')] //  前提条件テキストにしたいが今はLLM直に送る形にする

@@ -13,13 +13,32 @@ import {
 } from '../../../common/DefGenerators.js';
 import Anthropic from '@anthropic-ai/sdk';
 import {MediaService} from '../MediaService.js';
+import {ContentBlock} from '@modelcontextprotocol/sdk/types.js';
 
 
+/**
+ * Claude用ジェネレーター基底
+ * The `ClaudeBaseGenerator` class extends the `ContextGenerator` and provides
+ * an abstract base implementation for generating context-based messages
+ * compliant with Anthropic's Claude language model.
+ *
+ * This class defines an infrastructure that handles:
+ * - Filtering of tool results to ensure compatibility with the Claude model.
+ * - Assembling context blocks for the previous and current messages.
+ * - Debugging generated contexts for exploratory purposes.
+ *
+ * Derived classes are expected to provide specific implementations for the
+ * abstract members such as `model` and `genName`.
+ */
 export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected claudeSettings: ClaudeTextSettings | undefined;
   protected anthropic: Anthropic;
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
+
+  protected get previousContexts() {
+    return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
+  }
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -31,44 +50,58 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   };
 
   constructor(sysConfig: SysConfig, settings?: ClaudeTextSettings) {
-    super();
+    super(sysConfig);
     this.claudeSettings = settings;
     this.anthropic = new Anthropic({
       apiKey: sysConfig.generators.anthropic.apiKey,
     });
   }
 
-  filterToolRes(value: any) {
-    if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
-      //  @ts-ignore
-      if (!value.resource.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return;
-      }
-    }
-    //  @ts-ignore
-    if (value?.annotations && value.annotations?.audience) {
-      //  @ts-ignore
-      if (!value.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return;
-      }
-    }
-    return value;
-  }
-  filterToolResList(value: any) {
-    try {
-      return value.content.flatMap((a:any) => {
-        return value.content.flatMap((a: any) => {
-          const b = this.filterToolRes(a);
-          return b ? [b]:[]
-        });
-      })
-    } catch (error) {
-      console.log('filterToolResList error:',error);
-      throw error;
-    }
-  }
+  // filterToolRes(value: ContentBlock ) {
+  //   //  sysConfigでexperimental.mcpUiFilterDisabledがtrueの場合フィルタしない
+  //   if(this.sysSetting.experimental.mcpUiFilterDisabled) return [value];
+  //   //  sysConfigでexperimental.mcpUiFilterDisabledがfalseの場合
+  //   //    resource.uriがui://であればLLMに送らない
+  //   if(value.type === 'resource' && value.resource.uri.startsWith('ui:/')) {
+  //     console.log('contents test no out');
+  //     return [];
+  //   }
+  //   //    resource.anotations.audienceが存在して、その中に'assistant'が含まれないときはLLMに送らない
+  //   //  @ts-ignore
+  //   if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!value.resource.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return [];
+  //     }
+  //   }
+  //   //  @ts-ignore
+  //   if (value?.annotations && value.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!value.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return [];
+  //     }
+  //   }
+  //   return [value];
+  // }
+  // filterToolResList(value: CallToolResult) {
+  //   const data = value.content.flatMap((a:ContentBlock) => {
+  //     return this.filterToolRes(a);
+  //   })
+  //   //  フィルタの結果として0件になった場合、ダミーデータを付ける
+  //   return data.length > 0 ? data : [{text:'server accepted',type:'text'} as ContentBlock]
+  //   // try {
+  //   //   const data = value.content.flatMap((a:ContentBlock) => {
+  //   //       return this.filterToolRes(a);
+  //   //   })
+  //   //   //  フィルタの結果として0件になった場合、ダミーデータを付ける
+  //   //   return data.length > 0 ? data : [{text:'server accepted',type:'text'} as ContentBlock]
+  //   // } catch (error) {
+  //   //   console.log('filterToolResList error:',error);
+  //   //   throw error;
+  //   // }
+  // }
 
   protected makePreviousContext(avatarState: AvatarState,current: GenInner) {
     const it = this;
@@ -114,13 +147,15 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
           }
           if (value.mes.content.toolRes) {
             const r = it.filterToolRes(value.mes.content.toolRes)
-            if (r && value.mes.content.innerId) {
-              const r1 = it.claudeAnnotationFilter(r)
+            if (r.length > 0 && value.mes.content.innerId) {
               const m = toolOutMap.get(value.mes.content.innerId)
+              const textBlockParams = r.map(value1 => it.claudeAnnotationFilter(value1));
               if (m) {
-                m.push(r1)
+                textBlockParams.forEach(value2 => m.push(value2))
+                // const r1 = it.claudeAnnotationFilter(r)
+                // m.push(r1)
               } else {
-                toolOutMap.set(value.mes.content.innerId,[r1])
+                toolOutMap.set(value.mes.content.innerId,textBlockParams)
               }
             }
           }
@@ -142,12 +177,13 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
     });
   }
 
-  private claudeAnnotationFilter(v: any) {
+  private claudeAnnotationFilter(v: ContentBlock) {
     const r = {
       ...v,
     };
+    // @ts-ignore
     delete r.annotations; //  Claudeではツールレスポンスの annotations は受け入れない
-    return r as Anthropic.Messages.ContentBlockParam;
+    return r as Anthropic.Messages.TextBlockParam;
   }
 
   protected makeCurrentContext(current: GenInner) {
@@ -166,7 +202,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
           mes.content.push({
             type: 'tool_result',
             tool_use_id: value.callId,
-            content: it.filterToolResList(value.results).map((v:any) => it.claudeAnnotationFilter(v)),
+            content: it.filterToolResList(value.results).map((v:ContentBlock) => it.claudeAnnotationFilter(v)),
           });
         });
       }
@@ -197,7 +233,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
           const c = {
             ...b,
             source: b.type === 'image' && b.source ? 'image' : undefined,
-            content: b.type === 'tool_result' && b.content ? 'content' : undefined,
+            content: b.type === 'tool_result' && b.content ? b.content : undefined,
           }
           text += '\n+#' + JSON.stringify(c)//.slice(0,200);
         });
@@ -227,9 +263,9 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
-      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
+      //  TODO prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
-      const prev = Array.from(it.previousNativeContexts)
+      const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -264,13 +300,12 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           return new Error(`claude error:${error}`);
         },
       });
-      // console.log(message);
 
-      it.previousNativeContexts.push({
+      it.previousContexts.push({
         role: mes.role,
         content:mes.content,
       })
-      it.previousNativeContexts.push({
+      it.previousContexts.push({
         role: message.role,
         content:message.content,
       } as Anthropic.Messages.MessageParam)
