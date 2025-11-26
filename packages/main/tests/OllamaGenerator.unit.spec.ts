@@ -1,10 +1,10 @@
 //  注意: インポート順序に順序があるようだ。誤るとAvatarState.makeでエラーになる
-import {Effect, Layer, ManagedRuntime, Schema} from 'effect';
+import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
 import {AvatarState, GenInner} from '../src/AvatarState';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {McpService, McpServiceLive} from '../src/McpService';
+import {ConfigServiceLive} from '../src/ConfigService';
+import {McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
 import {OllamaTextGenerator} from '../src/generators/OllamaGenerator';
@@ -12,8 +12,8 @@ import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
 import path from 'node:path';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {vitestSysConfig} from '../../common/vitestConfig';
+import {AvatarServiceLive} from '../src/AvatarService';
 import {AsMessage} from '../../common/Def';
 import {
   contextStepTest1,
@@ -38,10 +38,7 @@ describe('OllamaGenerator', () => {
   });
 
   it('make', async () => {
-    const ai = await OllamaTextGenerator.make({
-      host: 'http://192.168.11.121:11434',
-      model: 'llama3.1',
-    }).pipe(runPromise);
+    const ai = await OllamaTextGenerator.make(vitestSysConfig).pipe(runPromise);
 
     console.log(ai);
     expect(typeof ai === 'object').toBe(true);
@@ -53,10 +50,7 @@ describe('OllamaGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* OllamaTextGenerator.make({
-        host: 'http://192.168.11.121:11434',
-        model: 'llama3.1',
-      });
+      const ai = yield* OllamaTextGenerator.make(vitestSysConfig);
 
       return yield* ai.generateContext({
         avatarId: 'aaaa', toGenerator: ai,fromGenerator:'external', input: AsMessage.makeMessage({
@@ -78,10 +72,17 @@ describe('OllamaGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* OllamaTextGenerator.make({
-        host: 'http://192.168.11.121:11434',
-        model: 'llava:7b-v1.6',
-      });
+      const sysConfig = {
+        ...vitestSysConfig,
+        generators: {
+          ...vitestSysConfig.generators,
+          ollama: {
+            ...vitestSysConfig.generators.ollama,
+          }
+        }
+      }
+      sysConfig.generators.ollama.model = 'llava:7b-v1.6';
+      const ai = yield* OllamaTextGenerator.make(sysConfig);
 
       // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       const fs = yield* FileSystem.FileSystem;
@@ -125,10 +126,12 @@ describe('OllamaGenerator', () => {
   });
 
   it('コンテキストステップ確認6', async () => {
+    //  元々Ollama-llama3.1では正常に終わらない
     await contextStepTest6('ollamaText',8)
   });
 
   it('コンテキストステップ確認7', async () => {
-    await contextStepTest7('ollamaText',5)
+    //  元々Ollama-llama3.1では正常に終わらない
+    await contextStepTest7('ollamaText',15)
   });
 }, 5 * 60 * 1000);

@@ -1,6 +1,6 @@
 import {
+  ContextGeneratorSetting,
   GeneratorProvider,
-  OllamaSysConfig,
 } from '../../../common/DefGenerators.js';
 import {Chunk, Effect, Stream, Option} from 'effect';
 import {AvatarState, GenInner, GenOuter} from '../AvatarState.js';
@@ -10,6 +10,7 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import {Ollama, Message} from 'ollama';
+import {SysConfig} from '../../../common/Def.js';
 
 
 /**
@@ -28,51 +29,51 @@ export class OllamaTextGenerator extends ContextGenerator {
     return this.previousNativeContexts as Message[];
   }
 
-  static make(settings?: OllamaSysConfig) {
-    return Effect.succeed(new OllamaTextGenerator(settings));
+  static make(sysConfig:SysConfig, settings?: ContextGeneratorSetting) {
+    return Effect.succeed(new OllamaTextGenerator(sysConfig,settings));
   }
 
-  constructor(settings?: OllamaSysConfig) {
-    super();
-    this.model = settings?.model || 'llama3.1';
+  constructor(setting: SysConfig,settings?: ContextGeneratorSetting) {
+    super(setting);
+    this.model = setting.generators.ollama?.model || 'llama3.1';
     this.ollama = new Ollama({
-      host: settings?.host || 'http://localhost:11434',
+      host: setting.generators.ollama?.host || 'http://localhost:11434',
       // headers: {
       //   Authorization: "Bearer <api key>",
       // },
     });
   }
 
-  filterToolRes(value: any) {
-    try {
-      return {
-        ...value,
-        content: value.content.flatMap((a:any) => {
-          // console.log('contents test:',a);
-          //  @ts-ignore
-          if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.resource.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          //  @ts-ignore
-          if (a?.annotations && a.annotations?.audience) {
-            //  @ts-ignore
-            if (!a.annotations.audience.includes('assistant')) {
-              console.log('contents test no out');
-              return [];
-            }
-          }
-          return [a];
-        }),
-      };
-    } catch (error) {
-      console.log('filterToolRes error:',error);
-      throw error;
-    }
-  }
+  // filterToolResList(value: any) {
+  //   try {
+  //     return {
+  //       ...value,
+  //       content: value.content.flatMap((a:any) => {
+  //         // console.log('contents test:',a);
+  //         //  @ts-ignore
+  //         if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+  //           //  @ts-ignore
+  //           if (!a.resource.annotations.audience.includes('assistant')) {
+  //             console.log('contents test no out');
+  //             return [];
+  //           }
+  //         }
+  //         //  @ts-ignore
+  //         if (a?.annotations && a.annotations?.audience) {
+  //           //  @ts-ignore
+  //           if (!a.annotations.audience.includes('assistant')) {
+  //             console.log('contents test no out');
+  //             return [];
+  //           }
+  //         }
+  //         return [a];
+  //       }),
+  //     };
+  //   } catch (error) {
+  //     console.log('filterToolRes error:',error);
+  //     throw error;
+  //   }
+  // }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
@@ -97,7 +98,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         //  TODO ollamaでの結果返答のフォーマットがあまりはっきりしない。。
         mes.content = JSON.stringify(current.toolCallRes.map(value => {
           // return value.results;
-          return it.filterToolRes(value.results);
+          return it.filterToolResList(value.results);
         }));
         console.log('toolCallRes:',mes.content);
       }

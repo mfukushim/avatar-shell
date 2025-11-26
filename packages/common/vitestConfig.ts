@@ -35,7 +35,7 @@ export const vitestSysConfig: SysConfig = {
       voice: 'Kore',
     },
     ollama: {
-      host: 'http://192.168.11.121:11434',
+      host: process.env.VITE_OLLAMA_HOST as string || 'http://127.0.0.1:8000',
       model: 'llama3.1',
     }
     // voiceVox: {
@@ -81,7 +81,8 @@ export const vitestSysConfig: SysConfig = {
   },
   experimental:{
     mcpUi:false,
-    mcpUiTemplate:"user select '{body}'"
+    mcpUiTemplate:"user select '{body}'",
+    mcpUiFilterDisabled: false,
   },
   websocket: {
     useServer: true,

@@ -54,7 +54,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
 
 
   constructor(sysConfig: SysConfig, settings?: GeminiSettings) {
-    super();
+    super(sysConfig);
     this.geminiSettings = settings;
     this.ai = new GoogleGenAI({
       apiKey: sysConfig.generators.gemini?.apiKey,
@@ -103,10 +103,11 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
           }
           console.log('value.mes.content.toolRes:',value.mes.content.toolRes);
           if (value.mes.content.toolRes) {
+            const response = it.filterToolRes(value.mes.content.toolRes);
             parts.push({
               functionResponse: {
                 name: value.mes.content.toolName,
-                response:it.filterToolRes(value.mes.content.toolRes),
+                response: response.length > 0 ? response[0] : {text:'server accepted',type:'text'},
               },
             });
           }
@@ -122,40 +123,39 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     })
   }
 
-  filterToolRes(a: any) {
-    if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-      //  @ts-ignore
-      if (!a.resource.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return ;
-      }
-    }
-    //  @ts-ignore
-    if (a?.annotations && a.annotations?.audience) {
-      //  @ts-ignore
-      if (!a.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return ;
-      }
-    }
-    return a
-  }
+  // filterToolRes(a: any) {
+  //   if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!a.resource.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return ;
+  //     }
+  //   }
+  //   //  @ts-ignore
+  //   if (a?.annotations && a.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!a.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return ;
+  //     }
+  //   }
+  //   return a
+  // }
 
-  filterToolResList(value: any) {
-    try {
-      // console.log('filterToolRes:',value);
-      return {
-        ...value,
-        content: value.content.flatMap((a:any) => {
-          const b = this.filterToolRes(a);
-          return b ? [b]:[]
-        }),
-      };
-    } catch (error) {
-      console.log('filterToolResList error:',error);
-      throw error;
-    }
-  }
+  // filterToolResList(value: CallToolResult) {
+  //   try {
+  //     return {
+  //       ...value,
+  //       content: value.content.flatMap((a:ContentBlock) => {
+  //         const b = this.filterToolRes(a);
+  //         return b ? [b]:[]
+  //       }),
+  //     };
+  //   } catch (error) {
+  //     console.log('filterToolResList error:',error);
+  //     throw error;
+  //   }
+  // }
 
   protected makeCurrentContext(current: GenInner) {
     const it = this;
@@ -167,12 +167,13 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
         });
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
+          const response = it.filterToolResList(value.results);
           mes.parts.push({
             functionResponse: {
               name: value.name,
               id: value.callId,
               //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
-              response: it.filterToolResList(value.results),
+              response: response.length > 0 ? response[0] : {text:'server accepted',type:'text'},
             },
           });
         });

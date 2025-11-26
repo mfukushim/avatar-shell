@@ -126,7 +126,7 @@ export const AsMessageContentSchema = Schema.partial(
     isExternal: Schema.Boolean,
   }));
 
-const AsMessageContentSchemaMutable = Schema.mutable(AsMessageContentSchema);
+// const AsMessageContentSchemaMutable = Schema.mutable(AsMessageContentSchema);
 
 export type AsMessageContent = typeof AsMessageContentSchema.Type
 
@@ -348,6 +348,7 @@ export const webSocketMutableSchema = Schema.mutable(websocketSchema)
 const ExperimentalSchema = Schema.mutable(Schema.Struct({
   mcpUi: Schema.Boolean,
   mcpUiTemplate: Schema.String,
+  mcpUiFilterDisabled: Schema.Boolean,
 }));
 
 

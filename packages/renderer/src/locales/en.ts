@@ -120,4 +120,5 @@ export default {
   resetWithoutMedia:'Initialize without media',
   fullReset:'Initialize all',
   preferenceDirectory: 'Preference Directory',
+  mcpUiFilterDisabled: 'Send all MCP-UI information to LLM',
 }

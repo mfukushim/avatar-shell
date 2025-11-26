@@ -27,9 +27,8 @@ import short from 'short-uuid';
 import expand_template from 'expand-template';
 import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
-import {z} from 'zod';
-import {CallToolResultSchema} from '@modelcontextprotocol/sdk/types.js';
 import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
+import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 
 dayjs.extend(duration);
 
@@ -56,7 +55,7 @@ export interface GenInner {
   toolCallRes?: {
     name: string,
     callId: string,
-    results: z.infer<typeof CallToolResultSchema>
+    results: CallToolResult
   }[],
   genNum: number,
   setting?: ContextGeneratorSetting,
@@ -684,6 +683,13 @@ export class AvatarState {
     }
   }
 
+  /**
+   * デーモンを中止する(未動作)
+   * Cancels a scheduled task based on the provided identifier.
+   *
+   * @param {string} id - The unique identifier for the scheduled task to be cancelled.
+   * @return {Effect} An Effect that, when executed, cancels the scheduled task and updates the relevant state.
+   */
   cancelSchedule(id: string) {
     console.log('cancelSchedule:', id);
     const state = this;
@@ -707,6 +713,17 @@ export class AvatarState {
     }
   }
 
+  /**
+   * AvatarStateインスタンス生成
+   * Creates an instance of AvatarState with initialized configurations and synchronized references.
+   *
+   * @param {string} id - The unique identifier of the avatar.
+   * @param {string} templateId - The template identifier used to create the avatar.
+   * @param {string} name - The name of the avatar.
+   * @param {BrowserWindow | null} window - The associated browser window, or null if not applicable.
+   * @param {string} userName - The username associated with the avatar.
+   * @return {Effect<AvatarState>} Returns an effect that, when executed, yields a fully initialized AvatarState instance.
+   */
   static make(id: string, templateId: string, name: string, window: BrowserWindow | null, userName: string) {
     return Effect.gen(function* () {
       // console.log('avatarstate make');
@@ -716,7 +733,6 @@ export class AvatarState {
       const prevMes = yield* SynchronizedRef.make<AsMessage[]>([]);
       const mes = yield* SynchronizedRef.make<AsMessage[]>([]);
       const daemonStates = yield* Ref.make<DaemonState[]>([]);
-      // const timeDaemonStates = yield* Ref.make<DaemonState[]>([]);
       const fiberTimers = yield* SynchronizedRef.make<TimeDaemonState[]>([]);
       const daemonStatesQueue = yield* Queue.dropping<DaemonState>(100);  //  Echo Mcpで追加された予定をキューする
 
@@ -745,6 +761,13 @@ export class AvatarState {
     });
   }
 
+  /**
+   * アバター停止(動作未確認)
+   * Stops the avatar by setting the `forcedStopDaemons` flag to true,
+   * ensuring that daemons influenced by context changes are ignored.
+   *
+   * @return {void} Indicates that the method does not return any value.
+   */
   stopAvatar() {
     //  ワンタイムでContext変動によるdaemonの実行を無視させる
     this.forcedStopDaemons = true;
@@ -752,7 +775,7 @@ export class AvatarState {
 
 
   /**
-   *
+   * AsMessageのメディアを保存しuriにする
    * @param bags
    * @param isExternal 外部から与えたコンテキスト これはLLMのprev contextには追加されない LLMの認識できるコンテキストはLLM自身が発生したものとdaemonが検出したものだけになるべきだから?
    */
@@ -806,6 +829,13 @@ export class AvatarState {
     }).pipe(Effect.andThen(a => a.filter((v): v is  AsMessage => v !== undefined)));
   }
 
+  /**
+   * AsMessageをLLMコンテキストに追加する
+   * Adds context by appending the given array of messages (bags) to the current context.
+   *
+   * @param {AsMessage[]} bags - An array of messages to be added to the existing context.
+   * @return {Effect} An effect describing the action of updating the context and queuing the new state.
+   */
   addContext(bags: AsMessage[]) {
     const it = this;
     return Effect.gen(function* () {
@@ -879,13 +909,13 @@ export class AvatarState {
     }).pipe(Effect.catchAll(a => Effect.logError('execGeneratorLoop error:', a.message, a.stack)));
   }
 
-  enterOuter(outer: GenOuter) {
-    const it = this;
-    return Effect.gen(function* () {
-      yield* Queue.offer(it.outerQueue, outer);
-      yield* it.rerunLoop();
-    });
-  }
+  // enterOuter(outer: GenOuter) {
+  //   const it = this;
+  //   return Effect.gen(function* () {
+  //     yield* Queue.offer(it.outerQueue, outer);
+  //     yield* it.rerunLoop();
+  //   });
+  // }
 
   execExternalLoop() {
     console.log('start execExternalLoop');
@@ -934,7 +964,7 @@ export class AvatarState {
                 return {
                   name: value1.name,
                   callId: a.call_id,
-                  results: a.toLlm as z.infer<typeof CallToolResultSchema>,
+                  results: a.toLlm as CallToolResult,
                 };
               }));
           });
@@ -984,15 +1014,8 @@ export class AvatarState {
         fromGenerator: message.content.generator || 'external',
         toGenerator: gen,
         input: message,
-        // input: {
-        //   from: message.content.from,
-        //   text: message.content.text,
-        //   isExternal: message.content.isExternal,
-        //   // isExternal: true  //  TODO execGeneratorから来るものを外部=userと見なしてよいのかは検討要
-        // },
         genNum: 1,  //  この入力はまだcontextに追加されていないので1から開始して追加させる
         setting: {
-          // noTool:true
           toClass: setting.toClass,
           toRole: setting.toRole,
           toContext: setting.toContext,
@@ -1106,49 +1129,6 @@ export class AvatarState {
 
   }
 
-  /*
-    appendPreBufferGenIn(a: GenInner) {
-      console.log('appendPreBufferGenIn:', this.debugGenInner(a).slice(0, 200));
-      console.log(a);
-      const list: AsMessage[] = [];
-      if (a.input) {
-        list.push(a.input);
-      }
-      // if (a.input?.text) {
-      //   const content: AsMessageContent = {
-      //     innerId: a.input.innerId || short.generate(),
-      //     from: this.Name,
-      //     text: a.input.text,
-      //     generator: a.toGenerator,
-      //     isExternal: a.input.isExternal,
-      //   };
-      //   list.push(content);
-      // }
-      if (a.toolCallRes) {
-        const content: AsMessage[] = a.toolCallRes.map(value => {
-          return AsMessage.makeMessage({
-            innerId: value.callId,
-            from: this.Name,
-            toolName: value.name,
-            toolRes: value.results,
-            generator: a.toGenerator,
-            isExternal: a.input?.content?.isExternal,
-          },'physics','toolOut','inner');
-          // return {
-          //   innerId: value.callId,
-          //   from: this.Name,
-          //   toolName: value.name,
-          //   toolRes: value.results,
-          //   generator: a.toGenerator,
-          //   isExternal: a.input?.isExternal,
-          // } as AsMessageContent;
-        });
-        list.push(...content);
-      }
-      return this.appendPrevBuffer(list, a.setting);
-    }
-  */
-
   appendPreBufferGenIn(a: GenInner, addToBuffer = true) {
     //  TODO 属性設定は再検討要
     const it = this;
@@ -1160,7 +1140,7 @@ export class AvatarState {
       if (a.toolCallRes) {
         const bags2 = yield* Effect.forEach(a.toolCallRes, value => {
           //  toolDataはここでmessage分解する
-          return Effect.forEach((value.results as z.infer<typeof CallToolResultSchema>).content, a2 => {
+          return Effect.forEach((value.results as CallToolResult).content, a2 => {
             return Effect.gen(function* () {
               console.log('add toolCallRes:', JSON.stringify(a2).slice(0, 200));
               //  ここでtool結果から抽出するのは、ユーザ都合で表示させたい画像やhtmlだけなので、これはouterで抽出する
@@ -1192,7 +1172,8 @@ export class AvatarState {
                 // con.mimeType = a2.resource.mimeType;
                 if (a2.resource.uri && a2.resource.uri.startsWith('ui:/')) {
                   console.log('to save html');
-                  //  TODO なんで型があってないんだろう。。
+                  //  なんで型があってないんだろう。。 MCP-UIの定義上かな
+                  //  @ts-ignore
                   yield* DocService.saveMcpUiMedia(a2.resource.uri, a2.resource.text as string);
                 }
                 console.log('ui: generator:', value);

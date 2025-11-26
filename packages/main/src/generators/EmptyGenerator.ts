@@ -7,6 +7,7 @@ import {DocService} from '../DocService.js';
 import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import short from 'short-uuid';
+import {SysConfig} from '../../../common/Def.js';
 
 
 /**
@@ -45,8 +46,8 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
   protected abstract genName: GeneratorProvider;
   protected model = 'none';
 
-  constructor(settings?: ContextGeneratorSetting) {
-    super();
+  constructor(sysConfig:SysConfig, settings?: ContextGeneratorSetting) {
+    super(sysConfig);
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -78,24 +79,24 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
 export class EmptyTextGenerator extends EmptyBaseGenerator {
   protected genName: GeneratorProvider = 'emptyText';
 
-  static make(settings?: ContextGeneratorSetting) {
-    return Effect.succeed(new EmptyTextGenerator(settings));
+  static make(sysConfig: SysConfig,settings?: ContextGeneratorSetting) {
+    return Effect.succeed(new EmptyTextGenerator(sysConfig, settings));
   }
 }
 
 export class EmptyImageGenerator extends EmptyBaseGenerator {
   protected genName: GeneratorProvider = 'emptyImage';
 
-  static make(settings?: ContextGeneratorSetting) {
-    return Effect.succeed(new EmptyImageGenerator(settings));
+  static make(sysConfig: SysConfig,settings?: ContextGeneratorSetting) {
+    return Effect.succeed(new EmptyImageGenerator(sysConfig, settings));
   }
 }
 
 export class EmptyVoiceGenerator extends EmptyBaseGenerator {
   protected genName: GeneratorProvider = 'emptyVoice';
 
-  static make(settings?: ContextGeneratorSetting) {
-    return Effect.succeed(new EmptyVoiceGenerator(settings));
+  static make(sysConfig: SysConfig,settings?: ContextGeneratorSetting) {
+    return Effect.succeed(new EmptyVoiceGenerator(sysConfig, settings));
   }
 }
 

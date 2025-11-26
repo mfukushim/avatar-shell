@@ -56,41 +56,43 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     addToMainContext: true,
   };
 
-  constructor(ai: OpenAI) {
-    super();
-    this.openai = ai;
+  constructor(sysConfig: SysConfig) {
+    super(sysConfig);
+    this.openai = new OpenAI({
+      apiKey: sysConfig.generators.openAiText?.apiKey || '',
+    });
   }
 
-  filterToolRes(value: any) {
-    if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
-      //  @ts-ignore
-      if (!value.resource.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return;
-      }
-    }
-    //  @ts-ignore
-    if (value?.annotations && value.annotations?.audience) {
-      //  @ts-ignore
-      if (!value.annotations.audience.includes('assistant')) {
-        console.log('contents test no out');
-        return;
-      }
-    }
-    return value;
-  }
-
-  filterToolResList(value: any) {
-    try {
-      return value.content.flatMap((a: any) => {
-        const b = this.filterToolRes(a);
-        return b ? [b]:[]
-      });
-    } catch (error) {
-      console.log('filterToolResList error:', error);
-      throw error;
-    }
-  }
+  // filterToolRes(value: any) {
+  //   if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!value.resource.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return;
+  //     }
+  //   }
+  //   //  @ts-ignore
+  //   if (value?.annotations && value.annotations?.audience) {
+  //     //  @ts-ignore
+  //     if (!value.annotations.audience.includes('assistant')) {
+  //       console.log('contents test no out');
+  //       return;
+  //     }
+  //   }
+  //   return value;
+  // }
+  //
+  // filterToolResList(value: any) {
+  //   try {
+  //     return value.content.flatMap((a: any) => {
+  //       const b = this.filterToolRes(a);
+  //       return b ? [b]:[]
+  //     });
+  //   } catch (error) {
+  //     console.log('filterToolResList error:', error);
+  //     throw error;
+  //   }
+  // }
 
   protected makePreviousContext(avatarState: AvatarState, current: GenInner) {
     const it = this;
@@ -245,9 +247,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   }
 
   constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
-    super(new OpenAI({
-      apiKey: sysConfig.generators.openAiText?.apiKey || '',
-    }));
+    super(sysConfig);
     this.openAiSettings = settings;
   }
 
@@ -388,9 +388,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
   }
 
   constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
-    super(new OpenAI({
-      apiKey: sysConfig.generators.openAiText?.apiKey,
-    }));
+    super(sysConfig)
     this.openAiSettings = settings;
   }
 
@@ -488,9 +486,7 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
   }
 
   constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
-    super(new OpenAI({
-      apiKey: sysConfig.generators.openAiText?.apiKey,
-    }));
+    super(sysConfig);
     this.openAiSettings = settings;
     this.voice = sysConfig.generators.openAiVoice?.voice || 'alloy';
     this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;

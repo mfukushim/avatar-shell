@@ -32,7 +32,8 @@ export const defaultSysSetting: SysConfigMutable = {
   mcpServers: {},
   experimental:{
     mcpUi:false,
-    mcpUiTemplate:"user select '{body}'"
+    mcpUiTemplate:"user select '{body}'",
+    mcpUiFilterDisabled: false,
   },
   websocket: {
     useServer: true,
