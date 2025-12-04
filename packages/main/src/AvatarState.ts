@@ -954,25 +954,29 @@ export class AvatarState {
       const list3 = list.filter(value => value.toolCallParam !== undefined).map(value => {
         return Effect.gen(function* () {
           const x = value.toolCallParam!!.map(value1 => {
-            console.log('call:', value1);
-            return McpService.callFunction(it, value1).pipe(Effect.catchIf(a => a instanceof Error, e => {
-                return Effect.succeed({
-                  toLlm: {content: [{type: 'text', text: e.message}]}, call_id: value.innerId, status: 'ok',
-                });
-              }),
-              Effect.andThen(a => {
-                return {
-                  name: value1.name,
-                  callId: a.call_id,
-                  results: a.toLlm as CallToolResult,
-                };
-              }));
+            return it.callMcp(value1,value.innerId)
           });
           return yield* Effect.all(x);
         });
       });
       return yield* Effect.all(list3);
     });
+  }
+
+  callMcp(param:ToolCallParam,innerId:string) {
+    console.log('call:', param);
+    return McpService.callFunction(this, param).pipe(Effect.catchIf(a => a instanceof Error, e => {
+        return Effect.succeed({
+          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: innerId, status: 'ok',
+        });
+      }),
+      Effect.andThen(a => {
+        return {
+          name: param.name,
+          callId: a.call_id,
+          results: a.toLlm as CallToolResult,
+        };
+      }));
   }
 
 
@@ -1088,25 +1092,14 @@ export class AvatarState {
   callMcpToolByExternal(params: ToolCallParam, genId: string) {
     const it = this;
     return Effect.gen(function* () {
-      const res = yield* McpService.callFunction(it, params).pipe(Effect.catchIf(a => a instanceof Error, e => {
-        return Effect.succeed({
-          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
-        });
-      }));
-      const text = (res.toLlm.content as {text: string}[]).map(value => value.text).join('\n');
-      console.log('callMcpToolByExternal text:', text);
+      const res = yield* it.callMcp(params,params.callId)  //  TODO ここはcallId?
       //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
       //         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
       yield* it.enterInner({
         avatarId: it.id,
         fromGenerator: 'external',
         toGenerator: yield* it.getDefGenerator(genId),
-        input: AsMessage.makeMessage({
-          from: it.Name,
-          text: text,
-          toolRes: res.toLlm.content,
-          isExternal: true,
-        }, 'physics', 'human', 'inner'),
+        toolCallRes: [res],
         genNum: 0,
       }, true);
       return 'ok';

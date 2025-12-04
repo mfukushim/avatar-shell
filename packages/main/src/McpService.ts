@@ -226,7 +226,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           return yield* Effect.fail(new Error(`${toolName} disabled`));
         }
         const useTool = element.useTools[toolInfo.name]
-        if (!useTool) return yield* Effect.fail(new Error('function name not found6'));
+        if (!useTool) return yield* Effect.fail(new Error(`function name not found6:${toolInfo.name},${JSON.stringify(element.useTools)}`));
         if (!useTool.enable) return yield* Effect.fail(new Error(`${toolInfo.name} disabled`));
         const allow =useTool.allow;
         if (allow === 'no') return yield* Effect.fail(new Error(`${toolInfo.name} set no use`));

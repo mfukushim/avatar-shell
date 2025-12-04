@@ -119,7 +119,6 @@ export abstract class ContextGenerator {
 
 
   filterToolResList(value: CallToolResult) {
-    console.log('XXXfilterToolResList value:',JSON.stringify(value));
     const data = value.content.flatMap((a:ContentBlock) => {
       return this.filterToolRes(a);
     })
