@@ -954,25 +954,29 @@ export class AvatarState {
       const list3 = list.filter(value => value.toolCallParam !== undefined).map(value => {
         return Effect.gen(function* () {
           const x = value.toolCallParam!!.map(value1 => {
-            console.log('call:', value1);
-            return McpService.callFunction(it, value1).pipe(Effect.catchIf(a => a instanceof Error, e => {
-                return Effect.succeed({
-                  toLlm: {content: [{type: 'text', text: e.message}]}, call_id: value.innerId, status: 'ok',
-                });
-              }),
-              Effect.andThen(a => {
-                return {
-                  name: value1.name,
-                  callId: a.call_id,
-                  results: a.toLlm as CallToolResult,
-                };
-              }));
+            return it.callMcp(value1,value.innerId)
           });
           return yield* Effect.all(x);
         });
       });
       return yield* Effect.all(list3);
     });
+  }
+
+  callMcp(param:ToolCallParam,innerId:string) {
+    console.log('call:', param);
+    return McpService.callFunction(this, param).pipe(Effect.catchIf(a => a instanceof Error, e => {
+        return Effect.succeed({
+          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: innerId, status: 'ok',
+        });
+      }),
+      Effect.andThen(a => {
+        return {
+          name: param.name,
+          callId: a.call_id,
+          results: a.toLlm as CallToolResult,
+        };
+      }));
   }
 
 
@@ -1084,17 +1088,20 @@ export class AvatarState {
    * MCP tool呼び出しなどのLLM外からのtool呼び出しを処理する
    * ユーザ入力操作に相当するため、
    * toolの出力結果からtextのデータのみ取りだし、ユーザからのenterInternalとして入力する
+   * toolの出力にresource/uri="ui:があった場合、リソース更新としてui側に送る
    */
   callMcpToolByExternal(params: ToolCallParam, genId: string) {
     const it = this;
     return Effect.gen(function* () {
-      const res = yield* McpService.callFunction(it, params).pipe(Effect.catchIf(a => a instanceof Error, e => {
-        return Effect.succeed({
-          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: params.callId, status: 'ok',
-        });
-      }));
-      const text = (res.toLlm.content as {text: string}[]).map(value => value.text).join('\n');
-      console.log('callMcpToolByExternal text:', text);
+      const res = yield* it.callMcp(params,params.callId)  //  TODO ここはcallId?
+      let textOut = ''
+      res.results.content.forEach(value => {
+        if (value.type === 'text') {
+          textOut += value.text;
+        }
+        //  resource/uri:ui://の削除は各ジェネレーターのfilterToolResList()で行われるはず
+      })
+      // const text = (res.results.content as {text: string}[]).map(value => value.text).join('\n');
       //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
       //         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
       yield* it.enterInner({
@@ -1103,10 +1110,11 @@ export class AvatarState {
         toGenerator: yield* it.getDefGenerator(genId),
         input: AsMessage.makeMessage({
           from: it.Name,
-          text: text,
-          toolRes: res.toLlm.content,
+          text: textOut,
+          // toolRes: res.toLlm.content,
           isExternal: true,
         }, 'physics', 'human', 'inner'),
+        toolCallRes: [res], //  TODO これはAIがreqした訳ではないので、toolCallResで返すのではなく、内容をuserのtextとして返さないといけない。
         genNum: 0,
       }, true);
       return 'ok';
