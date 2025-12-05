@@ -199,11 +199,14 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
         } as Anthropic.Messages.ContentBlockParam);
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
-          mes.content.push({
-            type: 'tool_result',
-            tool_use_id: value.callId,
-            content: it.filterToolResList(value.results).map((v:ContentBlock) => it.claudeAnnotationFilter(v)),
-          });
+          const content = it.filterToolResList(value.results).map((v:ContentBlock) => it.claudeAnnotationFilter(v));
+          if (content.length > 0) {
+            mes.content.push({
+              type: 'tool_result',
+              tool_use_id: value.callId,
+              content: content,
+            });
+          }
         });
       }
       if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
@@ -271,6 +274,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
 
       const tools = yield* McpService.getToolDefs(avatarState.Config.mcp);
 
+      console.log('claude mes:',JSON.stringify(mes));
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
       it.debugContext(contents);

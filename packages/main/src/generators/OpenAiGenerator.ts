@@ -152,7 +152,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
               const items:ResponseInputItem.FunctionCallOutput = {
                 type: 'function_call_output',
                 call_id: a.content.innerId,
-                output: JSON.stringify(r1),
+                output: JSON.stringify([r1]),
               };
               out.push(items);
               toolOutMap.set(a.content.innerId, items);
@@ -188,11 +188,15 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
         } as ResponseInputText);
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
-          mesList.push({
-            type: 'function_call_output',
-            call_id: value.callId,
-            output: JSON.stringify(it.filterToolResList(value.results).map((v: any) => it.OpenAiAnnotationFilter(v))), //.map((v:any) => it.OpenAiAnnotationFilter(v)),
-          });
+          const callOut = it.filterToolResList(value.results).map((v: any) => it.OpenAiAnnotationFilter(v));
+          //  結果として0件になった場合は登録しない(resource/uri=ui:など
+          if (callOut.length > 0){
+            mesList.push({
+              type: 'function_call_output',
+              call_id: value.callId,
+              output: JSON.stringify(callOut), //.map((v:any) => it.OpenAiAnnotationFilter(v)),
+            });
+          }
         });
       }
       if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {

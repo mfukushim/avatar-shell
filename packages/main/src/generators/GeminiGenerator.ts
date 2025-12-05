@@ -168,14 +168,16 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       } else if (current.toolCallRes) {
         current.toolCallRes.forEach(value => {
           const response = it.filterToolResList(value.results);
-          mes.parts.push({
-            functionResponse: {
-              name: value.name,
-              id: value.callId,
-              //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
-              response: response.length > 0 ? response[0] : {text:'server accepted',type:'text'},
-            },
-          });
+          if (response.length > 0) {
+            mes.parts.push({
+              functionResponse: {
+                name: value.name,
+                id: value.callId,
+                //  TODO トークンコストの削減とLLMに対するセキュリティとして、audianceがassistantのものだけに絞る
+                response: response[0],
+              },
+            });
+          }
         });
       }
       if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content?.mimeType?.startsWith('image')) {
