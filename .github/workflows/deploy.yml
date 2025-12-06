@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 defaults:
   run:
@@ -26,9 +27,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
     environment:
       name: ${{inputs.distribution-channel}}
       url: https://github.com/${{github.repository}}/releases/tag/v${{inputs.app-version}}
