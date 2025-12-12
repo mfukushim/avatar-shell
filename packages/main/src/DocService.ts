@@ -117,7 +117,7 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
       Stream.runForEach(a => {
         return Effect.gen(function* () {
           const dir = path.dirname(a.path);
-          console.log('dir:', dir);
+          // console.log('dir:', dir);
           const exist = yield* fs.exists(dir);
           if (!exist) {
             yield* fs.makeDirectory(dir, {recursive: true});
@@ -203,15 +203,15 @@ export class DocService extends Effect.Service<DocService>()('avatar-shell/DocSe
 
     function saveMcpUiMedia(uri: string, text: string) {
       //  速度を対応するためにテンポラリにメモリキャッシュしてもよいかも
-      console.log('saveMcpUiMedia', uri);
+      // console.log('saveMcpUiMedia', uri);
       if (!text || !uri) {
         return Effect.fail(new Error('no data'));
       }
       // const ext = mime === 'text/html'? '.html': mime ==='application/json'? '.json':''
       const fileName = urlToSafeFilename(uri);
       const mediaPath = path.join(docBasePath, 'contents', 'mcpUi', fileName);
-      console.log('mediaPath:', mediaPath);
-      console.log('save uri:', uri);
+      // console.log('mediaPath:', mediaPath);
+      // console.log('save uri:', uri);
       return Ref.update(mediaCache, a => HashMap.set(a, uri, text)).pipe(
         Effect.andThen(() => Queue.offer(mediaSaveQueue, ({path: mediaPath, image: text}))),
         Effect.andThen(() => uri),

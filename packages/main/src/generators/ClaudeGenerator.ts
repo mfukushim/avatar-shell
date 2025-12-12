@@ -268,7 +268,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.gen(function* () {
       //  TODO prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
-      const prev = Array.from(it.previousContexts)
+      const prev = Array.from(it.previousContexts)  ユーザからのmcpExternalで
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 

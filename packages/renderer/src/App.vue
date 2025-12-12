@@ -24,6 +24,7 @@ const Wizard = defineAsyncComponent(() =>
 );
 import MenuPanel from './components/MenuPanel.vue';
 import McpUiWapper from './components/McpUiWapper.vue';
+import short from 'short-uuid';
 
 const showWizard = ref(false);
 const leftDrawerOpen = ref(false);
@@ -282,9 +283,11 @@ const handleUIAction = async (event: CustomEvent) => {
     const names = calledMcpUiName.value.split('_')
     const toolName = names.length > 0 && event.detail?.payload?.toolName ? names[0] +'_'+event.detail.payload.toolName : ''
     console.log('toolName',calledMcpUiName.value,names,event.detail?.payload?.params, toolName,calledMcpUiGenerator.value);
+    const id = short.generate()
     try {
       await callMcpTool({
-        callId: calledMcpUiCallId.value, //  TODO この扱いでよいか確認要
+        callId: id,
+        // callId: calledMcpUiCallId.value, //  TODO この扱いでよいか確認要
         name: toolName,
         input: event.detail?.payload?.params || {},
       },calledMcpUiGenerator.value)
