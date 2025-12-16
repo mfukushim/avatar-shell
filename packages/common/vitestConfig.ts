@@ -45,26 +45,32 @@ export const vitestSysConfig: SysConfig = {
   },
   mcpServers: {
     'traveler': {
-      'command': 'npx',
-      'args': [
-        '-y',
-        '@mfukushim/map-traveler-mcp',
-      ],
-      'env': {
-        "GoogleMapApi_key": process.env.VITE_TR_GoogleMapApi_key as string,
-        "ServerLog":process.env.VITE_TR_ServerLog as string,
-        "MT_TURSO_URL":process.env.VITE_TR_MT_TURSO_URL as string,
-        "MT_TURSO_TOKEN":process.env.VITE_TR_MT_TURSO_TOKEN as string,
-        "pixAi_key":process.env.VITE_TR_pixAi_key as string,
-        "image_width":process.env.VITE_TR_image_width as string,
-        "bs_id":process.env.VITE_TR_bs_id as string,
-        "bs_pass":process.env.VITE_TR_bs_pass as string,
-        "bs_handle":process.env.VITE_TR_bs_handle as string,
-      },
+      enable: true,
+      def: {
+        'command': 'npx',
+        'args': [
+          '-y',
+          '@mfukushim/map-traveler-mcp',
+        ],
+        'env': {
+          "GoogleMapApi_key": process.env.VITE_TR_GoogleMapApi_key as string,
+          "ServerLog": process.env.VITE_TR_ServerLog as string,
+          "MT_TURSO_URL": process.env.VITE_TR_MT_TURSO_URL as string,
+          "MT_TURSO_TOKEN": process.env.VITE_TR_MT_TURSO_TOKEN as string,
+          "pixAi_key": process.env.VITE_TR_pixAi_key as string,
+          "image_width": process.env.VITE_TR_image_width as string,
+          "bs_id": process.env.VITE_TR_bs_id as string,
+          "bs_pass": process.env.VITE_TR_bs_pass as string,
+          "bs_handle": process.env.VITE_TR_bs_handle as string,
+        },
+      }
     },
     "reversi": {
-      "type": "streamable-http",
-      "url": "https://reversi-mcp-ui.daisycodes.workers.dev/mcp"
+      enable: true,
+      def: {
+        "type": "streamable-http",
+        "url": "https://reversi-mcp-ui.daisycodes.workers.dev/mcp"
+      }
     },
     // "slack": {
     //   "command": "npx",

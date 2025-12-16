@@ -6,7 +6,9 @@ import {
   generatorsConfigSetChema,
   generatorsMutableConfigSetChema,
 } from './DefGenerators.js';
+//  @ts-ignore
 import short from 'short-uuid';
+//  @ts-ignore
 import dayjs from 'dayjs';
 
 
@@ -248,10 +250,13 @@ export const McpStreamHttpServerDef = Schema.Struct({
   note: Schema.optional(Schema.String),
 });
 
-const McpServerDef = Schema.Union(
-  McpStdioServerDef, //.pipe(Schema.attachPropertySignature("kind", "stdio")),
-  McpStreamHttpServerDef, //.pipe(Schema.attachPropertySignature("kind", "streamHttp")),
-);
+const McpServerDef = Schema.Struct({
+  enable: Schema.Boolean,
+  def:Schema.Union(
+    McpStdioServerDef, //.pipe(Schema.attachPropertySignature("kind", "stdio")),
+    McpStreamHttpServerDef, //.pipe(Schema.attachPropertySignature("kind", "streamHttp")),
+  )
+})
 
 const McpToolInfo = Schema.Struct({
   name: Schema.mutable(Schema.String),
