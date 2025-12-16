@@ -31,7 +31,8 @@ const avatarList = ref<{label: string, value: string}[]>([]);
 
 
 const edit = ref<SysConfigMutable>(defaultSysSetting);
-const mcpConfig = ref<{id: string, body: string}[]>([]);
+const mcpConfig = ref<{id: string,enable:boolean, body: string}[]>([]);
+// const mcpConfig = ref<{id: string, body: string}[]>([]);
 
 const websocketPort = ref<string | undefined>(undefined);
 const saving = ref(false);
@@ -172,7 +173,10 @@ const saveAndClose = async () => {
           return;
         }
         try {
-          mcpOut[mcp.id] = JSON.parse(mcp.body);
+          mcpOut[mcp.id] = {
+            enable:mcp.enable || false,
+            def: JSON.parse(mcp.body)
+          };
         } catch (e) {
           console.log('json parse error:', e);
           errorMes.value = `mcp "${mcp.id}" setting is not valid`;
@@ -210,9 +214,15 @@ const saveAndClose = async () => {
 };
 
 const getMcpServerList = () => {
-  return (Object.entries(edit.value.mcpServers) as [string, McpServerDef][])
+  return (Object.entries(edit.value.mcpServers) as [string, any][])
     .map(v => {
-        return {id: v[0], body: JSON.stringify(v[1], null, 2)};
+      if (v[1].def) {
+        return {id: v[0],enable:v[1].enable, body: JSON.stringify(v[1].def, null, 2)};
+      } else {
+        //  旧構造互換
+        return {id: v[0],enable:true, body: JSON.stringify(v[1], null, 2)};
+      }
+      // return {id: v[0], body: JSON.stringify(v[1], null, 2)};
       },
     );
 };
@@ -224,7 +234,7 @@ const addMcp = () => {
     count++;
     id = `mcp${mcpConfig.value.length + count}`;
   }
-  const items = {id: id, body: '{}'};
+  const items = {id: id,enable:false, body: '{}'};
   mcpConfig.value.push(items);
   tabMcp.value = id;
   // tabMcp.value = id
@@ -543,6 +553,13 @@ const copyPath = async () => {
                               @change="tabMcp = server.id"
                               :rules="mcpNameValidate"
                               data-testid="mcp-id-input"
+                            />
+                            <q-toggle
+                              dense
+                              v-model="server.enable"
+                              label="enable"
+                              class="q-mb-sm"
+                              data-testid="mcp-enable-input"
                             />
                             <q-input
                               filled

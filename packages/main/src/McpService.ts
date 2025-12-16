@@ -40,7 +40,13 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
 
     function reset(sysConfig: SysConfig) {
       return Effect.gen(function* () {
-        serverInfoList = yield *Effect.validateAll(Object.entries(sysConfig.mcpServers), a1 => {
+        const servers = Object.entries(sysConfig.mcpServers).filter(value => value[1].enable).map(value => {
+          return {
+            name: value[0],
+            def: value[1].def
+          }
+        })
+        serverInfoList = yield *Effect.validateAll(servers, a1 => {
           return Effect.gen(function* () {
             const client = new Client(
               {
@@ -48,34 +54,34 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
                 version: '1.0.0',
               },
             );
-            const stdio = Schema.decodeUnknownOption(McpStdioServerDef)(a1[1])
-            const streamHttp = Schema.decodeUnknownOption(McpStreamHttpServerDef)(a1[1])
+            const stdio = Schema.decodeUnknownOption(McpStdioServerDef)(a1.def)
+            const streamHttp = Schema.decodeUnknownOption(McpStreamHttpServerDef)(a1.def)
             const transport = Option.isSome(stdio) ? new StdioClientTransport(stdio.value): Option.isSome(streamHttp) ? new StreamableHTTPClientTransport(new URL(streamHttp.value.url)):undefined
             // const transport = a1[1].kind === 'stdio' ? new StdioClientTransport(a1[1]): a1[1].kind === 'streamHttp' ? new StreamableHTTPClientTransport(new URL(a1[1].url)):undefined
             if (!transport) {
-              console.log('mcp def:',a1[1],stdio);
+              console.log('mcp def:',a1.def,stdio);
               return yield *Effect.fail(new Error('MCP define error'))
             }
             yield* Effect.tryPromise({
               try: () => client.connect(transport),
-              catch: error => new Error(`MCP ${a1[0]}.connect:\n${error}`),
+              catch: error => new Error(`MCP ${a1.def}.connect:\n${error}`),
             });
             const capabilities = client.getServerCapabilities();
             const tools = (capabilities?.tools ? yield* Effect.tryPromise({
               try: () => client.listTools(),
-              catch: error => new Error(`MCP ${a1[0]}.tools: ${error}`),
+              catch: error => new Error(`MCP ${a1.def}.tools: ${error}`),
             }) : {tools: []});
             const prompts = capabilities?.prompts ? yield* Effect.tryPromise({
               try: () => client.listPrompts(),
-              catch: error => new Error(`MCP ${a1[0]}.prompts: ${error}`),
+              catch: error => new Error(`MCP ${a1.def}.prompts: ${error}`),
             }) : {prompts: []};
             const resources = capabilities?.resources ? yield* Effect.tryPromise({
               try: () => client.listResources(),
-              catch: error => new Error(`MCP ${a1[0]}.resources: ${error}`),
+              catch: error => new Error(`MCP ${a1.def}.resources: ${error}`),
             }) : {resources: []};
 
             return {
-              id: a1[0],
+              id: a1.name,
               client,
               tools: tools.tools,
               prompts: prompts.prompts,
