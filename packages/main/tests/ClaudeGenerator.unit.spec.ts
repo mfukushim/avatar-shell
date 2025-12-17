@@ -11,7 +11,6 @@ import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
-import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator';
 import {AsMessage} from '../../common/Def';
@@ -22,6 +21,7 @@ import {
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
 } from './CommonGeneratorTest';
+import path from 'node:path';
 
 const cwd = process.cwd();
 let baseDir = cwd;
