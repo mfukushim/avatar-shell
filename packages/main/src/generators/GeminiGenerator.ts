@@ -229,6 +229,12 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
     return Effect.succeed(new GeminiTextGenerator(sysConfig, settings as GeminiTextSettings | undefined));
   }
 
+  constructor(sysConfig: SysConfig, settings?: GeminiTextSettings) {
+    super(sysConfig,settings);
+    this.model = settings?.useModel || sysConfig.generators.gemini?.model || 'gemini-2.5-flash';
+
+  }
+
   generateContext(current: GenInner, avatarState: AvatarState,option?:{noTool?:boolean}): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
@@ -303,6 +309,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: responseId,
           outputText: outText,
@@ -313,6 +320,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
@@ -325,6 +333,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: responseId,
           toolCallParam:funcCalls.map((v:FunctionCall) => {
@@ -351,6 +360,11 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
       return Effect.fail(new Error('gemini api key is not set.'));
     }
     return Effect.succeed(new GeminiImageGenerator(sysConfig, settings as GeminiImageSettings | undefined));
+  }
+  constructor(sysConfig: SysConfig, settings?: GeminiTextSettings) {
+    super(sysConfig,settings);
+    this.model = settings?.useModel || sysConfig.generators.geminiImage?.model || 'gemini-2.0-flash-preview-image-generation';
+
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -396,6 +410,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
@@ -425,6 +440,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
     super(sysConfig,settings);
     this.voice = sysConfig.generators.geminiVoice.voice || 'Kore';
     this.cutoffTextLimit = sysConfig.generators.geminiVoice.cutoffTextLimit || 150;
+    this.model = settings?.useModel || sysConfig.generators.geminiVoice?.model || 'gemini-2.5-flash-preview-tts';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -478,6 +494,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
           {
             avatarId: current.avatarId,
             fromGenerator: it.genName,
+            fromModelName:it.model,
             toGenerator: it,
             innerId: id,
             outputMediaUrl: mediaUrl,

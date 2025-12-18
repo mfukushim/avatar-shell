@@ -253,6 +253,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
     super(sysConfig);
     this.openAiSettings = settings;
+    this.model = settings?.useModel || sysConfig.generators.openAiText?.model || 'gpt-4.1-mini';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
@@ -333,6 +334,11 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         return {id: b.id, text: b.content.filter(c => c.type === 'output_text').map(c => c.text).join('\n')};
       });
       console.log('textOut:', JSON.stringify(textOut));
+      const responseUsage = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
+        Chunk.toReadonlyArray,
+      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.total_tokens)
+      const totalTokens = responseUsage.reduce((a, b) => a + b, 0)
+
       //  TODO 2つのレスポンスがある場合がとりあえず0番目に絞る。。
       // if (textOut.length > 1) {
       //   return yield* Effect.fail(new Error(`response.completed > 1:${textOut.length}`));
@@ -343,6 +349,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
+          totalTokens: totalTokens,
           toGenerator: it,
           innerId: textOut[0].id,
           outputText: textOut[0].text,
@@ -356,6 +364,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
+          totalTokens: totalTokens,
           toGenerator: it,
           innerId: (textOut.length > 0 ? textOut[0].id : undefined) || current.input?.content.innerId || short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {
@@ -394,6 +404,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
   constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
     super(sysConfig)
     this.openAiSettings = settings;
+    this.model = settings?.useModel || sysConfig.generators.openAiImage?.model || 'gpt-4.1-mini';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -445,6 +456,7 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
           genOut.push({
             avatarId: current.avatarId,
             fromGenerator: it.genName,
+            fromModelName:it.model,
             toGenerator: it,
             innerId: value.id,
             outputRaw: value.img!,
@@ -494,6 +506,7 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
     this.openAiSettings = settings;
     this.voice = sysConfig.generators.openAiVoice?.voice || 'alloy';
     this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
+    this.model = settings?.useModel || sysConfig.generators.openAiVoice?.model || 'gpt-4o-audio-preview';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -549,6 +562,7 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: responseOut.id,
           outputRaw: snd,

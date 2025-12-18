@@ -102,6 +102,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toContext:Schema.optional(AsContextLinesSchema),
   noTool: Schema.optional(Schema.Boolean),
+  useModel: Schema.optional(Schema.String),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 

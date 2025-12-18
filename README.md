@@ -4,6 +4,8 @@
 
 English / [Japanese](./README_jp.md)
 
+> Supported LM Studio API (OpenAI compatibility mode).
+
 > Note: If you are using a previous version and are experiencing unstable operation, please initialize the settings by going to SystemSetting > initialize.  
 > The daemon detection conditions have been expanded/changed. If the operation becomes unstable, please reset the settings.
 

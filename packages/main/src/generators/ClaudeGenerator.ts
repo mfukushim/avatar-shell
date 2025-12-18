@@ -261,6 +261,11 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.succeed(new ClaudeTextGenerator(sysConfig, settings as ClaudeTextSettings | undefined));
   }
 
+  constructor(sysConfig: SysConfig, settings?: ClaudeTextSettings) {
+    super(sysConfig, settings);
+    this.model = settings?.useModel || sysConfig.generators.anthropic?.model || 'claude-3-7-sonnet-latest';
+  }
+
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
     noTool?: boolean
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -332,6 +337,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: message.id,
           outputText: outText,
@@ -344,6 +350,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
           toGenerator: it,
           innerId: message.id,
           toolCallParam: funcCalls.map((v) => {

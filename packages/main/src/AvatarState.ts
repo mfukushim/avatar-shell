@@ -1,5 +1,5 @@
 import {
-  Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef, FiberStatus,
+  Chunk, Duration, Effect, Fiber, Queue, Ref, Schedule, Stream, SubscriptionRef, SynchronizedRef, FiberStatus, Schema,
 } from 'effect';
 import {
   AlertTask,
@@ -64,6 +64,9 @@ export interface GenInner {
 export interface GenOuter {
   avatarId: string;
   fromGenerator: ContentGenerator;
+  fromModelName?: string;
+  totalTokens?: number,
+  modelContextSize?: Schema.Number,
   toGenerator: ContextGenerator;
   innerId: string;
   toolCallParam?: ToolCallParam[];
@@ -1243,6 +1246,8 @@ export class AvatarState {
             from: a.outputFrom || it.Name,
             text: a.outputText,
             generator: a.fromGenerator,
+            modelName: a.fromModelName,
+            totalTokens: a.totalTokens,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
@@ -1255,6 +1260,8 @@ export class AvatarState {
             mediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
+            modelName: a.fromModelName,
+            totalTokens: a.totalTokens,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
@@ -1267,6 +1274,8 @@ export class AvatarState {
             mediaUrl: a.outputMediaUrl,
             mimeType: a.outputMime,
             generator: a.fromGenerator,
+            modelName: a.fromModelName,
+            totalTokens: a.totalTokens,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
@@ -1279,6 +1288,8 @@ export class AvatarState {
               toolName: value.name,
               toolReq: value,
               generator: a.fromGenerator,
+              modelName: a.fromModelName,
+              totalTokens: a.totalTokens,
               nextGeneratorId: a.toGenerator.UniqueId,
             };
           });

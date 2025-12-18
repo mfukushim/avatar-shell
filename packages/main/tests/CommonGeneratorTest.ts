@@ -35,7 +35,7 @@ function setupNormalTalkTest(vitestConf: any) {
 
 
 
-export async function contextStepTest1(generatorName:GeneratorProvider,expectedStep:number) {
+export async function contextStepTest1(generatorName:GeneratorProvider,expectedStep:number,modelName?:string) {
   await Effect.gen(function* () {
     const {avatarState, gen} = yield* setupNormalTalkTest({
       ...vitestAvatarConfigNone,
@@ -63,7 +63,7 @@ export async function contextStepTest1(generatorName:GeneratorProvider,expectedS
         },
         exec: {
           generator: generatorName,
-          setting: {toClass: 'talk', toRole: 'bot', toContext: 'surface'},
+          setting: {toClass: 'talk', toRole: 'bot', toContext: 'surface',useModel:modelName},
         },
       }]),
     });
@@ -421,7 +421,7 @@ export async function contextStepTest5(generatorName:GeneratorProvider,expectedS
 
 }
 
-export async function contextStepTest6(generatorName:GeneratorProvider,expectedStep:number) {
+export async function contextStepTest6(generatorName:GeneratorProvider,expectedStep:number,waitTime:number = 30) {
   await Effect.gen(function* () {
     const {avatarState, gen} = yield* setupNormalTalkTest({
       ...vitestAvatarConfigNone,
@@ -515,7 +515,7 @@ export async function contextStepTest6(generatorName:GeneratorProvider,expectedS
     }, 'talk', 'human', 'outer')]);
     console.log('askAvatar:', res);
 
-    yield* Effect.sleep('30 seconds');
+    yield* Effect.sleep(`${waitTime} seconds`);
 
     const params = yield* avatarState.TalkContextEffect;
     console.log('context:', params.map(a => AsMessage.debugLog(a)).join('\n'));

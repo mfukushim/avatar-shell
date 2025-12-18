@@ -15,17 +15,14 @@ import {MediaService} from '../MediaService.js';
 import OpenAI, {APIError} from 'openai';
 import {
   ResponseCreateParams,
-  ResponseCreateParamsNonStreaming,
   ResponseFunctionToolCall,
   ResponseInputContent,
   ResponseInputImage,
   ResponseInputItem,
   ResponseInputText,
-  ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputRefusal,
   ResponseOutputText,
-  Response,
 } from 'openai/resources/responses/responses';
 import ResponseCreateParamsStreaming = ResponseCreateParams.ResponseCreateParamsStreaming;
 import {TimeoutException} from 'effect/Cause';
@@ -41,7 +38,7 @@ import short from 'short-uuid';
  * This class must be extended to define specific model configurations and behaviors.
  */
 export abstract class LmStudioBaseGenerator extends ContextGenerator {
-  protected openAiSettings: LmStudioSettings | undefined;
+  protected lmStudioSettings: LmStudioSettings | undefined;
   protected openai: OpenAI;
   //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model: string;
@@ -59,7 +56,7 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
   constructor(sysConfig: SysConfig) {
     super(sysConfig);
     this.openai = new OpenAI({
-      // apiKey: process.env.PROVIDER_API_KEY,
+      apiKey: 'dummy',
       baseURL: (sysConfig.generators.lmStudio?.baseUrl || ''),
     })
   }
@@ -172,7 +169,7 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
       if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
         //  openAIの場合、画像ファイルはinput_imageとしてbase64で送る
         const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
-        const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.openAiSettings?.inWidth);
+        const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.lmStudioSettings?.inWidth);
         const b64 = b1.toString('base64');
         const imageUrl = `data:${current.input.content.mimeType};base64,${b64}`;
         //  縮小した画像をLLMには送る
@@ -222,7 +219,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
 
   constructor(sysConfig: SysConfig, settings?: LmStudioSettings) {
     super(sysConfig);
-    this.openAiSettings = settings;
+    this.lmStudioSettings = settings;
+    this.model = settings?.useModel || sysConfig.generators.lmStudio?.model || 'openai/gpt-oss-20b';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
@@ -303,6 +301,10 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         return {id: b.id, text: b.content.filter(c => c.type === 'output_text').map(c => c.text).join('\n')};
       });
       console.log('textOut:', JSON.stringify(textOut));
+      const responseUsage = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
+        Chunk.toReadonlyArray,
+      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.total_tokens)
+      const totalTokens = responseUsage.reduce((a, b) => a + b, 0)
       //  TODO 2つのレスポンスがある場合がとりあえず0番目に絞る。。
       // if (textOut.length > 1) {
       //   return yield* Effect.fail(new Error(`response.completed > 1:${textOut.length}`));
@@ -313,6 +315,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
+          totalTokens: totalTokens,
           toGenerator: it,
           innerId: textOut[0].id,
           outputText: textOut[0].text,
@@ -326,6 +330,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
+          fromModelName:it.model,
+          totalTokens: totalTokens,
           toGenerator: it,
           innerId: (textOut.length > 0 ? textOut[0].id : undefined) || current.input?.content.innerId || short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {

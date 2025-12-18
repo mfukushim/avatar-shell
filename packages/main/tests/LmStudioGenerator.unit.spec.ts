@@ -7,7 +7,7 @@ import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
 import {McpService, McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
+import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
@@ -32,7 +32,7 @@ if (cwd.endsWith('main')) {
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
-describe('OpenAiGenerator', () => {
+describe('LmStudioGenerator', () => {
   beforeEach(() => {
   });
 
@@ -95,73 +95,6 @@ describe('OpenAiGenerator', () => {
     console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
   });
-  it('generateContext_image_gen', async () => {
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      // console.log(avatarState);
-      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
-
-      const ai = yield* OpenAiImageGenerator.make(vitestSysConfig);
-
-      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-      const fs = yield* FileSystem.FileSystem;
-      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
-      const testImageBase64 = Buffer.from(file).toString('base64');
-
-      const out = yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
-        input:AsMessage.makeMessage({
-          innerId: '1234567890',
-          text: 'Draw anime girl',
-        },'talk','human','surface'),
-        genNum:0
-      }, avatarState);
-      return yield *Effect.forEach(out, (o) => {
-        if (o.outputRaw) {
-          return DocService.saveDocMedia('123', 'image/png', o.outputRaw, 'vitestDummyId')
-        }
-        if (o.outputText) {
-          return Effect.succeed(o.outputText);
-        }
-      })
-    }).pipe(aiRuntime.runPromise,);
-
-
-    console.log('out:',res);
-    expect(typeof res === 'object').toBe(true);
-  });
-  it('generateContext_voice_gen', async () => {
-    const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-      // console.log(avatarState);
-      yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
-
-      const ai = yield* OpenAiVoiceGenerator.make(vitestSysConfig);
-
-      // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-
-      const out = yield *ai.generateContext({
-        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
-        input:AsMessage.makeMessage({
-          innerId: '1234567890',
-          text: 'Draw anime girl',
-        },'talk','human','surface'),
-        genNum:0
-      }, avatarState);
-      return yield *Effect.forEach(out, (o) => {
-        if (o.outputRaw) {
-          return DocService.saveDocMedia('456', 'audio/wav', o.outputRaw, 'vitestDummyId')
-        }
-        if (o.outputText) {
-          return Effect.succeed(o.outputText);
-        }
-      })
-    }).pipe(aiRuntime.runPromise,);
-
-
-    console.log('out:',res);
-    expect(typeof res === 'object').toBe(true);
-  });
 
   function setupNormalTalkTest(vitestConf: any) {
     return Effect.gen(function* () {
@@ -182,31 +115,35 @@ describe('OpenAiGenerator', () => {
   }
 
   it('コンテキストステップ確認1', async () => {
-    await contextStepTest1('openAiText',4)
+    await contextStepTest1('lmStudioText',4)
+  })
+
+  it('コンテキストステップ確認1別モデル', async () => {
+    await contextStepTest1('lmStudioText',4,'essentialai/rnj-1')
   })
 
   it('コンテキストステップ確認2', async () => {
-    await contextStepTest2('openAiText',6)
+    await contextStepTest2('lmStudioText',6)
   });
 
   it('コンテキストステップ確認3', async () => {
-    await contextStepTest3('openAiText',4)
+    await contextStepTest3('lmStudioText',4)
   })
 
   it('コンテキストステップ確認4', async () => {
-    await contextStepTest4('openAiText',8)
+    await contextStepTest4('lmStudioText',8)
   })
 
   it('コンテキストステップ確認5', async () => {
-    await contextStepTest5('openAiText',7)
+    await contextStepTest5('lmStudioText',7)
   })
 
   it('コンテキストステップ確認6', async () => {
-    await contextStepTest6('openAiText',7)
+    await contextStepTest6('lmStudioText',7,90)
   });
 
   it('コンテキストステップ確認7', async () => {
-    await contextStepTest7('openAiText',13)
+    await contextStepTest7('lmStudioText',13)
   });
 
 },5*60*1000);

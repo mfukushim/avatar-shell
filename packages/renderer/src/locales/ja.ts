@@ -121,4 +121,5 @@ export default {
   resetWithoutMedia:'コンテンツ以外初期化',
   fullReset:'全初期化',
   preferenceDirectory: '設定ディレクトリ',
+  defaultModel:'デフォルトモデル',
 }

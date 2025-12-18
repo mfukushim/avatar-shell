@@ -121,4 +121,5 @@ export default {
   fullReset:'Initialize all',
   preferenceDirectory: 'Preference Directory',
   mcpUiFilterDisabled: 'Send all MCP-UI information to LLM',
+  defaultModel:'default model',
 }

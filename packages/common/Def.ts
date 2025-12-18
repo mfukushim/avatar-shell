@@ -116,6 +116,7 @@ export const AsMessageContentSchema = Schema.partial(
     text: Schema.String,
     subCommand: SubCommandSchema,
     generator: ContentGeneratorSchema,
+    modelName: Schema.optional(Schema.String),
     nextGeneratorId: Schema.String,
     mediaUrl: Schema.String,
     mediaBin: Schema.Any, //  ArrayBuffer
@@ -125,6 +126,8 @@ export const AsMessageContentSchema = Schema.partial(
     toolRes: Schema.Any,
     textParts: Schema.Array(Schema.String),
     llmInfo: Schema.String,
+    totalTokens: Schema.Number,
+    modelContextSize: Schema.Number,
     isExternal: Schema.Boolean,
   }));
 

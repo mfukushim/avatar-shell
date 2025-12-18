@@ -37,6 +37,10 @@ export const vitestSysConfig: SysConfig = {
     ollama: {
       host: process.env.VITE_OLLAMA_HOST as string || 'http://127.0.0.1:8000',
       model: 'llama3.1',
+    },
+    lmStudio: {
+      baseUrl: process.env.VITE_LM_STUDIO_BASE_URL as string || 'http://127.0.0.1:8000',
+      model: 'openai/gpt-oss-20b',
     }
     // voiceVox: {
     //   url: 'http://192.168.1.100:50021',
