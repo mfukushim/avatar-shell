@@ -11,8 +11,8 @@ import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FileSystem} from '@effect/platform';
+import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator';
 import {AsMessage} from '../../common/Def';
 import {
   contextStepTest1,
@@ -21,23 +21,23 @@ import {
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
 } from './CommonGeneratorTest';
-import path from 'node:path';
+import {LmStudioTextGenerator} from '../src/generators/LmStudioGenerator';
 
-const cwd = process.cwd();
+const cwd = process.cwd()
 let baseDir = cwd;
 if (cwd.endsWith('main')) {
-  baseDir = path.join(baseDir, '../..');
+  baseDir = path.join(baseDir,'../..');
 }
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer);
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
-describe('ClaudeGenerator', () => {
+describe('LmStudioGenerator', () => {
   beforeEach(() => {
   });
 
   it('make', async () => {
-    const ai = await ClaudeTextGenerator.make(vitestSysConfig).pipe(runPromise);
+    const ai = await LmStudioTextGenerator.make(vitestSysConfig).pipe(runPromise);
 
     console.log(ai);
     expect(typeof ai === 'object').toBe(true);
@@ -49,19 +49,19 @@ describe('ClaudeGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
+      const ai = yield* LmStudioTextGenerator.make(vitestSysConfig);
 
-      return yield* ai.generateContext({
-        avatarId: 'aaaa', toGenerator: ai, fromGenerator: 'external',
+      return yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
         input: AsMessage.makeMessage({
           innerId: '1234567890',
           text: 'hello',
-        }, 'talk', 'human', 'surface'),
-        genNum: 0,
+        },'talk','human','surface'),
+        genNum:0
       }, avatarState);
-    }).pipe(aiRuntime.runPromise);
+    }).pipe(aiRuntime.runPromise,);
 
-    console.log('out:', res);
+    console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
   });
 
@@ -71,59 +71,30 @@ describe('ClaudeGenerator', () => {
       // console.log(avatarState);
       yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
 
-      const ai = yield* ClaudeTextGenerator.make(vitestSysConfig);
+      const ai = yield* LmStudioTextGenerator.make(vitestSysConfig);
 
       // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       const fs = yield* FileSystem.FileSystem;
-      const file = yield* fs.readFile(path.join(baseDir, 'tests_fixtures/1758692794_planeImage.png'));
+      const file = yield *fs.readFile(path.join(baseDir,'tests_fixtures/1758692794_planeImage.png'));
       const testImageBase64 = Buffer.from(file).toString('base64');
 
-      const url = yield* DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId');
-      return yield* ai.generateContext({
-        avatarId: 'aaaa', toGenerator: ai, fromGenerator: 'external',
-        input: AsMessage.makeMessage({
+      const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
+      return yield *ai.generateContext({
+        avatarId:'aaaa',toGenerator:ai,fromGenerator:'external',
+        input:AsMessage.makeMessage({
           innerId: '1234567890',
           mediaUrl: url,
           mimeType: 'image/png',  //  mimeの指定は必須にしている
           text: 'What is in the picture?',
-        }, 'talk', 'human', 'surface'),
-        genNum: 0,
+        },'talk','human','surface'),
+        genNum:0
       }, avatarState);
-    }).pipe(aiRuntime.runPromise);
+    }).pipe(aiRuntime.runPromise,);
 
 
-    console.log(res);
+    console.log('out:',res);
     expect(typeof res === 'object').toBe(true);
   });
-
-  //  現時点ファイルはimageのみ想定っぽい。テキストファイルは展開してプロンプト扱いにしていたはず。
-  // it('generateContext_text_file', async () => {
-  //   const res = await Effect.gen(function* () {
-  //     const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
-  //     // console.log(avatarState);
-  //     yield* Effect.sleep('5 seconds'); //  avatarState生成直後はスケジュールリストはまだ更新されていない
-  //
-  //     const ai = yield* OllamaTextGenerator.make({
-  //       host: "http://192.168.11.121:11434",
-  //       model: "llava:7b-v1.6"
-  //     });
-  //
-  //     // const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-  //     const fs = yield* FileSystem.FileSystem;
-  //     const file = yield *fs.readFileString(path.join(baseDir,'tests_fixtures/q1.txt'));
-  //
-  //     const url = yield *DocService.saveDocMedia('123', 'image/png', testImageBase64, 'vitestDummyId')
-  //     return yield *ai.generateContext({avatarId:'aaaa',toGenerator:'ollamaText',input:{
-  //         innerId: '1234567890',
-  //         mediaUrl: url,
-  //         mimeType: 'image/png',  //  mimeの指定は必須にしている
-  //         text: 'What is in the picture?',
-  //       }
-  //     } as GenInner, avatarState);
-  //   }).pipe(aiRuntime.runPromise,);
-  //   console.log(res);
-  //   expect(typeof res === 'object').toBe(true);
-  // });
 
   function setupNormalTalkTest(vitestConf: any) {
     return Effect.gen(function* () {
@@ -144,30 +115,35 @@ describe('ClaudeGenerator', () => {
   }
 
   it('コンテキストステップ確認1', async () => {
-    await contextStepTest1('claudeText',4)
-  });
+    await contextStepTest1('lmStudioText',4)
+  })
+
+  it('コンテキストステップ確認1別モデル', async () => {
+    await contextStepTest1('lmStudioText',4,'essentialai/rnj-1')
+  })
 
   it('コンテキストステップ確認2', async () => {
-    await contextStepTest2('claudeText',8)
+    await contextStepTest2('lmStudioText',6)
   });
 
   it('コンテキストステップ確認3', async () => {
-    await contextStepTest3('claudeText',4)
-  });
+    await contextStepTest3('lmStudioText',4)
+  })
 
   it('コンテキストステップ確認4', async () => {
-    await contextStepTest4('claudeText',8)
-  });
+    await contextStepTest4('lmStudioText',8)
+  })
 
   it('コンテキストステップ確認5', async () => {
-    await contextStepTest5('claudeText',9)
-  });
+    await contextStepTest5('lmStudioText',7)
+  })
 
   it('コンテキストステップ確認6', async () => {
-    await contextStepTest6('claudeText',9)
-  });
-  it('コンテキストステップ確認7', async () => {
-    await contextStepTest7('claudeText',17)
+    await contextStepTest6('lmStudioText',7,90)
   });
 
-}, 5 * 60 * 1000);
+  it('コンテキストステップ確認7', async () => {
+    await contextStepTest7('lmStudioText',13)
+  });
+
+},5*60*1000);

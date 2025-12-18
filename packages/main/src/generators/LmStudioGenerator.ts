@@ -7,30 +7,27 @@ import {McpService} from '../McpService.js';
 import {ConfigService} from '../ConfigService.js';
 import {
   OpenAiTextSettings,
-  OpenAiSettings,
   ContextGeneratorInfo,
   ContextGeneratorSetting,
-  GeneratorProvider, OpenAiImageSettings,
+  GeneratorProvider, LmStudioSettings,
 } from '../../../common/DefGenerators.js';
 import {MediaService} from '../MediaService.js';
 import OpenAI, {APIError} from 'openai';
 import {
   ResponseCreateParams,
-  ResponseCreateParamsNonStreaming,
   ResponseFunctionToolCall,
   ResponseInputContent,
   ResponseInputImage,
   ResponseInputItem,
   ResponseInputText,
-  ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputRefusal,
   ResponseOutputText,
-  Response,
 } from 'openai/resources/responses/responses';
 import ResponseCreateParamsStreaming = ResponseCreateParams.ResponseCreateParamsStreaming;
 import {TimeoutException} from 'effect/Cause';
 import short from 'short-uuid';
+
 
 /**
  * OpenAI(GPT)コンテキストジェネレーター基底
@@ -40,8 +37,8 @@ import short from 'short-uuid';
  *
  * This class must be extended to define specific model configurations and behaviors.
  */
-export abstract class OpenAiBaseGenerator extends ContextGenerator {
-  protected openAiSettings: OpenAiSettings | undefined;
+export abstract class LmStudioBaseGenerator extends ContextGenerator {
+  protected lmStudioSettings: LmStudioSettings | undefined;
   protected openai: OpenAI;
   //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model: string;
@@ -59,46 +56,16 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
   constructor(sysConfig: SysConfig) {
     super(sysConfig);
     this.openai = new OpenAI({
-      apiKey: sysConfig.generators.openAiText?.apiKey || '',
-    });
+      apiKey: 'dummy',
+      baseURL: (sysConfig.generators.lmStudio?.baseUrl || ''),
+    })
   }
-
-  // filterToolRes(value: any) {
-  //   if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
-  //     //  @ts-ignore
-  //     if (!value.resource.annotations.audience.includes('assistant')) {
-  //       console.log('contents test no out');
-  //       return;
-  //     }
-  //   }
-  //   //  @ts-ignore
-  //   if (value?.annotations && value.annotations?.audience) {
-  //     //  @ts-ignore
-  //     if (!value.annotations.audience.includes('assistant')) {
-  //       console.log('contents test no out');
-  //       return;
-  //     }
-  //   }
-  //   return value;
-  // }
-  //
-  // filterToolResList(value: any) {
-  //   try {
-  //     return value.content.flatMap((a: any) => {
-  //       const b = this.filterToolRes(a);
-  //       return b ? [b]:[]
-  //     });
-  //   } catch (error) {
-  //     console.log('filterToolResList error:', error);
-  //     throw error;
-  //   }
-  // }
 
   protected makePreviousContext(avatarState: AvatarState, current: GenInner) {
     const it = this;
     return Effect.gen(function* () {
       const prevMes = yield* avatarState.TalkContextEffect;
-      console.log('OpenAi prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0, 200)).join('\n'));
+      console.log('LmStudio prevMes:', prevMes.map(a => '##' + JSON.stringify(a).slice(0, 200)).join('\n'));
       const out: ResponseInputItem[] = [];
       const toolOutMap: Map<string, ResponseInputItem.FunctionCallOutput> = new Map();
       it.filterForLlmPrevContext(prevMes, current.input).forEach(a => {
@@ -160,10 +127,10 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
           }
         } else {
           //  system
-          console.log('OpenAi prevMes error:', a);
+          console.log('LmStudio prevMes error:', a);
         }
       })
-      console.log('OpenAi prevMes out:', out.map(a => '@@' + JSON.stringify(a).slice(0, 200)).join('\n'));
+      console.log('LmStudio prevMes out:', out.map(a => '@@' + JSON.stringify(a).slice(0, 200)).join('\n'));
       return out;
     });
   }
@@ -202,7 +169,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
       if (current.input?.content.mediaUrl && current.input?.content.mimeType && current.input?.content.mimeType.startsWith('image')) {
         //  openAIの場合、画像ファイルはinput_imageとしてbase64で送る
         const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
-        const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.openAiSettings?.inWidth);
+        const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.lmStudioSettings?.inWidth);
         const b64 = b1.toString('base64');
         const imageUrl = `data:${current.input.content.mimeType};base64,${b64}`;
         //  縮小した画像をLLMには送る
@@ -239,21 +206,21 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
 /**
  * GPT textコンテキストジェネレーター
  */
-export class OpenAiTextGenerator extends OpenAiBaseGenerator {
-  protected genName: GeneratorProvider = 'openAiText';
-  protected model = 'gpt-4.1-mini';
+export class LmStudioTextGenerator extends LmStudioBaseGenerator {
+  protected genName: GeneratorProvider = 'lmStudioText';
+  protected model = 'openai/gpt-oss-20b';
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting) {
-    if (!sysConfig.generators.openAiText?.apiKey) {
-      return Effect.fail(new Error('OpenAi api key is not set.'));
+    if (!sysConfig.generators.lmStudio?.baseUrl) {
+      return Effect.fail(new Error('lm studio baseUrl is not set.'));
     }
-    return Effect.succeed(new OpenAiTextGenerator(sysConfig, settings as OpenAiTextSettings | undefined));
+    return Effect.succeed(new LmStudioTextGenerator(sysConfig, settings as OpenAiTextSettings | undefined));
   }
 
-  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
+  constructor(sysConfig: SysConfig, settings?: LmStudioSettings) {
     super(sysConfig);
-    this.openAiSettings = settings;
-    this.model = settings?.useModel || sysConfig.generators.openAiText?.model || 'gpt-4.1-mini';
+    this.lmStudioSettings = settings;
+    this.model = settings?.useModel || sysConfig.generators.lmStudio?.model || 'openai/gpt-oss-20b';
   }
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
@@ -279,8 +246,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = prev.concat(mes);
-      console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
-      console.log('OpenAi context end:');
+      console.log('LmStudio context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
+      console.log('LmStudio context end:');
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: contents,
@@ -299,7 +266,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         catch: error => {
           const e = error as APIError;
           console.log('error:', e.message);
-          return new Error(`openAi API error:${e.message}`);
+          return new Error(`LmStudio API error:${e.message}`);
         },
       }).pipe(
         Effect.timeout('1 minute'),
@@ -338,7 +305,6 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         Chunk.toReadonlyArray,
       ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.total_tokens)
       const totalTokens = responseUsage.reduce((a, b) => a + b, 0)
-
       //  TODO 2つのレスポンスがある場合がとりあえず0番目に絞る。。
       // if (textOut.length > 1) {
       //   return yield* Effect.fail(new Error(`response.completed > 1:${textOut.length}`));
@@ -359,7 +325,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       }
       const funcCallReq: ResponseFunctionToolCall[] = responseOut.filter(b => b.type === 'function_call');
       if (funcCallReq.length > 0) {
-        console.log('OpenAi toolCallParam:', JSON.stringify(funcCallReq), textOut);
+        console.log('LmStudio toolCallParam:', JSON.stringify(funcCallReq), textOut);
         //  TODO ここのfunc call の書式がまだ合ってない
         genOut.push({
           avatarId: current.avatarId,
@@ -380,198 +346,9 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       }
       return genOut;
     }).pipe(Effect.catchAll(e => {
-      console.log('OpenAiTextGenerator generatorContext error:', e);
+      console.log('LmStudioTextGenerator generatorContext error:', e);
       return Effect.fail(new Error(`${e}`));
     }));
-  }
-}
-
-/**
- * GPT 画像合成
- * 画像と一緒に説明テキストを追加してしまうので、現時点テキストを外す。
- */
-export class OpenAiImageGenerator extends OpenAiBaseGenerator {
-  protected genName: GeneratorProvider = 'openAiImage';
-  protected model = 'gpt-4.1-mini';
-
-  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiImageGenerator, Error> {
-    if (!sysConfig.generators.openAiText?.apiKey) {
-      return Effect.fail(new Error('openAi API key is not set.'));
-    }
-    return Effect.succeed(new OpenAiImageGenerator(sysConfig, settings as OpenAiImageSettings | undefined));
-  }
-
-  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
-    super(sysConfig)
-    this.openAiSettings = settings;
-    this.model = settings?.useModel || sysConfig.generators.openAiImage?.model || 'gpt-4.1-mini';
-  }
-
-  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
-    const it = this;
-    return Effect.gen(function* () {
-      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      const prev: ResponseInputItem[] = []; //   yield* it.makePreviousContext(avatarState);  //  TODO 画像生成時はいまのところ履歴は反映させずに直近プロンプトのみ反映
-      //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
-      const mes = yield* it.makeCurrentContext(current);
-
-      //  prev+currentをLLM APIに要求、レスポンスを取得
-      const contents = prev.concat(mes);
-      const body: ResponseCreateParamsNonStreaming = {
-        model: it.model,
-        input: contents,
-        tools: [({type: 'image_generation', quality: 'low'})] as OpenAI.Responses.Tool[],
-        // store:true,
-      };
-      const responseOut: Response = yield* Effect.tryPromise({
-        try: () => it.openai.responses.create(body),
-        catch: error => {
-          const e = error as APIError;
-          // console.log('error:', e.message);
-          return new Error(`openAi API error:${e.message}`);
-        },
-      }).pipe(
-        Effect.timeout('1 minute'),
-        Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
-        Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
-      );
-
-      //  確定実行結果取得
-      const resImage = responseOut.output.filter(b => b.type === 'image_generation_call').flatMap((b: ResponseOutputItem.ImageGenerationCall) => {
-        return {img: b.result, id: b.id};
-      });
-      const resText = responseOut.output.filter(b => b.type === 'message').flatMap((b: ResponseOutputMessage) => {
-        return b.content.map(value => {
-          if (value.type === 'output_text') {
-            return {text: value.text, id: b.id};
-          }
-          return {text: value.refusal, id: b.id};
-        });
-      });
-
-      const nextGen = current.genNum + 1;
-      const genOut: GenOuter[] = [];
-      if (resImage.length > 0) {
-        resImage.forEach(value => {
-          genOut.push({
-            avatarId: current.avatarId,
-            fromGenerator: it.genName,
-            fromModelName:it.model,
-            toGenerator: it,
-            innerId: value.id,
-            outputRaw: value.img!,
-            outputMime: 'image/png',
-            genNum: nextGen,
-          });
-        });
-      }
-      //  TODO 画像と一緒に説明テキストを追加してしまうので、現時点テキストを外す。
-      // if (resText.length > 0) {
-      //   resText.forEach(value => {
-      //     genOut.push({
-      //       avatarId: current.avatarId,
-      //       fromGenerator: it.genName,
-      //       toGenerator: 'openAiText',  //  TODO ここはテキストエンジンじゃないといけないが。。。
-      //       innerId: value.id,
-      //       outputText: value.text,
-      //       genNum: nextGen,
-      //     });
-      //   });
-      // }
-      return genOut;
-    }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
-  }
-
-}
-
-/**
- * GPT 音声合成
- * gpt-4o-audio-preview だと会話を造ってしまうので daemonのテンプレートで ""を読み上げてください の形にする必要がある
- */
-export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
-  protected genName: GeneratorProvider = 'openAiVoice';
-  protected model = 'gpt-4o-audio-preview';
-  protected voice = 'alloy';
-  protected cutoffTextLimit = 150;
-
-  static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting): Effect.Effect<OpenAiVoiceGenerator, Error> {
-    if (!sysConfig.generators.openAiText?.apiKey) {
-      return Effect.fail(new Error('openAi API key is not set.'));
-    }
-    return Effect.succeed(new OpenAiVoiceGenerator(sysConfig, settings as OpenAiImageSettings | undefined));
-  }
-
-  constructor(sysConfig: SysConfig, settings?: OpenAiSettings) {
-    super(sysConfig);
-    this.openAiSettings = settings;
-    this.voice = sysConfig.generators.openAiVoice?.voice || 'alloy';
-    this.cutoffTextLimit = sysConfig.generators.openAiVoice.cutoffTextLimit || 150;
-    this.model = settings?.useModel || sysConfig.generators.openAiVoice?.model || 'gpt-4o-audio-preview';
-  }
-
-  generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
-    const it = this;
-    return Effect.gen(function* () {
-      //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
-      //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
-      const mes = yield* it.makeCurrentContext(current);
-      let text = mes.flatMap(value => {
-        if (value.type === 'message') {
-          if (typeof value.content === 'string') {
-            return [value.content];
-          } else {
-            return value.content.filter(a => a.type === 'input_text').map(a => a.text);
-          }
-        }
-        return [];
-      }).join(' ');
-      if (text) {
-        text = text.slice(0, it.cutoffTextLimit);
-      }
-
-      //  prev+currentをLLM APIに要求、レスポンスを取得
-      const responseOut = yield* Effect.tryPromise({
-        try: () => it.openai.chat.completions.create({
-          model: it.model,
-          modalities: ['text', 'audio'],
-          audio: {voice: it.voice, format: 'wav'},
-          messages: [
-            {
-              role: 'user',
-              content: text,
-            },
-          ],
-          // store:true,
-        }),
-        catch: error => {
-          const e = error as APIError;
-          console.log('error:', e.message);
-          return new Error(`openAi API error:${e.message}`);
-        },
-      }).pipe(
-        Effect.timeout('1 minute'),
-        Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
-        Effect.catchIf(a => a instanceof TimeoutException, _ => Effect.fail(new Error(`openAI API error:timeout`))),
-      );
-      //  Voiceとして呼んだ場合は音声しか取り出さない
-      //  TODO openAiのvoiceはまだResponse非対応
-      const genOut: GenOuter[] = [];
-      const snd = (responseOut).choices[0].message.audio?.data;
-      if (snd) {
-        const nextGen = current.genNum + 1;
-        genOut.push({
-          avatarId: current.avatarId,
-          fromGenerator: it.genName,
-          fromModelName:it.model,
-          toGenerator: it,
-          innerId: responseOut.id,
-          outputRaw: snd,
-          outputMime: 'audio/wav',
-          genNum: nextGen,
-        });
-      }
-      return genOut;
-    }).pipe(Effect.catchAll(e => Effect.fail(new Error(`${e}`))));
   }
 
 }

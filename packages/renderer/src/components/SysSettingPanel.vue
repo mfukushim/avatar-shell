@@ -66,6 +66,9 @@ const doOpen = async () => {
   if (!edit.value.generators.ollama) {
     edit.value.generators.ollama = {model: '', host: ''};
   }
+  if (!edit.value.generators.lmStudio) {
+    edit.value.generators.lmStudio = {model: '', baseUrl: ''};
+  }
   version.value = await getVersion();
   show.value = true;
 };
@@ -151,6 +154,13 @@ const saveAndClose = async () => {
     if (edit.value.generators.ollama?.host) cnt++;
     if (cnt === 1) {
       errorMes.value = 'Ollama setting is not valid';
+      return;
+    }
+    cnt = 0;
+    if (edit.value.generators.lmStudio?.model) cnt++;
+    if (edit.value.generators.lmStudio?.baseUrl) cnt++;
+    if (cnt === 1) {
+      errorMes.value = 'LM Studio setting is not valid';
       return;
     }
 
@@ -397,6 +407,7 @@ const copyPath = async () => {
                       <q-tab name="google" label="Gemini">
                       </q-tab>
                       <q-tab label="Ollama" name="ollama"/>
+                      <q-tab label="LM Studio" name="lmStudio"/>
 <!--
                       <q-tab name="voiceVox" label="VoiceVox">
                       </q-tab>
@@ -492,6 +503,22 @@ const copyPath = async () => {
                                      placeholder="llama3.1"
                                      :label="t('Model')"
                                      data-testid="ollama-model" />
+                          </q-card-section>
+                        </q-card>
+                      </q-tab-panel>
+                      <q-tab-panel name="lmStudio">
+                        <q-card>
+                          <q-card-section>
+                            <q-input v-model="edit.generators.lmStudio.baseUrl"
+                                     type="text"
+                                     placeholder="http://192.168.1.1:1234/v1"
+                                     :label="t('Host')"
+                                     data-testid="lmStudio-host" />
+                            <q-input v-model="edit.generators.lmStudio.model"
+                                     type="text"
+                                     placeholder="openai/gpt-oss-20b"
+                                     :label="t('defaultModel')"
+                                     data-testid="lmStudio-model" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>

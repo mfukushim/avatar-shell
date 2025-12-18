@@ -35,7 +35,7 @@ export class OllamaTextGenerator extends ContextGenerator {
 
   constructor(setting: SysConfig,settings?: ContextGeneratorSetting) {
     super(setting);
-    this.model = setting.generators.ollama?.model || 'llama3.1';
+    this.model = settings?.useModel || setting.generators.ollama?.model || 'llama3.1';
     this.ollama = new Ollama({
       host: setting.generators.ollama?.host || 'http://localhost:11434',
       // headers: {
@@ -173,6 +173,7 @@ export class OllamaTextGenerator extends ContextGenerator {
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
+        fromModelName:it.model,
         toGenerator: it,
         innerId: innerId,
         outputText: text,

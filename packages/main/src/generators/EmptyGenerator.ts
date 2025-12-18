@@ -62,6 +62,7 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
       return [{
         avatarId:current.avatarId,
         fromGenerator: it.genName,
+        fromModelName:it.model,
         toGenerator: it,
         innerId: short.generate() as string,
         outputText: "You haven't configured LLM yet, please do so first./まだLLMを設定していません。最初に設定を行ってください。",

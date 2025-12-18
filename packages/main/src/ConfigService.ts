@@ -32,6 +32,7 @@ import {OllamaTextGenerator} from './generators/OllamaGenerator.js';
 import {ClaudeTextGenerator} from './generators/ClaudeGenerator.js';
 import {OpenAiImageGenerator, OpenAiTextGenerator, OpenAiVoiceGenerator} from './generators/OpenAiGenerator.js';
 import { rm, readdir } from 'fs/promises';
+import {LmStudioTextGenerator} from './generators/LmStudioGenerator.js';
 
 let debugConfigFile: string | undefined = undefined;
 
@@ -493,6 +494,7 @@ export class ConfigService extends Effect.Service<ConfigService>()('avatar-shell
       'claudeText': (sysConfig, settings) => ClaudeTextGenerator.make(sysConfig, settings), //ClaudeTextGenerator.make(sysConfig, settings),
       'geminiText': (sysConfig, settings) => GeminiTextGenerator.make(sysConfig, settings),
       'ollamaText': (sysConfig, settings) => OllamaTextGenerator.make(sysConfig, settings),
+      'lmStudioText': (sysConfig, settings) => LmStudioTextGenerator.make(sysConfig, settings),
       //  画像生成系
       'pixAi': (sysConfig, settings) => EmptyImageGenerator.make(sysConfig,settings), //PixAiImageGenerator.make(sysConfig, settings),
       'openAiImage': (sysConfig, settings) => OpenAiImageGenerator.make(sysConfig, settings),

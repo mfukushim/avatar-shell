@@ -76,6 +76,7 @@ export const GeneratorProviderSchema = Schema.Literal(
   // 'voiceVox',
   // 'comfyUi',
   'ollamaText',
+  'lmStudioText',
   'pixAi',  //  TODO 確認
   'emptyText',
   'emptyImage',
@@ -101,6 +102,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toRole: Schema.optional(AsRoleSchema),  //  contextに追加するときは必ずuserにする方向、でなければ通常system
   toContext:Schema.optional(AsContextLinesSchema),
   noTool: Schema.optional(Schema.Boolean),
+  useModel: Schema.optional(Schema.String),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 
@@ -152,6 +154,11 @@ export interface GeminiVoiceSettings extends ContextGeneratorSetting {
 }
 
 export interface ClaudeTextSettings extends ContextGeneratorSetting {
+  model?:string;
+  inWidth?:number;
+}
+
+export interface LmStudioSettings extends ContextGeneratorSetting {
   model?:string;
   inWidth?:number;
 }
@@ -228,6 +235,16 @@ export const ollamaSysConfigSchema = Schema.Struct({
 export type OllamaSysConfig = typeof ollamaSysConfigSchema.Type
 export const ollamaMutableConfigSchema = Schema.mutable(ollamaSysConfigSchema)
 
+//  lmStudio
+export const lmStudioSysConfigSchema = Schema.Struct({
+  baseUrl: Schema.String,
+  model: Schema.String,
+  token: Schema.optional(Schema.String),
+});
+
+export type LmStudioSysConfig = typeof lmStudioSysConfigSchema.Type
+export const lmStudioMutableConfigSchema = Schema.mutable(lmStudioSysConfigSchema)
+
 
 //  画像生成generator
 
@@ -266,6 +283,7 @@ export const generatorsConfigSetChema = Schema.Struct({
   geminiImage: geminiImageConfigSchema,
   geminiVoice: geminiVoiceConfigSchema,
   ollama: ollamaSysConfigSchema,
+  lmStudio: lmStudioSysConfigSchema,
   // voiceVox: voiceVoxSysConfigSchema,
 })
 export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
@@ -277,6 +295,7 @@ export const generatorsMutableConfigSetChema = Schema.mutable(Schema.Struct({
   geminiImage: geminiImageMutableConfigSchema,
   geminiVoice: geminiVoiceMutableConfigSchema,
   ollama: ollamaMutableConfigSchema,
+  lmStudio: lmStudioMutableConfigSchema,
   // voiceVox: voiceVoxMutableConfigSchema,
 }))
 

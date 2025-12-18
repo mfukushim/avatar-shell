@@ -1,7 +1,7 @@
 {
   "name": "avatar-shell",
   "description": "Avatar/Visually-based MCP client",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -60,6 +60,7 @@
     "@effect/sql": "^0.44.0",
     "@electron/remote": "^2.1.2",
     "@google/genai": "^1.8.0",
+    "@lmstudio/sdk": "^1.5.0",
     "@mcp-ui/client": "^5.6.2",
     "@modelcontextprotocol/sdk": "^1.22.0",
     "@pixai-art/client": "^0.4.0",
