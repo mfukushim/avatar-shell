@@ -284,7 +284,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       const contents = prev.concat(mes);
       it.debugContext(contents);
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
-        model: it.model || 'claude-3-5-haiku-latest',
+        model: it.model || 'claude-3-7-haiku-latest',
         messages: contents,
         tools: tools.map(a => {
           return {
