@@ -17,8 +17,10 @@ import {AvatarService, AvatarServiceLive} from './AvatarService.js';
 import {SocketServiceLive} from './SocketService.js';
 import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../common/Def.js';
 import electronLog from 'electron-log';
+import {FetchHttpClient} from '@effect/platform';
 
-const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive, MediaServiceLive,AvatarServiceLive,SocketServiceLive);
+const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive,
+  MediaServiceLive,AvatarServiceLive,SocketServiceLive,FetchHttpClient.layer);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
 
 export function showAlertIfFatal(detectPos: string) {

@@ -9,6 +9,7 @@ import {MediaService} from '../MediaService.js';
 import sharp from 'sharp';
 import short from 'short-uuid';
 import {CallToolResult, ContentBlock} from '@modelcontextprotocol/sdk/types.js';
+import {HttpClient} from '@effect/platform';
 
 
 /**
@@ -19,6 +20,7 @@ export abstract class ContextGenerator {
   protected previousNativeContexts: any[] = []  //  各LLMでの過去コンテキストのキャッシュ
   protected uniqueId = '';
   protected sysSetting:SysConfig
+  protected maxModelContextSize = 10000;
 
 
   constructor(sysSetting:SysConfig) {
@@ -27,7 +29,7 @@ export abstract class ContextGenerator {
     this.sysSetting = sysSetting
   }
 
-  abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService>
+  abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService|HttpClient.HttpClient>
 
   protected abstract genName: GeneratorProvider;
   protected abstract model: string;

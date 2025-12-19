@@ -27,6 +27,7 @@ import {
 import ResponseCreateParamsStreaming = ResponseCreateParams.ResponseCreateParamsStreaming;
 import {TimeoutException} from 'effect/Cause';
 import short from 'short-uuid';
+import {HttpClient} from '@effect/platform';
 
 
 /**
@@ -43,6 +44,8 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
   //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
+  protected override maxModelContextSize = -1;
+  protected baseUrl=''
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -55,9 +58,14 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
 
   constructor(sysConfig: SysConfig) {
     super(sysConfig);
+    this.baseUrl = new URL(sysConfig.generators.lmStudio?.baseUrl).toString()
+    console.log('LmStudioBaseGenerator baseUrl:', this.baseUrl);
+    const u = new URL(this.baseUrl)
+    u.pathname = '/v1';
+    console.log('LmStudioBaseGenerator v1:', u.toString());
     this.openai = new OpenAI({
       apiKey: 'dummy',
-      baseURL: (sysConfig.generators.lmStudio?.baseUrl || ''),
+      baseURL: u.toString(),
     })
   }
 
@@ -225,9 +233,25 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
     noTool?: boolean
-  }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
+  }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService|HttpClient.HttpClient> {
     const it = this;
     return Effect.gen(function* () {
+      //  モデルの最大コンテキスト長をまだ未取得だったら取得する make内では依存関係で呼ぶと形がずれるので。。
+      if (it.maxModelContextSize === -1) {
+        const client = yield* HttpClient.HttpClient;
+        const u = new URL(it.baseUrl)
+        u.pathname += 'api/v0/models/'+it.model;
+        const response:any = yield* client.get(
+          u.toString()
+        ).pipe(Effect.andThen(a => a.json),
+          Effect.catchAll(e => {
+            console.log('error:', e);
+            return Effect.succeed(e);
+          }));
+        console.log('LmStudioTextGenerator model:', response);
+        it.maxModelContextSize = response.max_context_length;
+      }
+
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
       const prev = Array.from(it.previousNativeContexts)
@@ -303,8 +327,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       console.log('textOut:', JSON.stringify(textOut));
       const responseUsage = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
         Chunk.toReadonlyArray,
-      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.total_tokens)
-      const totalTokens = responseUsage.reduce((a, b) => a + b, 0)
+      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.input_tokens)
+      const inputTokens = responseUsage.reduce((a, b) => a + b, 0)
       //  TODO 2つのレスポンスがある場合がとりあえず0番目に絞る。。
       // if (textOut.length > 1) {
       //   return yield* Effect.fail(new Error(`response.completed > 1:${textOut.length}`));
@@ -316,7 +340,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
-          totalTokens: totalTokens,
+          inputTokens: inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: textOut[0].id,
           outputText: textOut[0].text,
@@ -331,7 +356,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
-          totalTokens: totalTokens,
+          inputTokens: inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: (textOut.length > 0 ? textOut[0].id : undefined) || current.input?.content.innerId || short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {

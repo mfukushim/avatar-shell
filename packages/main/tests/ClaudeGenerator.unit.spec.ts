@@ -21,7 +21,7 @@ import {
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
 } from './CommonGeneratorTest';
-import path from 'node:path';
+import * as path from 'node:path';
 
 const cwd = process.cwd();
 let baseDir = cwd;

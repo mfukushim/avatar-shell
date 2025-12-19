@@ -24,6 +24,7 @@ export class OllamaTextGenerator extends ContextGenerator {
   protected genName: GeneratorProvider = 'ollamaText';
   protected model = 'llama3.2';
   private ollama: Ollama;
+  //  TODO ollamaの場合最大コンテキストサイズの取得は?
 
   protected get previousContexts() {
     return this.previousNativeContexts as Message[];
@@ -162,6 +163,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         content:'text',
         tool_calls:toolReq,
       } as Message)
+      const inputTokens = Chunk.map(collect,a => a.prompt_eval_count).pipe(Chunk.reduce(0,(init,val) => init+val))
 
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
@@ -174,6 +176,8 @@ export class OllamaTextGenerator extends ContextGenerator {
         avatarId:current.avatarId,
         fromGenerator: it.genName,
         fromModelName:it.model,
+        inputTokens:inputTokens,
+        maxContextSize: it.maxModelContextSize,
         toGenerator: it,
         innerId: innerId,
         outputText: text,
