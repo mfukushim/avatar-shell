@@ -183,7 +183,7 @@ const imageCache = ref<Record<string, string>>({});
       <q-item :key="index">
         <div :class="showInfo ? 'shadow-2 q-ma-sm q-pa-sm':''" v-if="!props.hideControl">
           <div class="row" v-if="showInfo">
-            <q-chip dense>{{ item.content.from }}-{{ item.content.modelName }} ({{item.content.totalTokens}})</q-chip>
+            <q-chip dense>{{ item.content.from }}-{{ item.content.modelName }} {{item.content.inputTokens}}/{{item.content.maxContextSize}}({{Math.floor((item.content.inputTokens || 0)/(item.content.maxContextSize || 1)*1000)/10}}%)</q-chip>
             <q-chip dense>{{ getItemType(item) }}</q-chip>
             <div>{{ item.asClass }}/{{ item.asRole }}/{{ item.asContext }}</div>
             <div>{{ item.fromGenerator ? `/${item.fromGenerator}`: '' }}</div>

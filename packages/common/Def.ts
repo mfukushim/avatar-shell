@@ -126,7 +126,8 @@ export const AsMessageContentSchema = Schema.partial(
     toolRes: Schema.Any,
     textParts: Schema.Array(Schema.String),
     llmInfo: Schema.String,
-    totalTokens: Schema.Number,
+    inputTokens: Schema.Number,
+    maxContextSize: Schema.Number,
     modelContextSize: Schema.Number,
     isExternal: Schema.Boolean,
   }));

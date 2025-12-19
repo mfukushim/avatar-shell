@@ -46,6 +46,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
   //protected contextCache: Map<string, Content> = new Map(); aiコンテンツとasMessageが非対応なのでちょっとやり方を考える。。
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
+  protected override maxModelContextSize = 128000 //  TODO APIで最大コンテキスト取得が出来ないため 12Kと仮定
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -247,6 +248,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     if (!sysConfig.generators.openAiText?.apiKey) {
       return Effect.fail(new Error('OpenAi api key is not set.'));
     }
+    //  TODO 現時点OpenAIのAPIでモデルのコンテキスト長を取得するAPIはない。。
     return Effect.succeed(new OpenAiTextGenerator(sysConfig, settings as OpenAiTextSettings | undefined));
   }
 
@@ -336,8 +338,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       console.log('textOut:', JSON.stringify(textOut));
       const responseUsage = Chunk.filter(collect, a => a.type === 'response.completed').pipe(
         Chunk.toReadonlyArray,
-      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.total_tokens)
-      const totalTokens = responseUsage.reduce((a, b) => a + b, 0)
+      ).map(a => a.response.usage).flat().filter((value):value is OpenAI.Responses.ResponseUsage => value !== undefined).map(a => a.input_tokens)
+      const inputTokens = responseUsage.reduce((a, b) => a + b, 0)
 
       //  TODO 2つのレスポンスがある場合がとりあえず0番目に絞る。。
       // if (textOut.length > 1) {
@@ -350,7 +352,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
-          totalTokens: totalTokens,
+          inputTokens: inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: textOut[0].id,
           outputText: textOut[0].text,
@@ -365,7 +368,8 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
-          totalTokens: totalTokens,
+          inputTokens: inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: (textOut.length > 0 ? textOut[0].id : undefined) || current.input?.content.innerId || short.generate(),  //  ここのinnerIdはどこに合わせるのがよいか。。textOut[0]があればそれに合わせる形かな。。
           toolCallParam: funcCallReq.map((v) => {
@@ -457,6 +461,8 @@ export class OpenAiImageGenerator extends OpenAiBaseGenerator {
             avatarId: current.avatarId,
             fromGenerator: it.genName,
             fromModelName:it.model,
+            inputTokens: responseOut?.usage?.input_tokens,
+            maxContextSize: it.maxModelContextSize,
             toGenerator: it,
             innerId: value.id,
             outputRaw: value.img!,
@@ -563,6 +569,8 @@ export class OpenAiVoiceGenerator extends OpenAiBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens: responseOut?.usage?.prompt_tokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: responseOut.id,
           outputRaw: snd,

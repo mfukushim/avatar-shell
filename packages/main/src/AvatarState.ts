@@ -29,6 +29,7 @@ import {MediaService} from './MediaService.js';
 import {McpService} from './McpService.js';
 import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import {HttpClient} from '@effect/platform';
 
 dayjs.extend(duration);
 
@@ -65,7 +66,8 @@ export interface GenOuter {
   avatarId: string;
   fromGenerator: ContentGenerator;
   fromModelName?: string;
-  totalTokens?: number,
+  inputTokens?: number,
+  maxContextSize?: number,
   modelContextSize?: Schema.Number,
   toGenerator: ContextGenerator;
   innerId: string;
@@ -445,7 +447,7 @@ export class AvatarState {
    *
    * @return {Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService>} An effect that either completes successfully with the service objects or returns an error.
    */
-  rebuildIdle(): Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService> {
+  rebuildIdle(): Effect.Effect<void, Error, ConfigService | DocService | McpService | MediaService|HttpClient.HttpClient> {
     //  現在機能しているTimerMinとTalkAfterMin(繰り返しが発生しうるもののみ,context追加でリセットがかかるもの)のみについて再タイマーを設定する
     // console.log('rebuildIdle');
     return this.resetTimerDaemon(false, a => a.isEnabled && a.trigger.triggerType === 'TalkAfterMin');
@@ -1247,7 +1249,8 @@ export class AvatarState {
             text: a.outputText,
             generator: a.fromGenerator,
             modelName: a.fromModelName,
-            totalTokens: a.totalTokens,
+            inputTokens: a.inputTokens,
+            maxContextSize:a.maxContextSize,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'surface'));
@@ -1261,7 +1264,8 @@ export class AvatarState {
             mimeType: a.outputMime,
             generator: a.fromGenerator,
             modelName: a.fromModelName,
-            totalTokens: a.totalTokens,
+            inputTokens: a.inputTokens,
+            maxContextSize: a.maxContextSize,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
@@ -1275,7 +1279,8 @@ export class AvatarState {
             mimeType: a.outputMime,
             generator: a.fromGenerator,
             modelName: a.fromModelName,
-            totalTokens: a.totalTokens,
+            inputTokens: a.inputTokens,
+            maxContextSize: a.maxContextSize,
             nextGeneratorId: a.toGenerator.UniqueId,
           };
           list.push(AsMessage.makeMessage(content, a.setting?.toClass || 'talk', a.setting?.toRole || 'bot', a.setting?.toContext || 'outer'));
@@ -1289,7 +1294,8 @@ export class AvatarState {
               toolReq: value,
               generator: a.fromGenerator,
               modelName: a.fromModelName,
-              totalTokens: a.totalTokens,
+              inputTokens: a.inputTokens,
+              maxContextSize: a.maxContextSize,
               nextGeneratorId: a.toGenerator.UniqueId,
             };
           });

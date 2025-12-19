@@ -38,6 +38,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
   protected ai: GoogleGenAI;
   protected abstract model:string;
   protected abstract genName:GeneratorProvider;
+  protected override maxModelContextSize = 100000;  //  TODO Geminiは100kくらいらしい
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -303,6 +304,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const outImages = responseOut.flatMap(b => b.data ? [b.data] : []).join('');
       const funcCalls = responseOut.flatMap(b => b.functionCalls && b.functionCalls.length > 0 ? b.functionCalls : []); //  1回のllm実行がstreamで複数分割されているのを結合するが、1回のllm実行で複数のfuncがあることはありうる
 
+      const inputTokens = responseOut.map(v => (v.usageMetadata?.cachedContentTokenCount || 0) + (v.usageMetadata?.promptTokenCount || 0)).reduce((a, b) => a + b, 0);
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outText) {
@@ -310,6 +312,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           avatarId:current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens:inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: responseId,
           outputText: outText,
@@ -321,6 +325,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           avatarId:current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens:inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
@@ -334,6 +340,8 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           avatarId:current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens:inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: responseId,
           toolCallParam:funcCalls.map((v:FunctionCall) => {
@@ -404,6 +412,7 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
       const outImages = responseOut.flatMap(b => b.data ? [b.data] : []).join('');
       const responseId = responseOut.reduce((previousValue, currentValue) => currentValue.responseId,undefined as string|undefined) || short.generate();
 
+      const inputTokens = responseOut.map(v => (v.usageMetadata?.cachedContentTokenCount || 0) + (v.usageMetadata?.promptTokenCount || 0)).reduce((a, b) => a + b, 0);
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outImages) {
@@ -411,6 +420,8 @@ export class GeminiImageGenerator extends GeminiBaseGenerator {
           avatarId:current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens:inputTokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: responseId,
           outputRaw: outImages,
@@ -483,6 +494,7 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
         Effect.retry(Schedule.recurs(1).pipe(Schedule.intersect(Schedule.spaced('5 seconds')))),
         Effect.catchIf(a => a instanceof TimeoutException, e => Effect.fail(new Error(`gemini API error:timeout`))),
       );
+      const inputTokens = (response.usageMetadata?.cachedContentTokenCount || 0) + (response.usageMetadata?.promptTokenCount || 0);
       const snd = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;  //  データはpcmとのこと。。。
       if (snd) {
         const outImages = it.convertBase64PcmToBase64Wav(snd)
@@ -495,6 +507,8 @@ export class GeminiVoiceGenerator extends GeminiBaseGenerator {
             avatarId: current.avatarId,
             fromGenerator: it.genName,
             fromModelName:it.model,
+            inputTokens: inputTokens,
+            maxContextSize: it.maxModelContextSize,
             toGenerator: it,
             innerId: id,
             outputMediaUrl: mediaUrl,

@@ -35,6 +35,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected anthropic: Anthropic;
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
+  protected override maxModelContextSize = 200000;  //  TODO Claudeの最大コンテキスト長も20Kぐらいらしい
 
   protected get previousContexts() {
     return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
@@ -338,6 +339,8 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens: message.usage.input_tokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: message.id,
           outputText: outText,
@@ -351,6 +354,8 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
           avatarId: current.avatarId,
           fromGenerator: it.genName,
           fromModelName:it.model,
+          inputTokens: message.usage.input_tokens,
+          maxContextSize: it.maxModelContextSize,
           toGenerator: it,
           innerId: message.id,
           toolCallParam: funcCalls.map((v) => {

@@ -511,7 +511,7 @@ const copyPath = async () => {
                           <q-card-section>
                             <q-input v-model="edit.generators.lmStudio.baseUrl"
                                      type="text"
-                                     placeholder="http://192.168.1.1:1234/v1"
+                                     placeholder="http://192.168.1.1:1234"
                                      :label="t('Host')"
                                      data-testid="lmStudio-host" />
                             <q-input v-model="edit.generators.lmStudio.model"
