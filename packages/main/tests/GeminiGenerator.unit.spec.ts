@@ -3,17 +3,17 @@ import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
 import {AvatarState} from '../src/AvatarState';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {McpService, McpServiceLive} from '../src/McpService';
+import {ConfigServiceLive} from '../src/ConfigService';
+import {McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
+import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FetchHttpClient, FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {GeminiTextGenerator} from '../src/generators/GeminiGenerator';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {AvatarServiceLive} from '../src/AvatarService';
 import {AsMessage} from '../../common/Def';
 import {
   contextStepTest1,

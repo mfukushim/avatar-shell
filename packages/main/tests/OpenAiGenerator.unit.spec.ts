@@ -7,7 +7,7 @@ import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
 import {McpService, McpServiceLive} from '../src/McpService';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {MediaServiceLive} from '../src/MediaService';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
+import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FetchHttpClient, FileSystem} from '@effect/platform';
