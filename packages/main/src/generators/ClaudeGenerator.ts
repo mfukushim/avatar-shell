@@ -35,7 +35,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected anthropic: Anthropic;
   protected abstract model: string;
   protected abstract genName: GeneratorProvider;
-  protected override maxModelContextSize = 200000;  //  TODO Claudeの最大コンテキスト長も20Kぐらいらしい
+  protected maxModelContextSize = 200000;  //  TODO Claudeの最大コンテキスト長も20Kぐらいらしい
 
   protected get previousContexts() {
     return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
@@ -254,6 +254,7 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
 export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   protected genName: GeneratorProvider = 'claudeText';
   protected model = 'claude-3-7-sonnet-latest';
+  protected systemPrompt?: string;
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting) {
     if (!sysConfig.generators?.anthropic.apiKey) {
@@ -265,6 +266,10 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
   constructor(sysConfig: SysConfig, settings?: ClaudeTextSettings) {
     super(sysConfig, settings);
     this.model = settings?.useModel || sysConfig.generators.anthropic?.model || 'claude-3-7-sonnet-latest';
+  }
+
+  setSystemPrompt(context:string) {
+    this.systemPrompt = context
   }
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
@@ -286,6 +291,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       it.debugContext(contents);
       const body: Anthropic.Messages.MessageCreateParamsStreaming = {
         model: it.model || 'claude-3-7-haiku-latest',
+        system: it.systemPrompt,
         messages: contents,
         tools: tools.map(a => {
           return {
@@ -335,6 +341,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
       if (outText) {
+        it.inputTokes = message.usage.input_tokens;
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,

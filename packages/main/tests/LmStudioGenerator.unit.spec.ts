@@ -10,7 +10,7 @@ import {MediaServiceLive} from '../src/MediaService';
 import {vitestSysConfig} from '../../common/vitestConfig';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
-import {FileSystem} from '@effect/platform';
+import {FetchHttpClient, FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
 import {AsMessage} from '../../common/Def';
@@ -29,7 +29,8 @@ if (cwd.endsWith('main')) {
   baseDir = path.join(baseDir,'../..');
 }
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('LmStudioGenerator', () => {

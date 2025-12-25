@@ -516,7 +516,6 @@ export class AvatarState {
    * @return {Effect} A computational effect that resolves to an array of results based on triggered daemons.
    */
   detectTalkContext(updated: {context: AsMessage[], delta: AsMessage[]}) {
-    // console.log('changeTalkContext:', updated.context.length, updated.delta.length, updated.delta.map(value => AsMessage.debugLog(value)).join('\n'));
     const it = this;
     return Effect.gen(function* () {
       if (it.forcedStopDaemons) {

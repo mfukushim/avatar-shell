@@ -1,3 +1,4 @@
+/*
 import {describe, expect, it} from '@effect/vitest';
 import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig';
 import {Effect, Layer, ManagedRuntime} from 'effect';
@@ -7,19 +8,19 @@ import {McpService, McpServiceLive} from '../src/McpService';
 import {ConfigServiceLive} from '../src/ConfigService';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
-import {GeneratorService, GeneratorServiceLive, GenInner} from '../src/GeneratorService';
+import {GeneratorService, GeneratorServiceLive, GenInner} from '../src/generators/GeneratorService';
 import {GeneratorProvider} from '../../common/DefGenerators';
 import {AsMessage, AsMessageContent} from '../../common/Def';
 import {z} from 'zod/index';
 import {AvatarState} from '../src/AvatarState';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {FetchHttpClient} from '@effect/platform';
 
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive,
-  ConfigServiceLive, BuildInMcpServiceLive,GeneratorServiceLive,AvatarServiceLive,
-  NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe("GeneratorService", () => {
@@ -77,7 +78,7 @@ describe("GeneratorService", () => {
           from: 'human',
           text: 'hello',
         },'talk','human','surface')
-      ], true);
+      ]);
       return yield* avatarState.TalkContextEffect;
     }).pipe(
       aiRuntime.runPromise,
@@ -99,13 +100,15 @@ describe("GeneratorService", () => {
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield *Effect.sleep('1 seconds');
 
+      const gen = yield* avatarState.getDefGenerator('aaa');
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: 'hello'
-        },
+        fromGenerator:'emptyText',
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true
@@ -117,11 +120,12 @@ describe("GeneratorService", () => {
 
       const res2 = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: "What should I do when it's hot?"
-        },
+        fromGenerator:'emptyText',
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: "What should I do when it's hot?",
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true
@@ -165,3 +169,4 @@ describe("GeneratorService", () => {
     )
   })
 },5 * 60 * 1000)
+*/

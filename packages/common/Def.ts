@@ -58,7 +58,9 @@ talk後一定時間アイドリング
 
  */
 
-
+/**
+ * デーモン種別
+ */
 const DaemonTrigger = Schema.Literal(
   'Startup',
   'TalkAfterMin',
@@ -70,12 +72,18 @@ const DaemonTrigger = Schema.Literal(
   'DateTimeDirect',
 );
 
+/**
+ * コンテキスト検出型デーモン
+ */
 const ContextTrigger = DaemonTrigger.pipe(Schema.pickLiteral(
   'IfContextExists',
   'Startup',
   'IfSummaryCounterOver',
   'IfExtTalkCounterOver'
 ));
+/**
+ * 時間検出型デーモン
+ */
 const TimerTrigger = DaemonTrigger.pipe(Schema.pickLiteral(
   'TimerMin',
   'DayTimeDirect',

@@ -39,6 +39,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
   protected abstract model:string;
   protected abstract genName:GeneratorProvider;
   protected override maxModelContextSize = 100000;  //  TODO Geminiは100kくらいらしい
+  protected systemPrompt?:string;
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -49,10 +50,13 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
     addToMainContext: true,
   };
 
+  setSystemPrompt(text:string) {
+    this.systemPrompt = text;
+  }
+
   protected get previousContexts() {
     return this.previousNativeContexts as Content[];
   }
-
 
   constructor(sysConfig: SysConfig, settings?: GeminiSettings) {
     super(sysConfig);
@@ -123,40 +127,6 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
       return prev;
     })
   }
-
-  // filterToolRes(a: any) {
-  //   if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-  //     //  @ts-ignore
-  //     if (!a.resource.annotations.audience.includes('assistant')) {
-  //       console.log('contents test no out');
-  //       return ;
-  //     }
-  //   }
-  //   //  @ts-ignore
-  //   if (a?.annotations && a.annotations?.audience) {
-  //     //  @ts-ignore
-  //     if (!a.annotations.audience.includes('assistant')) {
-  //       console.log('contents test no out');
-  //       return ;
-  //     }
-  //   }
-  //   return a
-  // }
-
-  // filterToolResList(value: CallToolResult) {
-  //   try {
-  //     return {
-  //       ...value,
-  //       content: value.content.flatMap((a:ContentBlock) => {
-  //         const b = this.filterToolRes(a);
-  //         return b ? [b]:[]
-  //       }),
-  //     };
-  //   } catch (error) {
-  //     console.log('filterToolResList error:',error);
-  //     throw error;
-  //   }
-  // }
 
   protected makeCurrentContext(current: GenInner) {
     const it = this;
@@ -261,6 +231,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
           tools: tools && !(option?.noTool) ? [{
             functionDeclarations: tools,
           }] : undefined,
+          systemInstruction: it.systemPrompt,
         },
       };
       const res = yield* Effect.tryPromise({
@@ -308,6 +279,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outText) {
+        it.inputTokes = inputTokens;
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,

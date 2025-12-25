@@ -217,6 +217,7 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
 export class LmStudioTextGenerator extends LmStudioBaseGenerator {
   protected genName: GeneratorProvider = 'lmStudioText';
   protected model = 'openai/gpt-oss-20b';
+  protected systemPrompt?: OpenAI.Responses.ResponseInputItem[]
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting) {
     if (!sysConfig.generators.lmStudio?.baseUrl) {
@@ -229,6 +230,13 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
     super(sysConfig);
     this.lmStudioSettings = settings;
     this.model = settings?.useModel || sysConfig.generators.lmStudio?.model || 'openai/gpt-oss-20b';
+  }
+
+  setSystemPrompt(context: string) {
+    this.systemPrompt = [{
+      role:'developer',
+      content:[{type:'input_text',text:context}]
+    }]
   }
 
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
@@ -269,7 +277,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         };
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
-      const contents = prev.concat(mes);
+      const contents = (it.systemPrompt || []).concat(prev,mes);
       console.log('LmStudio context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
       console.log('LmStudio context end:');
       const body: ResponseCreateParamsStreaming = {
@@ -336,6 +344,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
       if (textOut.length >= 1) {
+        it.inputTokes = inputTokens;
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,

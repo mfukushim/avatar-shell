@@ -10,8 +10,10 @@ import {DocServiceLive} from '../src/DocService';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
 import {GeneratorProvider} from '../../common/DefGenerators';
+import {FetchHttpClient} from '@effect/platform';
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer);
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 

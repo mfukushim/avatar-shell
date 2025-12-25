@@ -44,6 +44,19 @@ const {t} = useI18n();
 const errorMes = ref('');
 const version = ref('');
 
+const getMcpServerList = () => {
+  return (Object.entries(edit.value.mcpServers) as [string, any][])
+    .map(v => {
+        if (v[1].def) {
+          return {id: v[0],enable:v[1].enable, body: JSON.stringify(v[1].def, null, 2)};
+        } else {
+          //  旧構造互換
+          return {id: v[0],enable:true, body: JSON.stringify(v[1], null, 2)};
+        }
+      },
+    );
+};
+
 
 const doOpen = async () => {
   errorMes.value = '';
@@ -64,10 +77,25 @@ const doOpen = async () => {
   tabSelect.value = 'general';
   //  TODO 暫定対応
   if (!edit.value.generators.ollama) {
-    edit.value.generators.ollama = {model: '', host: ''};
+    edit.value.generators.ollama = {model: '', host: '',token:'',common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}}
+  }
+  if (!edit.value.generators.ollama.common) {
+    edit.value.generators.ollama.common = {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}
   }
   if (!edit.value.generators.lmStudio) {
-    edit.value.generators.lmStudio = {model: '', baseUrl: ''};
+    edit.value.generators.lmStudio = {model: '', baseUrl: '',token:'', common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}}
+  }
+  if (!edit.value.generators.lmStudio.common) {
+    edit.value.generators.lmStudio.common = {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}
+  }
+  if(!edit.value.generators.openAiText.common) {
+    edit.value.generators.openAiText.common = {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'};
+  }
+  if(!edit.value.generators.anthropic.common) {
+    edit.value.generators.anthropic.common = {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'};
+  }
+  if(!edit.value.generators.gemini.common) {
+    edit.value.generators.gemini.common = {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'};
   }
   version.value = await getVersion();
   show.value = true;
@@ -223,19 +251,6 @@ const saveAndClose = async () => {
   }
 };
 
-const getMcpServerList = () => {
-  return (Object.entries(edit.value.mcpServers) as [string, any][])
-    .map(v => {
-      if (v[1].def) {
-        return {id: v[0],enable:v[1].enable, body: JSON.stringify(v[1].def, null, 2)};
-      } else {
-        //  旧構造互換
-        return {id: v[0],enable:true, body: JSON.stringify(v[1], null, 2)};
-      }
-      // return {id: v[0], body: JSON.stringify(v[1], null, 2)};
-      },
-    );
-};
 
 const addMcp = () => {
   let count = 1;
@@ -429,6 +444,16 @@ const copyPath = async () => {
                                      placeholder="gpt-4.1-mini"
                                      :label="t('textModel')"
                                      data-testid="openai-model" />
+                            <q-input v-model="edit.generators.openAiText.common.maxTokenThreshold"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('maxTokenThreshold')"
+                                     data-testid="openai-maxTokenThreshold" />
+                            <q-input v-model="edit.generators.openAiText.common.summarizePrompt"
+                                     type="textarea"
+                                     placeholder="10000"
+                                     :label="t('summarizePrompt')"
+                                     data-testid="openai-summarizePrompt" />
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.openAiImage.model"
@@ -462,6 +487,16 @@ const copyPath = async () => {
                                      placeholder="claude-3-7-sonnet-latest"
                                      :label="t('textModel')"
                                      data-testid="anthropic-model" />
+                            <q-input v-model="edit.generators.anthropic.common.maxTokenThreshold"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('maxTokenThreshold')"
+                                     data-testid="anthropic-maxTokenThreshold" />
+                            <q-input v-model="edit.generators.anthropic.common.summarizePrompt"
+                                     type="textarea"
+                                     placeholder="10000"
+                                     :label="t('summarizePrompt')"
+                                     data-testid="anthropic-summarizePrompt" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>
@@ -470,6 +505,16 @@ const copyPath = async () => {
                           <q-card-section>
                             <q-input v-model="edit.generators.gemini.apiKey" type="text" :label="t('apiKey')" data-testid="gemini-api-key" />
                             <q-input v-model="edit.generators.gemini.model" type="text" placeholder="gemini-2.5-flash" :label="t('textModel')" data-testid="gemini-model" />
+                            <q-input v-model="edit.generators.gemini.common.maxTokenThreshold"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('maxTokenThreshold')"
+                                     data-testid="gemini-maxTokenThreshold" />
+                            <q-input v-model="edit.generators.gemini.common.summarizePrompt"
+                                     type="textarea"
+                                     placeholder="10000"
+                                     :label="t('summarizePrompt')"
+                                     data-testid="gemini-summarizePrompt" />
                           </q-card-section>
                           <q-card-section>
                             <q-input v-model="edit.generators.geminiImage.model"
@@ -503,6 +548,16 @@ const copyPath = async () => {
                                      placeholder="llama3.1"
                                      :label="t('Model')"
                                      data-testid="ollama-model" />
+                            <q-input v-model="edit.generators.ollama.common.maxTokenThreshold"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('maxTokenThreshold')"
+                                     data-testid="ollama-maxTokenThreshold" />
+                            <q-input v-model="edit.generators.ollama.common.summarizePrompt"
+                                     type="textarea"
+                                     placeholder="10000"
+                                     :label="t('summarizePrompt')"
+                                     data-testid="ollama-summarizePrompt" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>
@@ -519,6 +574,16 @@ const copyPath = async () => {
                                      placeholder="openai/gpt-oss-20b"
                                      :label="t('defaultModel')"
                                      data-testid="lmStudio-model" />
+                            <q-input v-model="edit.generators.lmStudio.common.maxTokenThreshold"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('maxTokenThreshold')"
+                                     data-testid="ollama-maxTokenThreshold" />
+                            <q-input v-model="edit.generators.lmStudio.common.summarizePrompt"
+                                     type="textarea"
+                                     placeholder="10000"
+                                     :label="t('summarizePrompt')"
+                                     data-testid="ollama-summarizePrompt" />
                           </q-card-section>
                         </q-card>
                       </q-tab-panel>

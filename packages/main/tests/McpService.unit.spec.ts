@@ -1,5 +1,5 @@
 //  注意: インポート順序に順序があるようだ。誤るとAvatarState.makeでエラーになる
-import {Effect} from 'effect';
+import {Effect, Layer} from 'effect';
 import {runPromise, runPromiseExit} from 'effect/Effect';
 import {NodeFileSystem} from '@effect/platform-node';
 import {it, expect, describe, beforeEach, afterEach} from '@effect/vitest';
@@ -11,6 +11,11 @@ import {MediaServiceLive} from '../src/MediaService';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig';
 import {AvatarMcpSettingListMutable, AvatarSetting} from '../../common/Def';
+import {AvatarServiceLive} from '../src/AvatarService';
+import {FetchHttpClient} from '@effect/platform';
+
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 
 describe('McpService', () => {
   beforeEach(() => {
@@ -79,11 +84,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_tips',
-        id: 'tips',
+        callId: 'tips',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromise
     );
 
@@ -103,11 +108,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_setting',
-        id: 'get_setting',
+        callId: 'get_setting',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromise
     );
 
@@ -128,11 +133,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'xxx',
-        id: 'tip',
+        callId: 'tip',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 
@@ -149,11 +154,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_xxx',
-        id: 'xxx',
+        callId: 'xxx',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 
@@ -169,11 +174,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_start_traveler_journey',
-        id: 'xxx',
+        callId: 'xxx',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 
@@ -190,11 +195,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_traveler_location',
-        id: 'get_traveler_location',
+        callId: 'get_traveler_location',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 
@@ -209,11 +214,11 @@ describe('McpService', () => {
       yield* McpService.reset(vitestSysConfig);
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_reset_avatar_prompt',
-        id: 'reset_avatar_prompt',
+        callId: 'reset_avatar_prompt',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 
@@ -322,11 +327,11 @@ describe('McpService', () => {
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_traveler_location',
-        id: 'get_traveler_location',
+        callId: 'get_traveler_location',
         input: { }
       },'emptyText');
     }).pipe(
-      Effect.provide([MediaServiceLive, DocServiceLive,McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromiseExit
     );
 

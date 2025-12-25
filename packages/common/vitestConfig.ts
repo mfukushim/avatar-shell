@@ -259,6 +259,24 @@ export const vitestAvatarConfigNone: AvatarSetting = {
   },
   daemons: [
     {
+      'id': 'aaa',
+      'name': 'mainLLM',
+      'isEnabled': true,
+      'trigger': {'triggerType': 'IfContextExists', 'condition': {
+          asClass: 'talk',
+          asRole: 'human',
+          asContext:'surface'
+        }},
+      'exec': {
+        generator: 'emptyText',
+        setting: {
+          toClass: 'talk',
+          toRole: 'bot',
+          toContext: 'surface'
+        },
+      },
+    },
+    {
       'id': 'aaac',
       'name': 'toVoice',
       'isEnabled': true,

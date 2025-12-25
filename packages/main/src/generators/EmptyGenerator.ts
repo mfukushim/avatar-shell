@@ -50,6 +50,10 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
     super(sysConfig);
   }
 
+  setSystemContext(context:string):void {
+    console.log('setSystemContext:',context);
+  }
+
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
     return Effect.gen(function* () {
