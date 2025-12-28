@@ -279,7 +279,7 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       const nextGen = current.genNum+1
       const genOut:GenOuter[] = []
       if (outText) {
-        it.inputTokes = inputTokens;
+        it.inputTokens = inputTokens;
         genOut.push({
           avatarId:current.avatarId,
           fromGenerator: it.genName,

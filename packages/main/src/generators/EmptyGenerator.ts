@@ -8,6 +8,7 @@ import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import short from 'short-uuid';
 import {SysConfig} from '../../../common/Def.js';
+import {sysConfig} from '@app/preload';
 
 
 /**
@@ -50,8 +51,7 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
     super(sysConfig);
   }
 
-  setSystemContext(context:string):void {
-    console.log('setSystemContext:',context);
+  setSystemPrompt(context: string): void {
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -87,6 +87,8 @@ export class EmptyTextGenerator extends EmptyBaseGenerator {
   static make(sysConfig: SysConfig,settings?: ContextGeneratorSetting) {
     return Effect.succeed(new EmptyTextGenerator(sysConfig, settings));
   }
+
+
 }
 
 export class EmptyImageGenerator extends EmptyBaseGenerator {

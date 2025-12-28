@@ -344,7 +344,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
       if (textOut.length >= 1) {
-        it.inputTokes = inputTokens;
+        it.inputTokens = inputTokens;
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,

@@ -21,7 +21,11 @@ export abstract class ContextGenerator {
   protected uniqueId = '';
   protected sysSetting:SysConfig
   protected maxModelContextSize = 10000;
-  protected inputTokes = 0;
+  protected inputTokens = 0;
+
+  get inputTokenUsage(): number {
+    return this.inputTokens/this.maxModelContextSize;
+  }
 
   constructor(sysSetting:SysConfig) {
     this.logTag = this.constructor.name;

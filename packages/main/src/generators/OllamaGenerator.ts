@@ -138,7 +138,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         tool_calls:toolReq,
       } as Message)
       const inputTokens = Chunk.map(collect,a => a.prompt_eval_count).pipe(Chunk.reduce(0,(init,val) => init+val))
-      it.inputTokes = inputTokens;
+      it.inputTokens = inputTokens;
 
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))

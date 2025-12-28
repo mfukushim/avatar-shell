@@ -341,7 +341,7 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
       if (outText) {
-        it.inputTokes = message.usage.input_tokens;
+        it.inputTokens = message.usage.input_tokens;
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,
