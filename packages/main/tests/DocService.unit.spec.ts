@@ -1,5 +1,5 @@
 import {it, expect, describe} from '@effect/vitest';
-import {Effect} from 'effect';
+import {Effect, Layer} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {DocService, DocServiceLive} from '../src/DocService';
 import {NodeFileSystem} from '@effect/platform-node';
@@ -9,8 +9,13 @@ import {AvatarState} from '../src/AvatarState';
 import {McpServiceLive} from '../src/McpService';
 import {MediaServiceLive} from '../src/MediaService';
 import {vitestAvatarConfigMi} from '../../common/vitestConfig';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {AvatarServiceLive} from '../src/AvatarService';
+import {FetchHttpClient} from '@effect/platform';
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 
 describe("DocService", () => {
   const testTemplateId = vitestAvatarConfigMi.templateId;
@@ -91,17 +96,13 @@ describe("DocService", () => {
         asContext:'surface',
         isRequestAction:false,
         content: { text: 'テストメッセージ' }
-      },{
-        provider: 'emptyText',
-        model:'none',
-        isExternal:false
       })];
 
     await Effect.gen(function* () {
       const testAvatarState = yield *AvatarState.make('test', testTemplateId,'Mix',null,'user');
       return yield* DocService.addLog(testLog, testAvatarState);
     }).pipe(
-      Effect.provide([MediaServiceLive,ConfigServiceLive,McpServiceLive, DocServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromise,
     )//.resolves.not.toThrow();
   });
@@ -117,10 +118,6 @@ describe("DocService", () => {
         asContext:'surface',
         isRequestAction:false,
         content: { text: 'エンドツーエンドテスト' }
-      },{
-        provider: 'emptyText',
-        model:'none',
-        isExternal:false
       })];
 
     await Effect.gen(function* () {
@@ -154,7 +151,7 @@ describe("DocService", () => {
         expect(hasTestMessage).toBeTruthy();
       }
     }).pipe(
-      Effect.provide([MediaServiceLive, ConfigServiceLive, McpServiceLive, DocServiceLive, NodeFileSystem.layer]),
+      Effect.provide(AppLive),
       runPromise,
     );
   });

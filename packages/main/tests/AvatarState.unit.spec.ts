@@ -11,8 +11,10 @@ import {AsMessage, AsOutput, AvatarSettingMutable} from '../../common/Def';
 import dayjs from 'dayjs';
 import {vitestSysConfig} from '../../common/vitestConfig';
 import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {FetchHttpClient} from '@effect/platform';
 
-const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive, BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer)
+const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('avatarState', () => {
@@ -209,7 +211,6 @@ describe('avatarState', () => {
             exec: {
               generator:'emptyText',
               templateGeneratePrompt:'1 minute has passed',
-              directTrigger: false,
               // templateContextPrompt: 'add 1 min Time',
               setting: {
                 toClass:'talk',
@@ -264,7 +265,6 @@ describe('avatarState', () => {
             exec: {
               generator:'emptyText',
               templateGeneratePrompt:`It is now ${add1min}.`,
-              directTrigger: false,
               // templateContextPrompt: 'add 1 min Time',
               setting: {
                 toClass:'talk',
@@ -321,7 +321,6 @@ describe('avatarState', () => {
             },
             exec: {
               generator:'emptyText',  //  TODO generatorに回すときのcurrentは今はclass/roleを見ないが、roleはuserにしないといけないのではないか?
-              directTrigger: false, //  generatorの出力はコンテキストに追加しない
               templateGeneratePrompt: 'user said {body}',
               setting: {
                 debug:true,  //  ダミーログを出力させる
@@ -345,11 +344,7 @@ describe('avatarState', () => {
           text: 'hello',
       },'talk','human','surface');
       yield* avatarState.addContext([mes])
-      yield *DocService.addLog([AsOutput.makeOutput(mes,{
-        provider:'emptyText', //  無効値を持たせたいが
-        model:'none',
-        isExternal:false,
-      })], avatarState)
+      yield *DocService.addLog([AsOutput.makeOutput(mes)], avatarState)
 
 
       yield* Effect.sleep('5 seconds');
@@ -393,7 +388,6 @@ describe('avatarState', () => {
             },
             exec: {
               generator: 'emptyText',
-              directTrigger: false,
               templateGeneratePrompt: 'Please respond to the above conversation', //  15秒後
               setting: {
                 toClass:'talk',
@@ -449,14 +443,16 @@ describe('avatarState', () => {
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield *Effect.sleep('5 seconds');
 
+      const gen = yield* avatarState.getDefGenerator('aaa');
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'ollamaText',
-        input:{
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
           from: 'user',
-          text: 'hello'
-        },
+          text: 'hello',
+          isExternal: true,
+        }, 'physics', 'human', 'inner'),
         genNum:0,
         setting: {
           noTool:true
@@ -509,14 +505,15 @@ describe('avatarState', () => {
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield *Effect.sleep('1 seconds');
 
+      const gen = yield* avatarState.getDefGenerator('aaa');
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: 'hello'
-        },
+        toGenerator: gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true
@@ -529,11 +526,11 @@ describe('avatarState', () => {
       const res2 = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: "What should I do when it's hot?"
-        },
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true
@@ -559,14 +556,15 @@ describe('avatarState', () => {
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield *Effect.sleep('1 seconds');
 
+      const gen = yield* avatarState.getDefGenerator('aaa');
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'ollamaText',
-        input:{
-          from: 'user',
-          text: '/get traveler setting'
-        },
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
       })
       console.log('enterInner:',res);
@@ -588,14 +586,15 @@ describe('avatarState', () => {
       // const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield *Effect.sleep('1 seconds');
 
+      const gen = yield* avatarState.getDefGenerator('aaa');
       const res = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'geminiText',
-        input:{
-          from: 'user',
-          text: 'hello'
-        },
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true
@@ -608,11 +607,11 @@ describe('avatarState', () => {
       const res2 = yield *avatarState.enterInner({
         avatarId:avatarState.Id,
         fromGenerator:'external',
-        toGenerator:'geminiText',
-        input:{
-          from: 'user',
-          text: "What should I do when it's hot?"
-        },
+        toGenerator:gen,
+        input:AsMessage.makeMessage({
+          from: 'human',
+          text: 'hello',
+        },'talk','human','surface'),
         genNum:0,
         setting: {
           noTool:true

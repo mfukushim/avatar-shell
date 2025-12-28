@@ -170,12 +170,18 @@ Generator 全体設定(api keyなど全体で設定するもの
 
 //  llm generator (テキスト, 画像, 音声)
 
+const generatorCommonConfigSchema = Schema.Struct({
+  maxTokenThreshold:Schema.Number,
+  summarizePrompt:Schema.String
+})
+
 //    openAi  openAiText, openAiImage, openAiVoice
 export const openAiSysConfigSchema = Schema.Struct({
   apiKey: Schema.String,
   model: Schema.String,
+  common: Schema.optional(generatorCommonConfigSchema),
 });
-export const openAiTextMutableConfigSchema = Schema.mutable(openAiSysConfigSchema)
+export const openAiTextMutableConfigSchema = Schema.mutable(Schema.required(openAiSysConfigSchema))
 
 export type OpenAiTextConfig = typeof openAiTextMutableConfigSchema.Type
 
@@ -202,14 +208,16 @@ export type OpenAiVoiceConfig = typeof openAiVoiceMutableConfigSchema.Type
 export const anthropicSysConfigSchema = Schema.Struct({
   apiKey: Schema.String,
   model: Schema.String,
+  common: Schema.optional(generatorCommonConfigSchema),
 });
 
-export const anthropicMutableConfigSchema = Schema.mutable(anthropicSysConfigSchema)
+export const anthropicMutableConfigSchema = Schema.mutable(Schema.required(anthropicSysConfigSchema))
 
 //    gemini  geminiText, geminiImage, geminiVoice
 export const geminiSysConfigSchema = Schema.Struct({
   apiKey: Schema.String,
   model: Schema.String,
+  common: Schema.optional(generatorCommonConfigSchema),
 });
 
 export const geminiImageConfigSchema = Schema.Struct({
@@ -222,7 +230,7 @@ export const geminiVoiceConfigSchema = Schema.Struct({
   cutoffTextLimit:Schema.optional(Schema.Number)
 });
 
-export const geminiMutableConfigSchema = Schema.mutable(geminiSysConfigSchema)
+export const geminiMutableConfigSchema = Schema.mutable(Schema.required(geminiSysConfigSchema))
 export const geminiImageMutableConfigSchema = Schema.mutable(geminiImageConfigSchema)
 export const geminiVoiceMutableConfigSchema = Schema.mutable(geminiVoiceConfigSchema)
 //    ollama
@@ -230,20 +238,22 @@ export const ollamaSysConfigSchema = Schema.Struct({
   host: Schema.String,
   model: Schema.String,
   token: Schema.optional(Schema.String),
+  common: Schema.optional(generatorCommonConfigSchema),
 });
 
 export type OllamaSysConfig = typeof ollamaSysConfigSchema.Type
-export const ollamaMutableConfigSchema = Schema.mutable(ollamaSysConfigSchema)
+export const ollamaMutableConfigSchema = Schema.mutable(Schema.required(ollamaSysConfigSchema))
 
 //  lmStudio
 export const lmStudioSysConfigSchema = Schema.Struct({
   baseUrl: Schema.String,
   model: Schema.String,
   token: Schema.optional(Schema.String),
+  common: Schema.optional(generatorCommonConfigSchema),
 });
 
 export type LmStudioSysConfig = typeof lmStudioSysConfigSchema.Type
-export const lmStudioMutableConfigSchema = Schema.mutable(lmStudioSysConfigSchema)
+export const lmStudioMutableConfigSchema = Schema.mutable(Schema.required(lmStudioSysConfigSchema))
 
 
 //  画像生成generator

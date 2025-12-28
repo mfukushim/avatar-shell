@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
-import {nextTick, onMounted, reactive, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
 import type {AsMessage} from '../../../common/Def.ts';
 import type {QVirtualScroll} from 'quasar';
 import dayjs from 'dayjs';
@@ -29,6 +29,8 @@ const text = ref('');
 const data = ref<AsMessage[]>([]);
 
 const useStore = ['file:','ui:'];
+const tokenRatio = ref(0)
+const tokenRatioLabel = computed(() => `context usage: ${Math.floor(tokenRatio.value*1000)/10}%`)
 
 watch(props.timeline, async () => {
   await updateExt();
@@ -49,6 +51,15 @@ const updateExt = async () => {
         imageCache.value[v.id] = url;
       }
     }
+  }
+  const slice = props.timeline.filter(value => value.asClass === 'talk' && value.asRole === 'bot').slice(-1);
+  if(slice.length > 0)  {
+    const last = slice[0];
+    if (last.content.inputTokens && last.content.maxContextSize) {
+      tokenRatio.value = last.content.inputTokens/last.content.maxContextSize
+    }
+  } else {
+    tokenRatio.value = 0
   }
 
 };
@@ -187,7 +198,7 @@ const imageCache = ref<Record<string, string>>({});
             <q-chip dense>{{ getItemType(item) }}</q-chip>
             <div>{{ item.asClass }}/{{ item.asRole }}/{{ item.asContext }}</div>
             <div>{{ item.fromGenerator ? `/${item.fromGenerator}`: '' }}</div>
-            <div>{{ item.content.toolName }}</div>
+            <div>{{ item.content.toolName ? item.content.toolName+'='+item.content.mimeType:'' }}</div>
             <q-space />
             <div class="text-caption">{{ dayjs(item.tick).format('YYYY-MM-DD HH:mm:ss') }}</div>
           </div>
@@ -210,9 +221,14 @@ const imageCache = ref<Record<string, string>>({});
         {{ infoRunningMark() }}
       </q-chip>
     </div>
+    <q-linear-progress size="10px" :value="tokenRatio" color="primary">
+    </q-linear-progress>
     <div class="q-pa-sm row" v-if="!props.hideControl">
+      <div class="col-all">
+      </div>
       <div class="row col-all">
         <q-icon name="vertical_align_bottom" size="md" color="primary" @click="scrollBottom"  class="cursor-pointer" />
+        {{tokenRatioLabel}}
         <q-space />
         <q-toggle
           name="showInfo"

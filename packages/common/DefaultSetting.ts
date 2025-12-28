@@ -7,15 +7,15 @@ import {type GeneratorsMutableConfigSet} from './DefGenerators.js';
 
 
 export const defaultGenerators: GeneratorsMutableConfigSet = {
-  openAiText: {apiKey: '', model: ''},
+  openAiText: {apiKey: '', model: '',common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}},
   openAiImage: {model: ''},
   openAiVoice: {model: '', voice: ''},
-  anthropic: {apiKey: '', model: ''},
-  gemini: {apiKey: '', model: ''},
+  anthropic: {apiKey: '', model: '',common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}},
+  gemini: {apiKey: '', model: '',common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}},
   geminiImage: {model: ''},
   geminiVoice: {model: '', voice: ''},
-  ollama:{model:'',host:''},
-  lmStudio: {baseUrl: '', model: ''},
+  ollama:{model:'',host:'',token:'',common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}},
+  lmStudio: {baseUrl: '', model: '',token:'', common: {maxTokenThreshold: 10000, summarizePrompt: 'Generate a sentence summarizing the conversation so far.'}},
   // voiceVox: {url: '', custom: {}},
   // openAiText: {apiKey: '', model: 'gpt-4.1-mini'},
   // openAiImage: {model: 'gpt-4.1-mini'},

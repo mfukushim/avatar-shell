@@ -19,8 +19,6 @@ const mcpResource = ref<McpResource|null>(null)
 const talkText = ref('')
 
 
-// const mcpServers = ref<McpInfo[]>()
-
 async function sendMessage() {
   const inText = talkText.value;
   talkText.value = '';
@@ -39,11 +37,11 @@ async function sendMessage() {
       if (v.mimeType === 'text/plain' && v.text) {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode(v.text);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','inner'))
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','outer'))
       } else if (v.mimeType.startsWith('image')) {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode(v.blob);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','inner'))
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','outer'))
       }
     })
   }
@@ -68,14 +66,8 @@ const sendKey = async (event:any) => {
 
 const selectResource = async (name:string,res: McpResourceInfo) => {
   await readMcpResource(name, res.uri)
-  // mcpResource.value = await readMcpResource(name, res.uri)
 }
 
-// onMounted(async () => {
-//   console.log('onMounted renderer input panel');
-//   mcpServers.value = await getMcpServerInfos()
-//   console.log(mcpServers.value);
-// })
 
 </script>
 

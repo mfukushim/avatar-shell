@@ -10,7 +10,7 @@ import {MediaServiceLive} from '../src/MediaService';
 import {OllamaTextGenerator} from '../src/generators/OllamaGenerator';
 import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
 import {NodeFileSystem} from '@effect/platform-node';
-import {FileSystem} from '@effect/platform';
+import {FetchHttpClient, FileSystem} from '@effect/platform';
 import path from 'node:path';
 import {vitestSysConfig} from '../../common/vitestConfig';
 import {AvatarServiceLive} from '../src/AvatarService';
@@ -30,7 +30,7 @@ if (cwd.endsWith('main')) {
 }
 
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
-  BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer);
+  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
 const aiRuntime = ManagedRuntime.make(AppLive);
 
 describe('OllamaGenerator', () => {

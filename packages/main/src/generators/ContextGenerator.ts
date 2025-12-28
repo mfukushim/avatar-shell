@@ -21,13 +21,19 @@ export abstract class ContextGenerator {
   protected uniqueId = '';
   protected sysSetting:SysConfig
   protected maxModelContextSize = 10000;
+  protected inputTokens = 0;
 
+  get inputTokenUsage(): number {
+    return this.inputTokens/this.maxModelContextSize;
+  }
 
   constructor(sysSetting:SysConfig) {
     this.logTag = this.constructor.name;
     this.uniqueId = short.generate() as string;
     this.sysSetting = sysSetting
   }
+
+  abstract setSystemPrompt(context:string):void
 
   abstract generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService|HttpClient.HttpClient>
 
@@ -163,9 +169,14 @@ export abstract class ContextGenerator {
 export class CopyGenerator extends ContextGenerator {
   protected genName: GeneratorProvider = 'copy';
   protected model = 'none';
+  protected systemPrompt = '';
 
   static make(sysConfig: SysConfig) {
     return Effect.succeed(new CopyGenerator(sysConfig));
+  }
+
+  setSystemPrompt(context:string) {
+    this.systemPrompt = context;
   }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {

@@ -64,6 +64,13 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
     });
   }
 
+  setSystemPrompt(context: string) {
+
+  }
+  protected get previousContexts() {
+    return this.previousNativeContexts as OpenAI.Responses.ResponseInputItem[];
+  }
+
   // filterToolRes(value: any) {
   //   if (value.type === 'resource' && value.resource?.annotations && value.resource.annotations?.audience) {
   //     //  @ts-ignore
@@ -243,6 +250,7 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
 export class OpenAiTextGenerator extends OpenAiBaseGenerator {
   protected genName: GeneratorProvider = 'openAiText';
   protected model = 'gpt-4.1-mini';
+  protected systemPrompt?: [OpenAI.Responses.ResponseInputItem]
 
   static make(sysConfig: SysConfig, settings?: ContextGeneratorSetting) {
     if (!sysConfig.generators.openAiText?.apiKey) {
@@ -258,6 +266,10 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     this.model = settings?.useModel || sysConfig.generators.openAiText?.model || 'gpt-4.1-mini';
   }
 
+  setSystemPrompt(context: string) {
+    this.systemPrompt = [{role:'developer', content:[{type:'input_text', text:context}]}];
+  }
+
   generateContext(current: GenInner, avatarState: AvatarState, option?: {
     noTool?: boolean
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
@@ -265,7 +277,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
-      const prev = Array.from(it.previousNativeContexts)
+      const prev = Array.from(it.previousContexts)
       //  TODO prevMakeとprevの差分チェックは後々必要
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
@@ -280,7 +292,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
         };
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
-      const contents = prev.concat(mes);
+      const contents = (it.systemPrompt || [] as OpenAI.Responses.ResponseInputItem[]).concat(prev, mes);
       console.log('OpenAi context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
       console.log('OpenAi context end:');
       const body: ResponseCreateParamsStreaming = {
@@ -348,6 +360,7 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       const nextGen = current.genNum + 1;
       const genOut: GenOuter[] = [];
       if (textOut.length >= 1) {
+        it.inputTokens = inputTokens;
         genOut.push({
           avatarId: current.avatarId,
           fromGenerator: it.genName,

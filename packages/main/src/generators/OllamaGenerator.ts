@@ -24,6 +24,7 @@ export class OllamaTextGenerator extends ContextGenerator {
   protected genName: GeneratorProvider = 'ollamaText';
   protected model = 'llama3.2';
   private ollama: Ollama;
+  protected systemPrompt?:Message[];
   //  TODO ollamaの場合最大コンテキストサイズの取得は?
 
   protected get previousContexts() {
@@ -45,36 +46,9 @@ export class OllamaTextGenerator extends ContextGenerator {
     });
   }
 
-  // filterToolResList(value: any) {
-  //   try {
-  //     return {
-  //       ...value,
-  //       content: value.content.flatMap((a:any) => {
-  //         // console.log('contents test:',a);
-  //         //  @ts-ignore
-  //         if (a.type === 'resource' && a.resource?.annotations && a.resource.annotations?.audience) {
-  //           //  @ts-ignore
-  //           if (!a.resource.annotations.audience.includes('assistant')) {
-  //             console.log('contents test no out');
-  //             return [];
-  //           }
-  //         }
-  //         //  @ts-ignore
-  //         if (a?.annotations && a.annotations?.audience) {
-  //           //  @ts-ignore
-  //           if (!a.annotations.audience.includes('assistant')) {
-  //             console.log('contents test no out');
-  //             return [];
-  //           }
-  //         }
-  //         return [a];
-  //       }),
-  //     };
-  //   } catch (error) {
-  //     console.log('filterToolRes error:',error);
-  //     throw error;
-  //   }
-  // }
+  setSystemPrompt(context:string):void {
+    this.systemPrompt = [{ role: 'system', content: context }];
+  }
 
   generateContext(current: GenInner, avatarState: AvatarState): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService> {
     const it = this;
@@ -121,7 +95,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         };
       })
       //  prev+currentをLLM APIに要求、レスポンスを取得
-      const messages = prev.concat(mes);
+      const messages = (it.systemPrompt || []).concat(prev, mes);
       it.debugContext(messages);
       const response = yield *Effect.tryPromise({
         try:_ => it.ollama.chat({
@@ -164,6 +138,7 @@ export class OllamaTextGenerator extends ContextGenerator {
         tool_calls:toolReq,
       } as Message)
       const inputTokens = Chunk.map(collect,a => a.prompt_eval_count).pipe(Chunk.reduce(0,(init,val) => init+val))
+      it.inputTokens = inputTokens;
 
       //  TODO Ollamaのimagesのレスポンスはちょっとはっきりしていないので今は考えない
       // const images = Chunk.filter(collect,a => a.message.images).pipe(Chunk.map(value => value.value.message.images))
