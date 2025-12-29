@@ -262,7 +262,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
 
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
-      const prev = Array.from(it.previousNativeContexts)
+      const prev = Array.from(it.previousNativeContexts).filter(value => !(value.type === 'message' && value.role === 'developer'))
       //  TODO prevMakeとprevの差分チェックは後々必要
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);

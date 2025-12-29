@@ -871,7 +871,16 @@ export class AvatarState {
       while: a => a,
       body: b => Effect.gen(function* () {
         // console.log('gen in queue wait');
-        const inner = yield* Queue.take<GenInner>(it.innerQueue);
+        let inner
+        while (!inner) {
+          const inner0 = yield* Queue.take<GenInner>(it.innerQueue);
+          //  system prompt処理の例外として。。
+          if(inner0.input?.asClass === 'system') {
+            yield *it.setSystemPrompt(inner0.input);
+          } else {
+            inner = inner0;
+          }
+        }
         if (inner.genNum >= it.MaxGen * 2) {
           // if (inner.genNum > 0) {
           //   yield* it.appendContextGenIn(inner);  //  innerをcontextに追加するのは生成後、そのまえで付けるとprevに入ってしまう。 ここに来るにはすでにContextに入力されているからdaemonで検出されてここに来ているのだからここで入力を追加する必要はない
@@ -995,6 +1004,17 @@ export class AvatarState {
     return true;
   }
 
+  setSystemPrompt(mes:AsMessage) {
+    //  TODO 今は仕組みをきちんと分けれてないので全部のジェネレーターにsystem promptとして送る
+    const text = mes.content.text
+    if (!text) {
+      return Effect.void;
+    }
+    return Effect.forEach(this.generators.values(),a => {
+      a.setSystemPrompt(text)
+      return Effect.void;
+    });
+  }
   overMes = AsMessage.makeMessage({
     from: this.Name,
     text: 'generatorMaxUseCount is over',
@@ -1127,7 +1147,7 @@ export class AvatarState {
   }
 
   clearStreamingText() {
-    this.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'system', 'system', 'outer')]);
+    this.sendToWindow([AsMessage.makeMessage({subCommand: 'deleteTextParts'}, 'working', 'system', 'outer')]);
   }
 
   sendRunningMark(id: string, isRunning: boolean, status = '') {
@@ -1135,7 +1155,7 @@ export class AvatarState {
         innerId: id,
         subCommand: isRunning ? 'addRunning' : 'delRunning',
         text: status,
-      }, 'system', 'system', 'outer'),
+      }, 'working', 'system', 'outer'),
       ],
     );
 

@@ -229,7 +229,7 @@ export class AvatarService extends Effect.Service<AvatarService>()('avatar-shell
         console.log('askAvatar:',mes);
         const state = yield *getAvatarState(avatarId)
         const ext = yield *state.extendAndSaveContext(mes,true)
-        yield *state.addContext(ext)
+        yield *state.addContext(ext);
         // yield *state.addContext(mes,true)
         yield *state.rebuildIdle()
         return []

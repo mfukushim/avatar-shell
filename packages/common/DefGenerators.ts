@@ -3,17 +3,19 @@ import {Schema} from 'effect';
 export const AsClassBaseSchema = Schema.Literal(
   '',
   'talk',
+  'system',
   'com',
   'daemon',
   'physics',
-  'system',
+  'working',
 );
 export const AsClassSchema = AsClassBaseSchema.pipe(Schema.pickLiteral(
   'talk',
+  'system',
   'com',
   'daemon',
   'physics',
-  'system',
+  'working',
 ));
 
 export type AsClass = typeof AsClassSchema.Type
