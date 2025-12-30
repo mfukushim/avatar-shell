@@ -91,7 +91,7 @@ describe("DocService", () => {
       AsOutput.makeOutput({
         id: 'test-message-id',
         tick:0,
-        asClass:'system',
+        asClass:'working',
         asRole: 'human',
         asContext:'surface',
         isRequestAction:false,
@@ -113,7 +113,7 @@ describe("DocService", () => {
       AsOutput.makeOutput({
         id: 'test-e2e-id',
         tick:0,
-        asClass:'system',
+        asClass:'working',
         asRole: 'human',
         asContext:'surface',
         isRequestAction:false,

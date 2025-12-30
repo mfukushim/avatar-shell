@@ -100,7 +100,7 @@ const isShow = (asClass: AsClass, asRole: AsRole, asContext: AsContextLines, mim
     if (view && asRole === 'human') showFlag = true;
   }
   if (flag.showAssistant) {
-    if (view && (asRole === 'bot') && asClass !== 'daemon' && asClass !== 'system') showFlag = true;
+    if (view && (asRole === 'bot') && asClass !== 'daemon' && asClass !== 'working') showFlag = true;
   }
   return showFlag;
 };
