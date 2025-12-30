@@ -243,6 +243,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
     noTool?: boolean
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService|HttpClient.HttpClient> {
     const it = this;
+    console.log('current:', JSON.stringify(current.input));
     return Effect.gen(function* () {
       //  モデルの最大コンテキスト長をまだ未取得だったら取得する make内では依存関係で呼ぶと形がずれるので。。
       if (it.maxModelContextSize === -1) {
@@ -254,7 +255,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         ).pipe(Effect.andThen(a => a.json),
           Effect.catchAll(e => {
             console.log('error:', e);
-            return Effect.succeed(e);
+            return Effect.fail(new Error(`lmStudio error:${e}`));
           }));
         console.log('LmStudioTextGenerator model:', response);
         it.maxModelContextSize = response.max_context_length;
@@ -280,6 +281,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       const contents = (it.systemPrompt || []).concat(prev,mes);
       console.log('LmStudio context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
       console.log('LmStudio context end:');
+      console.log('toolsIn',avatarState.Config.mcp,JSON.stringify(toolsIn));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: contents,

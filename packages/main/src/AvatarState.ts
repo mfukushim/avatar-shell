@@ -799,8 +799,8 @@ export class AvatarState {
           return undefined;
         }
         if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
-          const img = Buffer.from(mes.content.mediaBin).toString('base64');
-          const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, img, it.templateId);
+          // const img = Buffer.from(mes.content.mediaBin).toString('base64');
+          const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, mes.content.mediaBin, it.templateId);
           return {
             ...mes,
             content: {
@@ -816,7 +816,8 @@ export class AvatarState {
             content: {
               ...mes.content,
               mediaBin: undefined,
-              text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
+              text:  Buffer.from(mes.content.mediaBin,"base64").toString('utf-8'),
+              // text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
               isExternal,
             },
           } as AsMessage;
@@ -867,6 +868,7 @@ export class AvatarState {
     // console.log('start execGeneratorLoop');
     const it = this;
     let loop = true;
+    let markId:string|undefined;
     return Effect.loop(true, {
       while: a => a,
       body: b => Effect.gen(function* () {
@@ -881,7 +883,7 @@ export class AvatarState {
           return;  //  func の無限ループを防ぐ
         }
         //  Generator処理
-        const markId = short.generate()
+        markId = short.generate()
         it.sendRunningMark(markId, true, inner.toGenerator.Name);
         const sysConfig = yield* ConfigService.getSysConfig();
         const gen = inner.toGenerator; //  settings?: ContextGeneratorSetting
@@ -902,6 +904,7 @@ export class AvatarState {
         // it.clearStreamingText();
         // console.log('genLoop gen io:', io.map(v => it.debugGenOuter(v)));
         it.sendRunningMark(markId, false);
+        markId = undefined
         if (io.length > 0) {
           yield* Queue.offerAll(it.outerQueue, io);
         } else {
@@ -910,7 +913,13 @@ export class AvatarState {
       }),
       step: b => loop,
       discard: true,
-    }).pipe(Effect.catchAll(a => Effect.logError('execGeneratorLoop error:', a.message, a.stack)));
+    }).pipe(Effect.catchAll(a => {
+      if(markId) {
+        it.sendRunningMark(markId,false)
+        markId = undefined
+      }
+      return Effect.fail(a);
+    }));
   }
 
   // enterOuter(outer: GenOuter) {
@@ -948,8 +957,8 @@ export class AvatarState {
       }),
       step: b => loop,
       discard: true,
-    }).pipe(
-      Effect.catchAll(a => Effect.logError('execExternalLoop error:', a)));
+    })//.pipe(
+      //Effect.catchAll(a => Effect.logError('execExternalLoop error:', a)));
   }
 
   solveMcp(list: GenOuter[]) {
@@ -1068,22 +1077,36 @@ export class AvatarState {
         // console.log('fiberInner status:', s);
         if (FiberStatus.isDone(s)) {
           it.fiberInner = yield* Effect.forkDaemon(it.execGeneratorLoop().pipe(
-            Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
+            Effect.tapError(e => {
+              it.showAlert(`generator Error:${e}`)
+              return Effect.logError('fiberInner error:', e);
+            }), Effect.andThen(a => {
+              return Effect.log('end gen fork');
+            })));
         }
       } else {
         it.fiberInner = yield* Effect.forkDaemon(it.execGeneratorLoop().pipe(
-          Effect.tapError(e => Effect.logError('fiberInner error:', e)), Effect.andThen(a => Effect.log('end gen fork'))));
+          Effect.tapError(e => {
+            it.showAlert(`generator Error:${e}`)
+            return Effect.logError('fiberInner error:', e);
+          }), Effect.andThen(a => Effect.log('end gen fork'))));
       }
       if (it.fiberOuter) {
         const s = yield* it.fiberOuter.status;
         // console.log('fiberOuter status:', s);
         if (FiberStatus.isDone(s)) {
           it.fiberOuter = yield* Effect.forkDaemon(it.execExternalLoop().pipe(
-            Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+            Effect.tapError(e => {
+              it.showAlert(`generator Error:${e}`)
+              return Effect.logError('fiberOuter error:', e);
+            }), Effect.andThen(a => Effect.log('end io fork'))));
         }
       } else {
         it.fiberOuter = yield* Effect.forkDaemon(it.execExternalLoop().pipe(
-          Effect.tapError(e => Effect.logError('fiberOuter error:', e)), Effect.andThen(a => Effect.log('end io fork'))));
+          Effect.tapError(e => {
+            it.showAlert(`generator Error:${e}`)
+            return Effect.logError('fiberOuter error:', e);
+          }), Effect.andThen(a => Effect.log('end io fork'))));
       }
     });
   }
