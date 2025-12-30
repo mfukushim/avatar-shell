@@ -30,7 +30,6 @@ import {McpService} from './McpService.js';
 import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {HttpClient} from '@effect/platform';
-import { string } from 'zod';
 
 dayjs.extend(duration);
 
