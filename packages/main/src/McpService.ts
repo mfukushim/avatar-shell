@@ -133,7 +133,52 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
      */
 
     function getToolDefs(mcpList: AvatarMcpSettingList) {
+      const definedServers = serverInfoList.filter(v => Object.keys(mcpList).includes(v.id))
+      const undefinedServers = serverInfoList.filter(v => !Object.keys(mcpList).includes(v.id))
+      const updateDefServers = Object.entries(mcpList).flatMap(a => {
+        const find = definedServers.find(v => v.id === a[0]);
+        if (find) {
+          if (!a[1].enable) {
+            return [];
+          }
+          const defTools = Object.entries(a[1].useTools).flatMap(d => {
+            if (d[1].enable) {
+              const f = find.tools.find(e => e.name === d[0]);
+              if (f) {
+                //  ツールの個別関数が使えることが確定
+                //  プラグインの定義名を足す必要がある
+                return [
+                  {
+                    ...f,
+                    name: `${find.id}_${f.name}`,
+                  },
+                ];
+              }
+            }
+            return [];
+          });
+          const newTools = find.tools.filter(v => !Object.keys(a[1].useTools).includes(v.name))
+          const addTools = newTools.map(v => {
+            return {
+              ...v,
+              name: `${find.id}_${v.name}`
+            }
+          })
+          return defTools.concat(addTools)
+        }
+        return [];
+      });
+      const undefFunctions = undefinedServers.flatMap(s => {
+        return s.tools.map(t => {
+          return {
+            ...t,
+            name: `${s.id}_${t.name}`
+          }
+        })
+      })
+      return updateDefServers.concat(undefFunctions)
       //  このあたりはopenAiもanthropicも同様書式のはず
+/*
       return Object.entries(mcpList).flatMap(a => {
         const find = getServerInfo(a[0]);
         if (find) {
@@ -159,6 +204,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         }
         return [];
       });
+*/
 
     }
 
