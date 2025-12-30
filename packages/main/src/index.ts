@@ -112,13 +112,14 @@ ipcMain.handle('readMcpResource', async (_,avatarId: string,userName:string,name
             return [AsMessage.makeMessage({
               from: userName,
               //  @ts-ignore
-              mediaBin: Buffer.from(b.text as string).buffer,
+              mediaBin: Buffer.from(b.text as string).toString('base64'),
               mimeType: 'text/plain',
             }, 'talk', 'human', 'outer')] //  前提条件テキストにしたいが今はLLM直に送る形にする
           }
           //  TODO 画像等
           return []
         })
+        console.log('readMcpResource:',JSON.stringify(mesList));
         return AvatarService.askAvatar(avatarId, mesList)
       }
       return Effect.succeed([]);

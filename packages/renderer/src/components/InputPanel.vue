@@ -29,19 +29,21 @@ async function sendMessage() {
   }
   if (fileUpload.value) {
     const arrayBuffer = await fileUpload.value.arrayBuffer();
-    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','outer'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
+    datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: Buffer.from(arrayBuffer).toString('base64'), mimeType:fileUpload.value.type,},'talk','human','outer'));  //  TODO 将来 outerからsurfaceにピックする処理が必要
     // datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: arrayBuffer, mimeType:fileUpload.value.type,},'talk','human','outer'));
   }
   if(mcpResource.value) {
     mcpResource.value.contents.forEach(v => {
       if (v.mimeType === 'text/plain' && v.text) {
-        const encoder = new TextEncoder();
-        const uint8Array = encoder.encode(v.text);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','outer'))
+        // const encoder = new TextEncoder();
+        // const uint8Array = encoder.encode(v.text);
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: Buffer.from(v.text).toString('base64'), mimeType:'text/plain',},'talk','human','outer'))
+        // datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:'text/plain',},'talk','human','outer'))
       } else if (v.mimeType.startsWith('image')) {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode(v.blob);
-        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','outer'))
+        datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: Buffer.from(uint8Array.buffer).toString('base64'), mimeType:v.mimeType,},'talk','human','outer'))
+        // datas.push(AsMessage.makeMessage({from: getUserName(), mediaBin: uint8Array.buffer, mimeType:v.mimeType,},'talk','human','outer'))
       }
     })
   }

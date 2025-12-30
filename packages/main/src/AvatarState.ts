@@ -799,8 +799,8 @@ export class AvatarState {
           return undefined;
         }
         if (mes.content.mediaBin && mes.content.mimeType?.startsWith('image/')) {
-          const img = Buffer.from(mes.content.mediaBin).toString('base64');
-          const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, img, it.templateId);
+          // const img = Buffer.from(mes.content.mediaBin).toString('base64');
+          const mediaUrl = yield* DocService.saveDocMedia(mes.id, mes.content.mimeType, mes.content.mediaBin, it.templateId);
           return {
             ...mes,
             content: {
@@ -816,7 +816,8 @@ export class AvatarState {
             content: {
               ...mes.content,
               mediaBin: undefined,
-              text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
+              text:  Buffer.from(mes.content.mediaBin,"base64").toString('utf-8'),
+              // text: Buffer.from(mes.content.mediaBin).toString('utf-8'),
               isExternal,
             },
           } as AsMessage;

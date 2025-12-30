@@ -243,6 +243,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
     noTool?: boolean
   }): Effect.Effect<GenOuter[], Error, ConfigService | McpService | DocService | MediaService|HttpClient.HttpClient> {
     const it = this;
+    console.log('current:', JSON.stringify(current.input));
     return Effect.gen(function* () {
       //  モデルの最大コンテキスト長をまだ未取得だったら取得する make内では依存関係で呼ぶと形がずれるので。。
       if (it.maxModelContextSize === -1) {
