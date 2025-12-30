@@ -73,7 +73,7 @@ export abstract class EmptyBaseGenerator extends ContextGenerator {
         toolCallParam: undefined,
         setting: {
           ...current.setting,
-          toClass: 'system'
+          toClass: 'working'
         },
         genNum: nextGen
       }] as GenOuter[];

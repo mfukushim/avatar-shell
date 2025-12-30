@@ -114,7 +114,7 @@ ipcMain.handle('readMcpResource', async (_,avatarId: string,userName:string,name
               //  @ts-ignore
               mediaBin: Buffer.from(b.text as string).toString('base64'),
               mimeType: 'text/plain',
-            }, 'talk', 'human', 'outer')] //  前提条件テキストにしたいが今はLLM直に送る形にする
+            }, 'system', 'human', 'surface')] //  システムプロンプト設定にする
           }
           //  TODO 画像等
           return []

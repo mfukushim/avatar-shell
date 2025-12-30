@@ -4,6 +4,10 @@
 
 English / [Japanese](./README_jp.md)
 
+> Note: In the coming weeks, I will be making major changes to the layout of some features. This is a breaking change.  
+> The "Generator" setting will be moved to the Avatar Settings section, and the existing "Generator" will be renamed to "Model."  
+> We plan to clarify the relationship between Avatar AI, which is centered around context and is composed of a collection of multiple generators.  
+
 > Supported LM Studio API (OpenAI compatibility mode).
 
 > Note: If you are using a previous version and are experiencing unstable operation, please initialize the settings by going to SystemSetting > initialize.  

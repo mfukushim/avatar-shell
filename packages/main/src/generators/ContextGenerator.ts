@@ -65,7 +65,7 @@ export abstract class ContextGenerator {
         textParts: [
           text,
         ],
-      }, 'system', 'system', 'outer')],
+      }, 'working', 'system', 'outer')],
     );
   }
 
