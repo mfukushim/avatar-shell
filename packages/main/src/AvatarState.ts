@@ -523,6 +523,10 @@ export class AvatarState {
         it.forcedStopDaemons = false;
         return yield* Effect.succeed([]);
       }
+      //  TODO 今は仮にsystem prompt設定のasClassの場合、強制的に設定は行う
+      yield* Effect.forEach(updated.delta.filter(m => m.asClass === 'system'),m => {
+        return it.setSystemPrompt(m)
+      })
       yield* it.daemonStates.pipe(Ref.get).pipe(Effect.andThen(Effect.forEach(a => {
 //        console.log('update changeTalkContext len:', updated.context.length, updated.delta.length);
         switch (a.config.trigger.triggerType as ContextTrigger) {
@@ -1019,7 +1023,8 @@ export class AvatarState {
     if (!text) {
       return Effect.void;
     }
-    return Effect.forEach(this.generators.values(),a => {
+    const genList = Array.from(this.generators.values())
+    return Effect.forEach(genList,a => {
       a.setSystemPrompt(text)
       return Effect.void;
     });
