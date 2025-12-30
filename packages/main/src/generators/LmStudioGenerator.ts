@@ -255,7 +255,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         ).pipe(Effect.andThen(a => a.json),
           Effect.catchAll(e => {
             console.log('error:', e);
-            return Effect.succeed(e);
+            return Effect.fail(new Error(`lmStudio error:${e}`));
           }));
         console.log('LmStudioTextGenerator model:', response);
         it.maxModelContextSize = response.max_context_length;
