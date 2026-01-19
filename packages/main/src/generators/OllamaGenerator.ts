@@ -28,7 +28,7 @@ export class OllamaTextGenerator extends ContextGenerator {
   //  TODO ollamaの場合最大コンテキストサイズの取得は?
 
   protected get previousContexts() {
-    return this.previousNativeContexts as Message[];
+    return this.previousNativeContexts as (Message | null)[];
   }
 
   static make(sysConfig:SysConfig, settings?: ContextGeneratorSetting) {
@@ -64,7 +64,29 @@ export class OllamaTextGenerator extends ContextGenerator {
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
-      const prev = Array.from(it.previousContexts)
+      let prev:Message[] = []
+      if (current.setting?.cutoffChatLimit) {
+        const sum = Array.from(it.previousContexts).reduce((previousValue, currentValue) => {
+          if(currentValue === null){
+            return {list:previousValue.list.concat(previousValue.buf),buf:[]}
+          }
+          return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
+        },{list:[] as Message[][],buf:[] as Message[]})
+        const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
+          if (previousValue.count <= 0) {
+            return previousValue;
+          }
+          const next = previousValue.out.concat(currentValue);
+          previousValue.count-= currentValue.length
+          return {out:next,count:previousValue.count}
+        },{out:[] as Content[][],count:current.setting?.cutoffChatLimit})
+        prev = cutoff.out.reverse().flat()
+      } else {
+        prev = Array.from(it.previousContexts)
+        // prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで
+      }
+
+      // const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
       if (current.input?.content.text) {

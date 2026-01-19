@@ -105,6 +105,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toContext:Schema.optional(AsContextLinesSchema),
   noTool: Schema.optional(Schema.Boolean),
   useModel: Schema.optional(Schema.String),
+  cutoffChatLimit: Schema.optional(Schema.Number),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 

@@ -893,6 +893,7 @@ export class AvatarState {
           // }
           yield* it.resetPrevBuffer();
           it.clearStreamingText();
+          //  gen.setContextDelimiter() ここは次に回すgenが未確定だからデリミダ付けられないか。。
           return;  //  func の無限ループを防ぐ
         }
         //  Generator処理
@@ -922,6 +923,7 @@ export class AvatarState {
           yield* Queue.offerAll(it.outerQueue, io);
         } else {
           it.clearStreamingText();
+          gen.setContextDelimiter()
         }
       }),
       step: b => loop,
@@ -1057,11 +1059,12 @@ export class AvatarState {
         toGenerator: gen,
         input: message,
         genNum: 1,  //  この入力はまだcontextに追加されていないので1から開始して追加させる
-        setting: {
-          toClass: setting.toClass,
-          toRole: setting.toRole,
-          toContext: setting.toContext,
-        },
+        setting: setting,
+        // setting: {
+        //   toClass: setting.toClass,
+        //   toRole: setting.toRole,
+        //   toContext: setting.toContext,
+        // },
       }, addToBuffer);
       // console.log('start loop');
 

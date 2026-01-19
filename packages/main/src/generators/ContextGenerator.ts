@@ -74,6 +74,14 @@ export abstract class ContextGenerator {
     avatarState.clearStreamingText()
   }
 
+  /**
+   * prevContextBufferに分離可能なデリミダを追加する
+   * 今のところnullを使う
+   */
+  setContextDelimiter() {
+    this.previousNativeContexts.push(null);
+  }
+
   filterForLlmPrevContext(asMes:AsMessage[],current?:AsMessage) {
     //  TODO ここは妥当な条件を再検討が必要。。
     //  currentを含まないこと、currentよりもtickが古いこと
