@@ -1,15 +1,15 @@
 import {Effect, Layer, ManagedRuntime} from 'effect';
-import {McpService, McpServiceLive} from '../src/McpService';
-import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {AsMessage} from '../../common/Def';
+import {McpService, McpServiceLive} from '../src/McpService.js';
+import {vitestAvatarConfigNone, vitestSysConfig} from '../../common/vitestConfig.js';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService.js';
+import {AsMessage} from '../../common/Def.js';
 import {expect} from '@effect/vitest';
-import {MediaServiceLive} from '../src/MediaService';
-import {DocServiceLive} from '../src/DocService';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {DocServiceLive} from '../src/DocService.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
 import {NodeFileSystem} from '@effect/platform-node';
-import {GeneratorProvider} from '../../common/DefGenerators';
+import {GeneratorProvider} from '../../common/DefGenerators.js';
 import {FetchHttpClient} from '@effect/platform';
 
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
@@ -30,7 +30,7 @@ function setupNormalTalkTest(vitestConf: any) {
     yield* Effect.sleep('1 seconds');
 
     const pickOuter = (yield* avatarState.ScheduleList).find(d => d.name === 'pickOuter');
-    const gen = yield* avatarState.getDefGenerator(pickOuter.genId);
+    const gen = yield* avatarState.getDefGenerator(pickOuter?.genId || '');
     return {avatarState, gen};
   });
 }
@@ -638,7 +638,7 @@ export async function contextStepTest7(generatorName:GeneratorProvider,expectedS
       input: {
         move:'D3'
       }
-    },normalTalk.genId)
+    },normalTalk?.genId ||'')
     console.log('callMcpToolByExternal:',res2);
 
     yield* Effect.sleep('60 seconds');

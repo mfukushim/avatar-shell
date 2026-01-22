@@ -3,15 +3,15 @@ import {Effect, Layer} from 'effect';
 import {runPromise, runPromiseExit} from 'effect/Effect';
 import {NodeFileSystem} from '@effect/platform-node';
 import {it, expect, describe, beforeEach, afterEach} from '@effect/vitest';
-import {AvatarState} from '../src/AvatarState';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {McpService, McpServiceLive} from '../src/McpService';
-import {DocServiceLive} from '../src/DocService';
-import {MediaServiceLive} from '../src/MediaService';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
-import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig';
-import {AvatarMcpSettingListMutable, AvatarSetting} from '../../common/Def';
-import {AvatarServiceLive} from '../src/AvatarService';
+import {AvatarState} from '../src/AvatarState.js';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
+import {McpService, McpServiceLive} from '../src/McpService.js';
+import {DocServiceLive} from '../src/DocService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
+import {vitestAvatarConfigMi, vitestSysConfig} from '../../common/vitestConfig.js';
+import {AvatarMcpSettingListMutable, AvatarSetting} from '../../common/Def.js';
+import {AvatarServiceLive} from '../src/AvatarService.js';
 import {FetchHttpClient} from '@effect/platform';
 
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,

@@ -2,26 +2,26 @@
 import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
-import {AvatarState, GenInner} from '../src/AvatarState';
-import {ConfigServiceLive} from '../src/ConfigService';
-import {McpServiceLive} from '../src/McpService';
-import {DocService, DocServiceLive} from '../src/DocService';
-import {MediaServiceLive} from '../src/MediaService';
-import {OllamaTextGenerator} from '../src/generators/OllamaGenerator';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {AvatarState, GenInner} from '../src/AvatarState.js';
+import {ConfigServiceLive} from '../src/ConfigService.js';
+import {McpServiceLive} from '../src/McpService.js';
+import {DocService, DocServiceLive} from '../src/DocService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {OllamaTextGenerator} from '../src/generators/OllamaGenerator.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FetchHttpClient, FileSystem} from '@effect/platform';
 import path from 'node:path';
-import {vitestSysConfig} from '../../common/vitestConfig';
-import {AvatarServiceLive} from '../src/AvatarService';
-import {AsMessage} from '../../common/Def';
+import {vitestSysConfig} from '../../common/vitestConfig.js';
+import {AvatarServiceLive} from '../src/AvatarService.js';
+import {AsMessage} from '../../common/Def.js';
 import {
   contextStepTest1,
   contextStepTest2,
   contextStepTest3,
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
-} from './CommonGeneratorTest';
+} from './CommonGeneratorTest.js';
 
 const cwd = process.cwd();
 let baseDir = cwd;

@@ -3,8 +3,8 @@ import {Effect} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {NodeFileSystem} from '@effect/platform-node';
 import path from 'path';
-import {ConfigServiceLive} from '../src/ConfigService';
-import {MediaService, MediaServiceLive} from '../src/MediaService';
+import {ConfigServiceLive} from '../src/ConfigService.js';
+import {MediaService, MediaServiceLive} from '../src/MediaService.js';
 import * as fs from 'fs';
 
 

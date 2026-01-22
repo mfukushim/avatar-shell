@@ -2,26 +2,26 @@
 import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
-import {AvatarState} from '../src/AvatarState';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {McpService, McpServiceLive} from '../src/McpService';
-import {DocService, DocServiceLive} from '../src/DocService';
-import {MediaServiceLive} from '../src/MediaService';
-import {vitestSysConfig} from '../../common/vitestConfig';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {AvatarState} from '../src/AvatarState.js';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
+import {McpService, McpServiceLive} from '../src/McpService.js';
+import {DocService, DocServiceLive} from '../src/DocService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {vitestSysConfig} from '../../common/vitestConfig.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FetchHttpClient, FileSystem} from '@effect/platform';
 import path from 'node:path';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {OpenAiTextGenerator, OpenAiImageGenerator, OpenAiVoiceGenerator} from '../src/generators/OpenAiGenerator';
-import {AsMessage} from '../../common/Def';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService.js';
+import {OpenAiTextGenerator, OpenAiImageGenerator, OpenAiVoiceGenerator} from '../src/generators/OpenAiGenerator.js';
+import {AsMessage} from '../../common/Def.js';
 import {
   contextStepTest1,
   contextStepTest2,
   contextStepTest3,
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
-} from './CommonGeneratorTest';
+} from './CommonGeneratorTest.js';
 
 const cwd = process.cwd()
 let baseDir = cwd;
@@ -124,8 +124,9 @@ describe('OpenAiGenerator', () => {
         if (o.outputText) {
           return Effect.succeed(o.outputText);
         }
+        return Effect.succeed('');
       })
-    }).pipe(aiRuntime.runPromise,);
+    }).pipe(aiRuntime.runPromise);
 
 
     console.log('out:',res);
@@ -156,6 +157,7 @@ describe('OpenAiGenerator', () => {
         if (o.outputText) {
           return Effect.succeed(o.outputText);
         }
+        return Effect.succeed('');
       })
     }).pipe(aiRuntime.runPromise,);
 
@@ -177,7 +179,7 @@ describe('OpenAiGenerator', () => {
       yield* Effect.sleep('1 seconds');
 
       const pickOuter = (yield* avatarState.ScheduleList).find(d => d.name === 'pickOuter');
-      const gen = yield* avatarState.getDefGenerator(pickOuter.genId);
+      const gen = yield* avatarState.getDefGenerator(pickOuter?.genId || '');
       return {avatarState, gen};
     });
   }
