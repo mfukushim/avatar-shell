@@ -2,25 +2,25 @@
 import {Effect, Layer, ManagedRuntime} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {it, expect, describe, beforeEach} from '@effect/vitest';
-import {AvatarState} from '../src/AvatarState';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {McpService, McpServiceLive} from '../src/McpService';
-import {DocService, DocServiceLive} from '../src/DocService';
-import {MediaServiceLive} from '../src/MediaService';
-import {vitestSysConfig} from '../../common/vitestConfig';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
+import {AvatarState} from '../src/AvatarState.js';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
+import {McpService, McpServiceLive} from '../src/McpService.js';
+import {DocService, DocServiceLive} from '../src/DocService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {vitestSysConfig} from '../../common/vitestConfig.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
 import {NodeFileSystem} from '@effect/platform-node';
 import {FetchHttpClient, FileSystem} from '@effect/platform';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
-import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator';
-import {AsMessage} from '../../common/Def';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService.js';
+import {ClaudeTextGenerator} from '../src/generators/ClaudeGenerator.js';
+import {AsMessage} from '../../common/Def.js';
 import {
   contextStepTest1,
   contextStepTest2,
   contextStepTest3,
   contextStepTest4,
   contextStepTest5, contextStepTest6, contextStepTest7,
-} from './CommonGeneratorTest';
+} from './CommonGeneratorTest.js';
 import * as path from 'node:path';
 
 const cwd = process.cwd();
@@ -139,7 +139,7 @@ describe('ClaudeGenerator', () => {
       yield* Effect.sleep('1 seconds');
 
       const pickOuter = (yield* avatarState.ScheduleList).find(d => d.name === 'pickOuter');
-      const gen = yield* avatarState.getDefGenerator(pickOuter.genId);
+      const gen = pickOuter ? yield* avatarState.getDefGenerator(pickOuter.genId):undefined;
       return {avatarState, gen};
     });
   }

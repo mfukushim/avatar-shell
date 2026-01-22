@@ -3,8 +3,8 @@ import {test} from 'vitest';
 import {Effect} from 'effect';
 import path from 'node:path';
 import {runPromise} from 'effect/Effect';
-import {ConfigServiceLive} from '../src/ConfigService';
-import {MediaService, MediaServiceLive} from '../src/MediaService';
+import {ConfigServiceLive} from '../src/ConfigService.js';
+import {MediaService, MediaServiceLive} from '../src/MediaService.js';
 
 
 test('MediaService_playSound', async () => {
