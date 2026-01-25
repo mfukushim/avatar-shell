@@ -175,7 +175,8 @@ Generator 全体設定(api keyなど全体で設定するもの
 
 const generatorCommonConfigSchema = Schema.Struct({
   maxTokenThreshold:Schema.Number,
-  summarizePrompt:Schema.String
+  summarizePrompt:Schema.String,
+  cutoffChatLimit:Schema.optional(Schema.Number)
 })
 
 //    openAi  openAiText, openAiImage, openAiVoice

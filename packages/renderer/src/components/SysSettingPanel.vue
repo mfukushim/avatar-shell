@@ -444,14 +444,19 @@ const copyPath = async () => {
                                      placeholder="gpt-4.1-mini"
                                      :label="t('textModel')"
                                      data-testid="openai-model" />
-                            <q-input v-model="edit.generators.openAiText.common.maxTokenThreshold"
+                            <q-input v-model.number="edit.generators.openAiText.common.cutoffChatLimit"
+                                     type="number"
+                                     placeholder="100"
+                                     :label="t('cutoffChatLimit')"
+                                     data-testid="openai-cutoffChatLimit" />
+                            <q-input v-model.number="edit.generators.openAiText.common.maxTokenThreshold"
                                      type="number"
                                      placeholder="10000"
                                      :label="t('maxTokenThreshold')"
                                      data-testid="openai-maxTokenThreshold" />
                             <q-input v-model="edit.generators.openAiText.common.summarizePrompt"
                                      type="textarea"
-                                     placeholder="10000"
+                                     placeholder=""
                                      :label="t('summarizePrompt')"
                                      data-testid="openai-summarizePrompt" />
                           </q-card-section>
@@ -487,14 +492,19 @@ const copyPath = async () => {
                                      placeholder="claude-3-7-sonnet-latest"
                                      :label="t('textModel')"
                                      data-testid="anthropic-model" />
-                            <q-input v-model="edit.generators.anthropic.common.maxTokenThreshold"
+                            <q-input v-model.number="edit.generators.anthropic.common.cutoffChatLimit"
+                                     type="number"
+                                     placeholder="10000"
+                                     :label="t('cutoffChatLimit')"
+                                     data-testid="anthropic-cutoffChatLimit" />
+                            <q-input v-model.number="edit.generators.anthropic.common.maxTokenThreshold"
                                      type="number"
                                      placeholder="10000"
                                      :label="t('maxTokenThreshold')"
                                      data-testid="anthropic-maxTokenThreshold" />
                             <q-input v-model="edit.generators.anthropic.common.summarizePrompt"
                                      type="textarea"
-                                     placeholder="10000"
+                                     placeholder=""
                                      :label="t('summarizePrompt')"
                                      data-testid="anthropic-summarizePrompt" />
                           </q-card-section>
@@ -505,14 +515,19 @@ const copyPath = async () => {
                           <q-card-section>
                             <q-input v-model="edit.generators.gemini.apiKey" type="text" :label="t('apiKey')" data-testid="gemini-api-key" />
                             <q-input v-model="edit.generators.gemini.model" type="text" placeholder="gemini-2.5-flash" :label="t('textModel')" data-testid="gemini-model" />
-                            <q-input v-model="edit.generators.gemini.common.maxTokenThreshold"
+                            <q-input v-model.number="edit.generators.gemini.common.cutoffChatLimit"
+                                     type="number"
+                                     placeholder="100"
+                                     :label="t('cutoffChatLimit')"
+                                     data-testid="gemini-cutoffChatLimit" />
+                            <q-input v-model.number="edit.generators.gemini.common.maxTokenThreshold"
                                      type="number"
                                      placeholder="10000"
                                      :label="t('maxTokenThreshold')"
                                      data-testid="gemini-maxTokenThreshold" />
                             <q-input v-model="edit.generators.gemini.common.summarizePrompt"
                                      type="textarea"
-                                     placeholder="10000"
+                                     placeholder=""
                                      :label="t('summarizePrompt')"
                                      data-testid="gemini-summarizePrompt" />
                           </q-card-section>
@@ -548,14 +563,19 @@ const copyPath = async () => {
                                      placeholder="llama3.1"
                                      :label="t('Model')"
                                      data-testid="ollama-model" />
-                            <q-input v-model="edit.generators.ollama.common.maxTokenThreshold"
+                            <q-input v-model.number="edit.generators.ollama.common.cutoffChatLimit"
+                                     type="number"
+                                     placeholder="100"
+                                     :label="t('cutoffChatLimit')"
+                                     data-testid="ollama-cutoffChatLimit" />
+                            <q-input v-model.number="edit.generators.ollama.common.maxTokenThreshold"
                                      type="number"
                                      placeholder="10000"
                                      :label="t('maxTokenThreshold')"
                                      data-testid="ollama-maxTokenThreshold" />
                             <q-input v-model="edit.generators.ollama.common.summarizePrompt"
                                      type="textarea"
-                                     placeholder="10000"
+                                     placeholder=""
                                      :label="t('summarizePrompt')"
                                      data-testid="ollama-summarizePrompt" />
                           </q-card-section>
@@ -574,14 +594,19 @@ const copyPath = async () => {
                                      placeholder="openai/gpt-oss-20b"
                                      :label="t('defaultModel')"
                                      data-testid="lmStudio-model" />
-                            <q-input v-model="edit.generators.lmStudio.common.maxTokenThreshold"
+                            <q-input v-model.number="edit.generators.lmStudio.common.cutoffChatLimit"
+                                     type="number"
+                                     placeholder="100"
+                                     :label="t('cutoffChatLimit')"
+                                     data-testid="ollama-cutoffChatLimit" />
+                            <q-input v-model.number="edit.generators.lmStudio.common.maxTokenThreshold"
                                      type="number"
                                      placeholder="10000"
                                      :label="t('maxTokenThreshold')"
                                      data-testid="ollama-maxTokenThreshold" />
                             <q-input v-model="edit.generators.lmStudio.common.summarizePrompt"
                                      type="textarea"
-                                     placeholder="10000"
+                                     placeholder=""
                                      :label="t('summarizePrompt')"
                                      data-testid="ollama-summarizePrompt" />
                           </q-card-section>
