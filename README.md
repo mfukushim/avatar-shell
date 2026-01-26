@@ -8,6 +8,9 @@ English / [Japanese](./README_jp.md)
 > The "Generator" setting will be moved to the Avatar Settings section, and the existing "Generator" will be renamed to "Model."  
 > We plan to clarify the relationship between Avatar AI, which is centered around context and is composed of a collection of multiple generators.  
 
+> As a temporary measure, we have added cutoffChatLimit to the LLM settings.  
+> This will reduce token consumption by forcibly truncating the context.  
+
 > Supported LM Studio API (OpenAI compatibility mode).
 
 > Note: If you are using a previous version and are experiencing unstable operation, please initialize the settings by going to SystemSetting > initialize.  

@@ -105,6 +105,7 @@ export const ContextGeneratorSettingSchema = Schema.partial(Schema.Struct({
   toContext:Schema.optional(AsContextLinesSchema),
   noTool: Schema.optional(Schema.Boolean),
   useModel: Schema.optional(Schema.String),
+  cutoffChatLimit: Schema.optional(Schema.Number),
   debug: Schema.Any,  //  デバッグ用汎用
 }))
 
@@ -174,7 +175,8 @@ Generator 全体設定(api keyなど全体で設定するもの
 
 const generatorCommonConfigSchema = Schema.Struct({
   maxTokenThreshold:Schema.Number,
-  summarizePrompt:Schema.String
+  summarizePrompt:Schema.String,
+  cutoffChatLimit:Schema.optional(Schema.Number)
 })
 
 //    openAi  openAiText, openAiImage, openAiVoice

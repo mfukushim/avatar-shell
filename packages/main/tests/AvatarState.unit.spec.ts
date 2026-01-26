@@ -1,16 +1,16 @@
 import {Effect, Layer, ManagedRuntime} from 'effect';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
 import {NodeFileSystem} from '@effect/platform-node';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
-import {McpService, McpServiceLive} from '../src/McpService';
-import {AvatarState} from '../src/AvatarState';
-import {DocService, DocServiceLive} from '../src/DocService';
-import {MediaServiceLive} from '../src/MediaService';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
+import {McpService, McpServiceLive} from '../src/McpService.js';
+import {AvatarState} from '../src/AvatarState.js';
+import {DocService, DocServiceLive} from '../src/DocService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
 import {describe, expect, it} from '@effect/vitest';
-import {AsMessage, AsOutput, AvatarSettingMutable} from '../../common/Def';
+import {AsMessage, AsOutput, AvatarSettingMutable} from '../../common/Def.js';
 import dayjs from 'dayjs';
-import {vitestSysConfig} from '../../common/vitestConfig';
-import {AvatarService, AvatarServiceLive} from '../src/AvatarService';
+import {vitestSysConfig} from '../../common/vitestConfig.js';
+import {AvatarService, AvatarServiceLive} from '../src/AvatarService.js';
 import {FetchHttpClient} from '@effect/platform';
 
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,

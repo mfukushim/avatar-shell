@@ -3,11 +3,11 @@ import {it, expect, describe} from '@effect/vitest';
 import {Effect, Schema} from 'effect';
 import {runPromise} from 'effect/Effect';
 import {NodeFileSystem} from '@effect/platform-node';
-import {ConfigService, ConfigServiceLive} from '../src/ConfigService';
-import {vitestAvatarConfigMi, vitestMutableSetting, vitestSysConfig} from '../../common/vitestConfig';
+import {ConfigService, ConfigServiceLive} from '../src/ConfigService.js';
+import {vitestAvatarConfigMi, vitestMutableSetting, vitestSysConfig} from '../../common/vitestConfig.js';
 import {FileSystem} from '@effect/platform';
-import {AvatarMcpSetting} from '../../common/Def';
-import {AvatarService} from '../src/AvatarService';
+import {AvatarMcpSetting} from '../../common/Def.js';
+import {AvatarService} from '../src/AvatarService.js';
 import path from 'node:path';
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';

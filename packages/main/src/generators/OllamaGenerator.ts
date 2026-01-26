@@ -25,10 +25,11 @@ export class OllamaTextGenerator extends ContextGenerator {
   protected model = 'llama3.2';
   private ollama: Ollama;
   protected systemPrompt?:Message[];
+  protected ollamaSettings: ContextGeneratorSetting | undefined;
   //  TODO ollamaの場合最大コンテキストサイズの取得は?
 
   protected get previousContexts() {
-    return this.previousNativeContexts as Message[];
+    return this.previousNativeContexts as (Message | null)[];
   }
 
   static make(sysConfig:SysConfig, settings?: ContextGeneratorSetting) {
@@ -37,6 +38,7 @@ export class OllamaTextGenerator extends ContextGenerator {
 
   constructor(setting: SysConfig,settings?: ContextGeneratorSetting) {
     super(setting);
+    this.ollamaSettings = settings;
     this.model = settings?.useModel || setting.generators.ollama?.model || 'llama3.1';
     this.ollama = new Ollama({
       host: setting.generators.ollama?.host || 'http://localhost:11434',
@@ -64,7 +66,33 @@ export class OllamaTextGenerator extends ContextGenerator {
           images:undefined, //  TODO 画像は送るべきか?
         } as Message]
       })
-      const prev = Array.from(it.previousContexts)
+      let prev:Message[] = []
+      const lessCutoff = it.sysSetting.generators.ollama.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
+        const sum = Array.from(it.previousContexts).reduce((previousValue, currentValue) => {
+          if(currentValue === null){
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
+          }
+          return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
+        },{list:[] as Message[][],buf:[] as Message[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+        const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
+          if (previousValue.count <= 0) {
+            return previousValue;
+          }
+          const next = previousValue.out.concat(currentValue.reverse());
+          previousValue.count-= currentValue.length
+          return {out:next,count:previousValue.count}
+        },{out:[] as Message[][],count:lessCutoff})
+        prev = cutoff.out.reverse().flat()
+      } else {
+        prev = Array.from(it.previousContexts).filter((value):value is  Message => value !== null);  // ユーザからのmcpExternalで
+      }
+
+      // const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes:Message = { role: 'user', content: '' };
       if (current.input?.content.text) {

@@ -1,16 +1,16 @@
 import {it, expect, describe} from '@effect/vitest';
 import {Effect, Layer} from 'effect';
 import {runPromise} from 'effect/Effect';
-import {DocService, DocServiceLive} from '../src/DocService';
+import {DocService, DocServiceLive} from '../src/DocService.js';
 import {NodeFileSystem} from '@effect/platform-node';
-import {ConfigServiceLive} from '../src/ConfigService';
-import {AsOutput} from '../../common/Def';
-import {AvatarState} from '../src/AvatarState';
-import {McpServiceLive} from '../src/McpService';
-import {MediaServiceLive} from '../src/MediaService';
-import {vitestAvatarConfigMi} from '../../common/vitestConfig';
-import {BuildInMcpServiceLive} from '../src/BuildInMcpService';
-import {AvatarServiceLive} from '../src/AvatarService';
+import {ConfigServiceLive} from '../src/ConfigService.js';
+import {AsOutput} from '../../common/Def.js';
+import {AvatarState} from '../src/AvatarState.js';
+import {McpServiceLive} from '../src/McpService.js';
+import {MediaServiceLive} from '../src/MediaService.js';
+import {vitestAvatarConfigMi} from '../../common/vitestConfig.js';
+import {BuildInMcpServiceLive} from '../src/BuildInMcpService.js';
+import {AvatarServiceLive} from '../src/AvatarService.js';
 import {FetchHttpClient} from '@effect/platform';
 
 const inGitHubAction = process.env.GITHUB_ACTIONS === 'true';

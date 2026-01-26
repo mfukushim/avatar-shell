@@ -37,9 +37,9 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
   protected abstract genName: GeneratorProvider;
   protected maxModelContextSize = 200000;  //  TODO Claudeの最大コンテキスト長も20Kぐらいらしい
 
-  protected get previousContexts() {
-    return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
-  }
+  // protected get previousContexts() {
+  //   return this.previousNativeContexts as Anthropic.Messages.MessageParam[];
+  // }
 
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
@@ -56,6 +56,10 @@ export abstract class ClaudeBaseGenerator extends ContextGenerator {
     this.anthropic = new Anthropic({
       apiKey: sysConfig.generators.anthropic.apiKey,
     });
+  }
+
+  getPreviousNativeContexts():(Anthropic.Messages.MessageParam | null)[] {
+    return this.previousNativeContexts as (Anthropic.Messages.MessageParam | null)[];
   }
 
   // filterToolRes(value: ContentBlock ) {
@@ -279,7 +283,32 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
     return Effect.gen(function* () {
       //  TODO prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
-      const prev = Array.from(it.previousContexts)  // ユーザからのmcpExternalで
+      let prev: Anthropic.Messages.MessageParam[] = []
+      const lessCutoff = it.sysSetting.generators.anthropic.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
+        const sum = Array.from(it.getPreviousNativeContexts()).reduce((previousValue, currentValue) => {
+          if(currentValue === null){
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
+          }
+          return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
+        },{list:[] as Anthropic.Messages.MessageParam[][],buf:[] as Anthropic.Messages.MessageParam[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
+        const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
+          if (previousValue.count <= 0) {
+            return previousValue;
+          }
+          const next = previousValue.out.concat(currentValue.reverse());
+          previousValue.count-= currentValue.length
+          return {out:next,count:previousValue.count}
+        },{out:[] as Anthropic.Messages.MessageParam[][],count:lessCutoff})
+        prev = cutoff.out.reverse().flat()
+      } else {
+        prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで
+      }
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
 
@@ -317,11 +346,11 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
         },
       });
 
-      it.previousContexts.push({
+      it.getPreviousNativeContexts().push({
         role: mes.role,
         content:mes.content,
       })
-      it.previousContexts.push({
+      it.getPreviousNativeContexts().push({
         role: message.role,
         content:message.content,
       } as Anthropic.Messages.MessageParam)

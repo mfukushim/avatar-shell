@@ -67,8 +67,9 @@ export abstract class OpenAiBaseGenerator extends ContextGenerator {
   setSystemPrompt(context: string) {
 
   }
+
   protected get previousContexts() {
-    return this.previousNativeContexts as OpenAI.Responses.ResponseInputItem[];
+    return this.previousNativeContexts as (ResponseInputItem | null)[];
   }
 
   // filterToolRes(value: any) {
@@ -277,7 +278,34 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
     return Effect.gen(function* () {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
-      const prev = Array.from(it.previousContexts).filter(value => !(value.type === 'message' && value.role === 'developer')) //  古いsys promptは除去
+      let prev:ResponseInputItem[] = []
+      const lessCutoff = it.sysSetting.generators.openAiText.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
+        const sum = Array.from(it.previousContexts).reduce((previousValue, currentValue) => {
+          if(currentValue === null){
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
+          }
+          return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
+        },{list:[] as ResponseInputItem[][],buf:[] as ResponseInputItem[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
+        const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
+          if (previousValue.count <= 0) {
+            return previousValue;
+          }
+          const next = previousValue.out.concat(currentValue.reverse());
+          previousValue.count-= currentValue.length
+          return {out:next,count:previousValue.count}
+        },{out:[] as ResponseInputItem[][],count:lessCutoff})
+        prev = cutoff.out.reverse().flat().filter(value => !(value.type === 'message' && value.role === 'developer'))
+      } else {
+        prev = Array.from(it.previousContexts).filter((value):value is ResponseInputItem  => value !== null && !(value.type === 'message' && value.role === 'developer'))
+        // prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで
+      }
+      // const prev = Array.from(it.previousContexts).filter(value => !(value.type === 'message' && value.role === 'developer')) //  古いsys promptは除去
       //  TODO prevMakeとprevの差分チェックは後々必要
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);

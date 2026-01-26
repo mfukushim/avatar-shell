@@ -1,7 +1,7 @@
 {
   "name": "avatar-shell",
   "description": "Avatar/Visually-based MCP client",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -84,5 +84,8 @@
     "sound-play": "^1.1.0",
     "ws": "^8.18.2",
     "zod": "^3.25.34"
+  },
+  "volta": {
+    "node": "24.13.0"
   }
 }

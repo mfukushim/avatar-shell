@@ -47,6 +47,10 @@ export abstract class LmStudioBaseGenerator extends ContextGenerator {
   protected override maxModelContextSize = -1;
   protected baseUrl=''
 
+  getPreviousNativeContexts():(ResponseInputItem | null)[] {
+    return this.previousNativeContexts as (ResponseInputItem | null)[];
+  }
+
   static generatorInfo: ContextGeneratorInfo = {
     usePreviousContext: true,
     defaultPrevContextSize: 100,
@@ -263,7 +267,35 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
 
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
-      const prev = Array.from(it.previousNativeContexts).filter(value => !(value.type === 'message' && value.role === 'developer'))
+      let prev:ResponseInputItem[] = []
+      const lessCutoff = it.sysSetting.generators.lmStudio.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      // const lessCutoff = Math.min(current.setting?.cutoffChatLimit || Number.MAX_SAFE_INTEGER, it.lmStudioSettings?.cutoffChatLimit || Number.MAX_SAFE_INTEGER);
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
+        const sum = Array.from(it.getPreviousNativeContexts()).reduce((previousValue, currentValue) => {
+          if(currentValue === null){
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
+          }
+          return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
+        },{list:[] as ResponseInputItem[][],buf:[] as ResponseInputItem[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
+        const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
+          if (previousValue.count <= 0) {
+            return previousValue;
+          }
+          const next = previousValue.out.concat(currentValue.reverse());
+          previousValue.count-= currentValue.length
+          return {out:next,count:previousValue.count}
+        },{out:[] as ResponseInputItem[][],count:lessCutoff})
+        prev = cutoff.out.reverse().flat().filter(value => !(value.type === 'message' && value.role === 'developer'))
+      } else {
+        prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is ResponseInputItem  => value !== null && !(value.type === 'message' && value.role === 'developer'))
+        // prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで
+      }
+      // const prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is ResponseInputItem  => value !== null && !(value.type === 'message' && value.role === 'developer'))
       //  TODO prevMakeとprevの差分チェックは後々必要
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
       const mes = yield* it.makeCurrentContext(current);
@@ -290,7 +322,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
         // store:true,
       };
       mes.forEach(a => {
-        it.previousNativeContexts.push(a)
+        it.getPreviousNativeContexts().push(a)
       })
 
       const res = yield* Effect.tryPromise({
@@ -328,7 +360,7 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       ).map(a => a.response.output).flat();
       console.log('responseOut:', JSON.stringify(responseOut));
       responseOut.forEach(a => {
-        it.previousNativeContexts.push(a) //  TODO ResponseOutputItemをResponseInputItemに変換する必要があるケースがあったはず。。
+        it.getPreviousNativeContexts().push(a) //  TODO ResponseOutputItemをResponseInputItemに変換する必要があるケースがあったはず。。
       })
       const textOut = responseOut.filter(b => b.type === 'message').map((b: ResponseOutputMessage) => {
         //  TODO mesIdは1件のはず?
