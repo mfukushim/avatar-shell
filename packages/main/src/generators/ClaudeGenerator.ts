@@ -284,21 +284,27 @@ export class ClaudeTextGenerator extends ClaudeBaseGenerator {
       //  TODO prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
       let prev: Anthropic.Messages.MessageParam[] = []
-      if (current.setting?.cutoffChatLimit) {
+      const lessCutoff = it.sysSetting.generators.anthropic.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
         const sum = Array.from(it.getPreviousNativeContexts()).reduce((previousValue, currentValue) => {
           if(currentValue === null){
-            return {list:previousValue.list.concat(previousValue.buf),buf:[]}
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
           }
           return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
         },{list:[] as Anthropic.Messages.MessageParam[][],buf:[] as Anthropic.Messages.MessageParam[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
         const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
           if (previousValue.count <= 0) {
             return previousValue;
           }
-          const next = previousValue.out.concat(currentValue);
+          const next = previousValue.out.concat(currentValue.reverse());
           previousValue.count-= currentValue.length
           return {out:next,count:previousValue.count}
-        },{out:[] as Anthropic.Messages.MessageParam[][],count:current.setting?.cutoffChatLimit})
+        },{out:[] as Anthropic.Messages.MessageParam[][],count:lessCutoff})
         prev = cutoff.out.reverse().flat()
       } else {
         prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで

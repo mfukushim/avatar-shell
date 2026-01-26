@@ -344,7 +344,9 @@ onMounted(async () => {
                             {{$t('execution')}}
                             <q-select v-model="daemon.exec.generator" :options="generatorList" options-dense :label="$t('generatorName')" :data-testid="`daemon-${daemon.id}-exec-generator`" @update:model-value="selectGenerator($event, daemon)"/>
                             <q-input type="text" v-model="daemon.exec.setting.useModel" label="Model" outlined :disable="daemon.exec.generator.startsWith('empty')" :data-testid="`daemon-${daemon.id}-exec-model`" />
+<!--
                             <q-input type="number" v-model.number="daemon.exec.setting.cutoffChatLimit" label="cutoffChatLimit" outlined :disable="daemon.exec.generator.startsWith('empty')" :data-testid="`daemon-${daemon.id}-exec-cutoffChatLimit`" />
+-->
                             <q-input type="textarea" class="q-ma-md" v-model="daemon.exec.templateGeneratePrompt" label="Generator prompt template" outlined :disable="daemon.exec.generator.startsWith('empty') || daemon.exec.generator == 'copy'" :data-testid="`daemon-${daemon.id}-exec-template`" />
                             <div>{{$t('outputContextAttr')}}</div>
                             <div class="row">

@@ -279,21 +279,27 @@ export class OpenAiTextGenerator extends OpenAiBaseGenerator {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
       let prev:ResponseInputItem[] = []
-      if (current.setting?.cutoffChatLimit) {
+      const lessCutoff = it.sysSetting.generators.openAiText.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
         const sum = Array.from(it.previousContexts).reduce((previousValue, currentValue) => {
           if(currentValue === null){
-            return {list:previousValue.list.concat(previousValue.buf),buf:[]}
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
           }
           return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
         },{list:[] as ResponseInputItem[][],buf:[] as ResponseInputItem[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
         const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
           if (previousValue.count <= 0) {
             return previousValue;
           }
-          const next = previousValue.out.concat(currentValue);
+          const next = previousValue.out.concat(currentValue.reverse());
           previousValue.count-= currentValue.length
           return {out:next,count:previousValue.count}
-        },{out:[] as ResponseInputItem[][],count:current.setting?.cutoffChatLimit})
+        },{out:[] as ResponseInputItem[][],count:lessCutoff})
         prev = cutoff.out.reverse().flat().filter(value => !(value.type === 'message' && value.role === 'developer'))
       } else {
         prev = Array.from(it.previousContexts).filter((value):value is ResponseInputItem  => value !== null && !(value.type === 'message' && value.role === 'developer'))

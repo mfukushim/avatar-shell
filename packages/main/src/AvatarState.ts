@@ -855,7 +855,7 @@ export class AvatarState {
     });
   }
 
-  MaxGen = 2;  //  TODO 世代の最適値は
+  MaxGen = 20;  //  TODO 世代の最適値は
 
   enterInner(inner: GenInner, addToBuffer = true) {
     const it = this;

@@ -268,7 +268,8 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState, current);
       let prev:ResponseInputItem[] = []
-      const lessCutoff = Math.min(current.setting?.cutoffChatLimit || Number.MAX_SAFE_INTEGER, it.lmStudioSettings?.cutoffChatLimit || Number.MAX_SAFE_INTEGER);
+      const lessCutoff = it.sysSetting.generators.lmStudio.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      // const lessCutoff = Math.min(current.setting?.cutoffChatLimit || Number.MAX_SAFE_INTEGER, it.lmStudioSettings?.cutoffChatLimit || Number.MAX_SAFE_INTEGER);
       if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
         const sum = Array.from(it.getPreviousNativeContexts()).reduce((previousValue, currentValue) => {
           if(currentValue === null){

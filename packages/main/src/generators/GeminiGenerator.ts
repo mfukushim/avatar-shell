@@ -155,7 +155,7 @@ export abstract class GeminiBaseGenerator extends ContextGenerator {
         //  geminiの場合、画像ファイルはinput_imageとしてbase64で送る
         const media = yield* DocService.readDocMedia(current.input.content.mediaUrl);
         const b1 = yield* it.shrinkImage(Buffer.from(media, 'base64').buffer, it.geminiSettings?.inWidth);
-        const blob = new Blob([b1], {type: 'image/png'});
+        const blob = new Blob([new Uint8Array(b1).buffer], {type: 'image/png'});
         const myfile = yield* Effect.tryPromise(() => it.ai.files.upload({
           file: blob,
           config: {mimeType: 'image/png'},
@@ -212,25 +212,30 @@ export class GeminiTextGenerator extends GeminiBaseGenerator {
       //  prev contextを抽出(AsMessage履歴から合成またはコンテキストキャッシュから再生)
       const prevMake = yield* it.makePreviousContext(avatarState,current);
       let prev:Content[] = []
-      if (current.setting?.cutoffChatLimit) {
+      const lessCutoff = it.sysSetting.generators.gemini.common?.cutoffChatLimit || Number.MAX_SAFE_INTEGER;
+      if (lessCutoff !== Number.MAX_SAFE_INTEGER) {
         const sum = Array.from(it.previousContexts).reduce((previousValue, currentValue) => {
           if(currentValue === null){
-            return {list:previousValue.list.concat(previousValue.buf),buf:[]}
+            previousValue.list.push(previousValue.buf)
+            return {list:previousValue.list,buf:[]}
           }
           return {list:previousValue.list,buf:previousValue.buf.concat(currentValue)}
         },{list:[] as Content[][],buf:[] as Content[]})
+        if(sum.buf.length > 0) {
+          sum.list.push(sum.buf)
+        }
+
         const cutoff = sum.list.reverse().reduce((previousValue, currentValue) => {
           if (previousValue.count <= 0) {
             return previousValue;
           }
-          const next = previousValue.out.concat(currentValue);
+          const next = previousValue.out.concat(currentValue.reverse());
           previousValue.count-= currentValue.length
           return {out:next,count:previousValue.count}
-        },{out:[] as Content[][],count:current.setting?.cutoffChatLimit})
+        },{out:[] as Content[][],count:lessCutoff})
         prev = cutoff.out.reverse().flat()
       } else {
-        prev = Array.from(it.previousContexts)
-        // prev = Array.from(it.getPreviousNativeContexts()).filter((value):value is  Anthropic.Messages.MessageParam => value !== null);  // ユーザからのmcpExternalで
+        prev = Array.from(it.previousContexts).filter((value):value is  Content => value !== null);  // ユーザからのmcpExternalで
       }
       // const prev = Array.from(it.previousContexts)
       //  入力current GenInnerからcurrent contextを調整(input textまはたMCP responses)
