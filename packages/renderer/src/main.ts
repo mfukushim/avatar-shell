@@ -15,7 +15,7 @@ import App from './App.vue';
 import {createI18n} from 'vue-i18n';
 import {getLocale} from '@app/preload';
 // TypeScript
-import '@mcp-ui/client/ui-resource-renderer.wc.js';
+// import '@mcp-ui/client/ui-resource-renderer.wc.js';
 // 以降、<ui-resource-renderer> が使えるようになります
 
 const i18n = createI18n({
