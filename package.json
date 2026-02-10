@@ -72,6 +72,7 @@
     "effect": "^3.17.6",
     "electron-log": "^5.4.1",
     "electron-store": "^10.0.1",
+    "encoding": "^0.1.13",
     "expand-template": "^2.0.3",
     "graphql": "^16.11.0",
     "graphql-ws": "^5.16.2",
