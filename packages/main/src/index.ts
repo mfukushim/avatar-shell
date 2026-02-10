@@ -245,6 +245,12 @@ ipcMain.handle('callMcpTool', async (_,avatarId:string,params: ToolCallParam,gen
     Effect.catchAll(showAlertIfFatal('callMcpTool')),
     aiRuntime.runPromise)
 });
+ipcMain.handle('callMcpToolDirect', async (_,avatarId:string,params: ToolCallParam) => {
+  return await AvatarService.getAvatarState(avatarId).pipe(
+    Effect.andThen(a => a.callMcp(params,params.callId)),
+    Effect.catchAll(showAlertIfFatal('callMcpToolDirect')),
+    aiRuntime.runPromise)
+});
 
 
 app.on('ready', async () => {

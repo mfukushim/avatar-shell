@@ -15,7 +15,7 @@ import {AvatarServiceLive} from '../src/AvatarService.js';
 import {FetchHttpClient} from '@effect/platform';
 
 const AppLive = Layer.mergeAll(MediaServiceLive, DocServiceLive, McpServiceLive, ConfigServiceLive,
-  BuildInMcpServiceLive,AvatarServiceLive, NodeFileSystem.layer,FetchHttpClient.layer)
+  BuildInMcpServiceLive, AvatarServiceLive, NodeFileSystem.layer, FetchHttpClient.layer);
 
 describe('McpService', () => {
   beforeEach(() => {
@@ -36,14 +36,14 @@ describe('McpService', () => {
     //  vitest --run --testNamePattern=reset_getMcpServerInfos McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
-      return yield *McpService.getMcpServerInfos()
+      return yield* McpService.getMcpServerInfos();
     }).pipe(
-      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise,
     );
-    console.log(JSON.stringify(res,null,2));
-    expect(Array.isArray(res)).toBeTruthy()
-    expect(res[0].id === 'traveler').toBeTruthy()
+    console.log(JSON.stringify(res, null, 2));
+    expect(Array.isArray(res)).toBeTruthy();
+    expect(res[0].id === 'traveler').toBeTruthy();
   });
 
   it('readMcpResource', async () => {
@@ -51,8 +51,8 @@ describe('McpService', () => {
       yield* McpService.reset(vitestSysConfig);
       return yield* McpService.readMcpResource('traveler', 'file:///credit.txt');
     }).pipe(
-      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise,
     );
 
     console.log(res);
@@ -60,40 +60,64 @@ describe('McpService', () => {
     expect(res.contents[0].mimeType).toBe('text/plain');
   });
 
-    it('getToolDefs', async () => {
+  it('getToolDefs', async () => {
 
-      const res = await Effect.gen(function* () {
-        yield* McpService.reset(vitestSysConfig);
-        return yield* McpService.getToolDefs(vitestAvatarConfigMi.mcp);
-      }).pipe(
-        Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-        runPromise
-      );
+    const res = await Effect.gen(function* () {
+      yield* McpService.reset(vitestSysConfig);
+      return yield* McpService.getToolDefs(vitestAvatarConfigMi.mcp);
+    }).pipe(
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise,
+    );
 
-      console.log(res);
-      expect(Array.isArray(res)).toBe(true);
-    });
+    console.log(res);
+    expect(Array.isArray(res)).toBe(true);
+  });
 
   it('callFunction', async () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
 
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_tips',
         callId: 'tips',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromise
+      runPromise,
     );
 
     console.log(JSON.stringify(res));
-    expect(typeof res === 'object').toBe(true)
+    expect(typeof res === 'object').toBe(true);
+    expect(res.call_id).toEqual('tips');
+    expect(res.toLlm !== undefined).toBeTruthy();
+  });
+
+  it('callFunction reversi mcp app', async () => {
+    //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
+
+    const res = await Effect.gen(function* () {
+      console.log('b');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
+      yield* McpService.reset(vitestSysConfig);
+      console.log('c');
+      return yield* McpService.callFunction(avatarState, {
+        name: 'reversi_new-game',
+        callId: 'tips',
+        input: {},
+      }, 'emptyText');
+    }).pipe(
+      Effect.provide(AppLive),
+      runPromise,
+    );
+
+    console.log(JSON.stringify(res));
+    expect(typeof res === 'object').toBe(true);
     expect(res.call_id).toEqual('tips');
     expect(res.toLlm !== undefined).toBeTruthy();
   });
@@ -103,21 +127,21 @@ describe('McpService', () => {
 
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_setting',
         callId: 'get_setting',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromise
+      runPromise,
     );
 
-    console.log(JSON.stringify(res,null,2));
-    expect(typeof res === 'object').toBe(true)
+    console.log(JSON.stringify(res, null, 2));
+    expect(typeof res === 'object').toBe(true);
     expect(res.call_id).toEqual('get_setting');
     expect(res.toLlm !== undefined).toBeTruthy();
   });
@@ -128,17 +152,17 @@ describe('McpService', () => {
 
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'xxx',
         callId: 'tip',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(res);
@@ -149,17 +173,17 @@ describe('McpService', () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_xxx',
         callId: 'xxx',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(res);
@@ -169,17 +193,17 @@ describe('McpService', () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_start_traveler_journey',
         callId: 'xxx',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(JSON.stringify(res));
@@ -190,17 +214,17 @@ describe('McpService', () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_traveler_location',
         callId: 'get_traveler_location',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(res);
@@ -210,16 +234,16 @@ describe('McpService', () => {
   it('callFunctionDeny', async () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_reset_avatar_prompt',
         callId: 'reset_avatar_prompt',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(res);
@@ -228,9 +252,9 @@ describe('McpService', () => {
   it('updateAvatarMcpSetting', async () => {
     const res = await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
-      const avatarConfig = yield *ConfigService.getAvatarConfig('vitestDummyId');
+      const avatarConfig = yield* ConfigService.getAvatarConfig('vitestDummyId');
       console.log(JSON.stringify(avatarConfig.mcp));
-      const a1:AvatarSetting = {
+      const a1: AvatarSetting = {
         ...avatarConfig,
         mcp: {
           ...avatarConfig.mcp,
@@ -241,27 +265,26 @@ describe('McpService', () => {
               ...avatarConfig.mcp.traveler.useTools,
               'traveler_get_setting': {
                 enable: false,
-                allow: 'no'
-              }
-            }
-          }
-        }
-      }
+                allow: 'no',
+              },
+            },
+          },
+        },
+      };
       const b1 = yield* McpService.updateAvatarMcpSetting(a1);
       console.log(JSON.stringify(b1.mcp));
       expect(b1.mcp).toHaveProperty('traveler');
       expect(b1.mcp.traveler.enable).toEqual(false);
-      const a2:AvatarSetting = {
+      const a2: AvatarSetting = {
         ...avatarConfig,
-        mcp: {
-        }
-      }
+        mcp: {},
+      };
       const b2 = yield* McpService.updateAvatarMcpSetting(a2);
       console.log(JSON.stringify(b2.mcp));
 
     }).pipe(
       Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      runPromise,
     );
 
     // console.log(JSON.stringify(res));
@@ -281,7 +304,7 @@ describe('McpService', () => {
       return yield* McpService.getMcpServerInfos();
     }).pipe(
       Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      runPromise,
     );
 
     console.log(res);
@@ -322,17 +345,17 @@ describe('McpService', () => {
     //  vitest --run --testNamePattern=callFunction McpService.unit.spec.ts
     const res = await Effect.gen(function* () {
       console.log('b');
-      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId','Mix',null,'user');
+      const avatarState = yield* AvatarState.make('aaaa', 'vitestDummyId', 'Mix', null, 'user');
       yield* McpService.reset(vitestSysConfig);
       console.log('c');
       return yield* McpService.callFunction(avatarState, {
         name: 'traveler_get_traveler_location',
         callId: 'get_traveler_location',
-        input: { }
-      },'emptyText');
+        input: {},
+      }, 'emptyText');
     }).pipe(
       Effect.provide(AppLive),
-      runPromiseExit
+      runPromiseExit,
     );
 
     console.log(res);
@@ -347,10 +370,10 @@ describe('McpService', () => {
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(13)
+        expect(filter1.length).toBe(13);
       }
       //  -----
-      const cloned:AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
+      const cloned: AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
 
       {
         cloned.traveler.enable = false;
@@ -358,7 +381,7 @@ describe('McpService', () => {
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(0)
+        expect(filter1.length).toBe(0);
       }
       {
         cloned.traveler.enable = true;
@@ -369,15 +392,15 @@ describe('McpService', () => {
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(0)
+        expect(filter1.length).toBe(0);
 
       }
       {
         cloned.traveler.enable = true;
-        console.log('useTools',cloned.traveler.useTools);
+        console.log('useTools', cloned.traveler.useTools);
         for (const key of Object.keys(cloned.traveler.useTools)) {
           console.log(key);
-          if(key.startsWith('get_setting')) {
+          if (key.startsWith('get_setting')) {
             cloned.traveler.useTools[key].enable = true;
           } else {
             cloned.traveler.useTools[key].enable = false;
@@ -387,52 +410,52 @@ describe('McpService', () => {
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(1)
+        expect(filter1.length).toBe(1);
       }
       {
         cloned.traveler.enable = true;
         for (const key of Object.keys(cloned.traveler.useTools)) {
-          if(key.startsWith('get_setting')) {
+          if (key.startsWith('get_setting')) {
             cloned.traveler.useTools[key].enable = true;
             cloned.traveler.useTools[key].allow = 'no';
-          } else if(key.startsWith('start_traveler_journey')) {  //  動作モード次第で使えない状態もあるので⚠
+          } else if (key.startsWith('start_traveler_journey')) {  //  動作モード次第で使えない状態もあるので⚠
             cloned.traveler.useTools[key].enable = true;
             cloned.traveler.useTools[key].allow = 'any';
-          } else if(key.startsWith('get_traveler_location')) {
+          } else if (key.startsWith('get_traveler_location')) {
             cloned.traveler.useTools[key].enable = true;
             cloned.traveler.useTools[key].allow = 'ask';
           } else {
             cloned.traveler.useTools[key].enable = false;
           }
         }
-        console.log(JSON.stringify(cloned,null,2));
+        console.log(JSON.stringify(cloned, null, 2));
         const res1 = yield* McpService.getToolDefs(cloned);
         console.log(res1);
         expect(Array.isArray(res1)).toBe(true);
         const filter1 = res1.filter(v => v.name.startsWith('traveler'));
-        expect(filter1.length).toBe(3)
+        expect(filter1.length).toBe(3);
       }
     }).pipe(
-      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise,
     );
 
   });
   it('getToolDefs2', async () => {
     const res = await Effect.gen(function* () {
       yield* McpService.reset(vitestSysConfig);
-      const cloned:AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
+      const cloned: AvatarMcpSettingListMutable = structuredClone(vitestAvatarConfigMi.mcp);
       cloned.traveler.enable = false;
 
       return yield* McpService.getToolDefs(cloned);
     }).pipe(
-      Effect.provide([ConfigServiceLive,McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
-      runPromise
+      Effect.provide([ConfigServiceLive, McpServiceLive, BuildInMcpServiceLive, NodeFileSystem.layer]),
+      runPromise,
     );
 
     console.log(res);
     expect(Array.isArray(res)).toBe(true);
-    expect(res.every(v => !v.name.startsWith('traveler'))).toBeTruthy()
+    expect(res.every(v => !v.name.startsWith('traveler'))).toBeTruthy();
   });
 
-},5 * 60 * 1000);
+}, 5 * 60 * 1000);

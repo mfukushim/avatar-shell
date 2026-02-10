@@ -30,6 +30,7 @@ import {McpService} from './McpService.js';
 import {ContextGeneratorSetting} from '../../common/DefGenerators.js';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {HttpClient} from '@effect/platform';
+import {a} from 'vitest/dist/chunks/suite.d.FvehnV49.js';
 
 dayjs.extend(duration);
 
@@ -56,7 +57,10 @@ export interface GenInner {
   toolCallRes?: {
     name: string,
     callId: string,
-    results: CallToolResult
+    results: CallToolResult,
+    req: ToolCallParam,
+    mediaUrl?: string,
+    html?: string,
   }[],
   genNum: number,
   setting?: ContextGeneratorSetting,
@@ -982,7 +986,34 @@ export class AvatarState {
       const list3 = list.filter(value => value.toolCallParam !== undefined).map(value => {
         return Effect.gen(function* () {
           const x = value.toolCallParam!!.map(value1 => {
-            return it.callMcp(value1,value.innerId)
+            return it.callMcp(value1,value.innerId).pipe(
+/*
+              Effect.andThen(s =>
+              Effect.if(s.mediaUrl !== undefined && s.resourceHtml !== undefined, {
+                onTrue: () => {
+                  DocService.saveMcpUiMedia(s.mediaUrl!, s.resourceHtml!)
+                  return Effect.succeed(s)},
+                onFalse: () => Effect.succeed(s),
+                //   console.log('sloveMcp:',s);
+                //   if(s.mediaUrl !== undefined && s.resourceHtml !== undefined) {
+                //     return DocService.saveMcpUiMedia(s.mediaUrl!, s.resourceHtml!)
+                //   }
+                // return Effect.void;
+              }
+              )),
+*/
+              Effect.tap(s => {
+                  console.log('sloveMcp:',s);
+                  if(s.mediaUrl !== undefined && s.resourceHtml !== undefined) {
+                    return DocService.saveMcpUiMedia(s.mediaUrl!, s.resourceHtml!)
+                  }
+                return Effect.void;
+              })
+              // Effect.tap(a1 =>
+              //     Effect.succeed(a1).pipe(Effect.when(a1.mediaUrl !== undefined && a1.resourceHtml !== undefined),Effect.andThen(() => DocService.saveMcpUiMedia(a1.mediaUrl!, a1.resourceHtml!))),
+              // Effect.tap(a1 => Effect.when(Effect.succeed(a1.mediaUrl !== undefined && a1.resourceHtml !== undefined),() => DocService.saveMcpUiMedia(a1.mediaUrl!, a1.resourceHtml!))),
+              // Effect.catchAll(e => Effect.logError('callMcp error:', e)),
+              )
           });
           return yield* Effect.all(x);
         });
@@ -995,7 +1026,7 @@ export class AvatarState {
     console.log('call:', param);
     return McpService.callFunction(this, param).pipe(Effect.catchIf(a => a instanceof Error, e => {
         return Effect.succeed({
-          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: innerId, status: 'ok',
+          toLlm: {content: [{type: 'text', text: e.message}]}, call_id: innerId, status: 'ok',html:undefined,mediaUrl:undefined
         });
       }),
       Effect.andThen(a => {
@@ -1003,6 +1034,9 @@ export class AvatarState {
           name: param.name,
           callId: a.call_id,
           results: a.toLlm as CallToolResult,
+          req: param,
+          resourceHtml: a?.html,
+          mediaUrl: a?.mediaUrl,
         };
       }));
   }
@@ -1156,6 +1190,10 @@ export class AvatarState {
         }
         //  resource/uri:ui://の削除は各ジェネレーターのfilterToolResList()で行われるはず
       })
+      if (res.mediaUrl && res.resourceHtml) {
+        yield *DocService.saveMcpUiMedia(res.mediaUrl, res.resourceHtml);
+      }
+      console.log('callMcpToolByExternal:', res);
       // const text = (res.results.content as {text: string}[]).map(value => value.text).join('\n');
       //  TODO MCP-UIからのtool呼び出しの場合はその結果をとりあえずAIには渡さない ここにhtmlが来ていればそれは描画に送ってもよいかもしれない
       //         テキストのみをAIにテキストとして送る。htmlはリソースとして再描画に回したい その処理を行っているのはappendContextGenIn()だがこれを使い回せるのか、別実装を置いておくべきなのか。。
@@ -1166,6 +1204,7 @@ export class AvatarState {
         input: AsMessage.makeMessage({
           from: it.Name,
           text: textOut,
+          mediaUrl: res.mediaUrl,
           // toolRes: res.toLlm.content,
           isExternal: true,
         }, 'physics', 'human', 'inner'),
@@ -1212,9 +1251,11 @@ export class AvatarState {
                   from: it.Name,
                   innerId: value.callId,
                   text: a2.text,
+                  mediaUrl:value.mediaUrl,  //  TODO MCP Appsで渡すuriをどう渡すべきか。。
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes: a2,
+                  toolReq: value.req,
+                  toolRes: value.results,
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'image') {
                 // con.mediaUrl = yield* DocService.saveDocMedia(nextId, a2.mimeType, a2.data, it.TemplateId);
@@ -1226,7 +1267,8 @@ export class AvatarState {
                   mimeType: 'image/png',
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes: a2,
+                  toolReq: value.req,
+                  toolRes: value.results,
                 }, 'daemon', 'toolOut', 'surface')];
               } else if (a2.type === 'resource') {
                 //  resourceはuriらしい resourceはLLMに回さないらしい
@@ -1248,7 +1290,8 @@ export class AvatarState {
                   mimeType: a2.resource.mimeType,
                   generator: a.fromGenerator,
                   nextGeneratorId: a.toGenerator.UniqueId,
-                  toolRes: a2,
+                  toolReq: value.req,
+                  toolRes: value.results,
                 }, 'daemon', 'toolOut', 'outer')];
               }
               return [];

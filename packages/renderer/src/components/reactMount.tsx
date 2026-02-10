@@ -1,8 +1,8 @@
-import React from "react"
 import { createRoot, type Root } from "react-dom/client"
 import {AppRenderer} from '@mcp-ui/client';
 import type {AppRendererProps} from '@mcp-ui/client';
-
+// @ts-ignore
+import React from 'react';
 /*
 export type AppRendererProps = {
   client: Client,
@@ -26,6 +26,7 @@ export class ReactMount {
   }
 
   render(props: AppRendererProps) {
+    // @ts-ignore
     this.root.render(<AppRenderer {...props} />)
   }
 
