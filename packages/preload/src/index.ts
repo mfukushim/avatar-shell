@@ -13,7 +13,7 @@ import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
 // @ts-ignore
 import expand_template from 'expand-template';
-import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 
 const expand = expand_template();
 
