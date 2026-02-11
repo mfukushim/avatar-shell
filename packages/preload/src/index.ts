@@ -13,6 +13,7 @@ import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
 // @ts-ignore
 import expand_template from 'expand-template';
+import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 
 const expand = expand_template();
 
@@ -231,6 +232,10 @@ export async function deleteAvatarConfig(templateId: string):Promise<string> {
 
 export async function callMcpTool(params: ToolCallParam,genId:string):Promise<string> {
   return await ipcRenderer.invoke('callMcpTool', avatarId, params,genId);
+}
+
+export async function callMcpToolDirect(params: ToolCallParam):Promise<{name: string, callId: string, results: CallToolResult, req: ToolCallParam, resourceHtml: string | undefined, mediaUrl: string | undefined}> {
+  return await ipcRenderer.invoke('callMcpToolDirect', avatarId, params);
 }
 
 export async function getAvatarConfig(id: string) {

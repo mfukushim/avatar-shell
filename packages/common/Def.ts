@@ -274,6 +274,7 @@ const McpToolInfo = Schema.Struct({
   name: Schema.mutable(Schema.String),
   description: Schema.optional(Schema.mutable(Schema.String)),
   inputSchema: Schema.mutable(Schema.Any),
+  _meta: Schema.optional(Schema.mutable(Schema.Record({key: Schema.String, value: Schema.Any}))),
 });
 
 const McpPromptInfo = Schema.Struct({

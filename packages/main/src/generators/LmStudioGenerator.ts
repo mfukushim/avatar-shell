@@ -311,9 +311,9 @@ export class LmStudioTextGenerator extends LmStudioBaseGenerator {
       }) as OpenAI.Responses.Tool[];
       //  prev+currentをLLM APIに要求、レスポンスを取得
       const contents = (it.systemPrompt || []).concat(prev,mes);
-      console.log('LmStudio context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
-      console.log('LmStudio context end:');
-      console.log('toolsIn',avatarState.Config.mcp,JSON.stringify(toolsIn));
+      // console.log('LmStudio context:\n', contents.map(a => '##' + JSON.stringify(a).slice(0, 300)).join('\n'));
+      // console.log('LmStudio context end:');
+      // console.log('toolsIn',avatarState.Config.mcp,JSON.stringify(toolsIn));
       const body: ResponseCreateParamsStreaming = {
         model: it.model,
         input: contents,

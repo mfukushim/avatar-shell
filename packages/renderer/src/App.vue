@@ -25,6 +25,8 @@ const Wizard = defineAsyncComponent(() =>
 import MenuPanel from './components/MenuPanel.vue';
 import McpUiWapper from './components/McpUiWapper.vue';
 import short from 'short-uuid';
+import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import type {McpUiMessageRequest} from '@modelcontextprotocol/ext-apps/app-bridge';
 
 const showWizard = ref(false);
 const leftDrawerOpen = ref(false);
@@ -113,7 +115,12 @@ const recentSoundId = ref('');
 const calledMcpUiGenerator = ref<string>('');
 const calledMcpUiName = ref('');
 const calledMcpUiCallId = ref('');
-const htmlResourceJson = ref<string | undefined>(undefined);
+// const htmlResourceJson = ref<string | undefined>(undefined);
+const toolResourceUri = ref<string | undefined>(undefined);
+const toolResourceHtml = ref<string>('');
+const toolName = ref<string>('');
+const toolInput = ref<any>({});
+const toolResult = ref<CallToolResult>({content:[]});
 
 const clickAlert = async (task: AlertTask, btn: string) => {
   alertTasks.value = alertTasks.value.filter(t => t.id !== task.id);
@@ -128,20 +135,28 @@ const setTimeline = async (tl0: AsMessage[]) => {
   const oneImage = tl.filter((t: AsMessage) =>
     (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mimeType?.startsWith('image/')).slice(-1);
   const mcpUiResource = tl.filter((t: AsMessage) =>
-    (t.content?.mediaUrl) && t.content?.mimeType && t.content?.mediaUrl.startsWith('ui:')).slice(-1); //  todo 現状は最後の一つのui: グループ化は必要?
+    (t.content?.mediaUrl) && t.content?.mediaUrl.startsWith('ui:')).slice(-1); //  todo 現状は最後の一つのui: グループ化は必要?
   //  今のところmcpUiを優先
   const sysConfig = await getSysConfig();
   if (mcpUiResource && mcpUiResource.length > 0 && sysConfig.experimental.mcpUi) {
+    // console.log('setTimeline mcpUiResource',mcpUiResource);
     const ui = mcpUiResource[0];
     const url = ui.content?.mediaUrl;
     if (url) {
+      toolName.value = ui.content?.toolReq?.name || '';
+      toolResourceUri.value = url;
+      toolInput.value = ui.content?.toolReq || {};
+      toolResult.value = ui.content?.toolRes || {};
       const text = await readDocMedia(url);
+      toolResourceHtml.value = text;
+/*
       calledMcpUiName.value = ui.content?.toolName || ''
       htmlResourceJson.value = JSON.stringify({
         uri: url,
         mimeType: 'text/html',
         text: text,
       });
+*/
       // console.log('mcpUiResource:',ui.content);
       if(ui.content?.generator && ui.content?.nextGeneratorId && ui.content.generator === 'mcp'){
         calledMcpUiGenerator.value = ui.content.nextGeneratorId;
@@ -150,7 +165,9 @@ const setTimeline = async (tl0: AsMessage[]) => {
     }
   } else {
     calledMcpUiName.value = ''
-    htmlResourceJson.value = undefined;
+    toolResourceUri.value = undefined;
+    toolResourceHtml.value = ''
+    // htmlResourceJson.value = undefined;
     if (oneImage.length > 0) {
       await setAsMessageImage(oneImage[0]);
     } else {
@@ -322,6 +339,14 @@ const handleUIAction = async (event: CustomEvent) => {
   }
 };
 
+const appendText = ref('');
+const handleAppendInput = async (mes: McpUiMessageRequest["params"]) => {
+  const s: string = mes.content.filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
+  if (s.length > 0) {
+    appendText.value = s;
+  }
+}
+
 </script>
 
 <template>
@@ -379,9 +404,17 @@ const handleUIAction = async (event: CustomEvent) => {
     </q-drawer>
 
     <q-page-container class="wave-background ">
-      <mcp-ui-wapper v-if="htmlResourceJson" :html-resource-json="htmlResourceJson" @on-ui-action="handleUIAction" />
+      <mcp-ui-wapper v-if="toolResourceUri"
+                     :tool-resource-uri="toolResourceUri"
+                     :tool-name="toolName"
+                     :tool-input="toolInput"
+                     :tool-result="toolResult"
+                     :html="toolResourceHtml"
+                     :gen-id="calledMcpUiGenerator"
+                     @append-input="handleAppendInput"
+                     @on-ui-action="handleUIAction" />
       <div>
-        <div class="wave" v-if="!htmlResourceJson"></div>
+        <div class="wave" v-if="!toolResourceUri"></div>
         <div class="q-pa-sm">
 
           <q-img
@@ -419,6 +452,7 @@ const handleUIAction = async (event: CustomEvent) => {
                     @open-menu="toggleLeftDrawer"
                     @sent="mes => sendMessageIn(mes)"
                     :mcp-servers="mcpServers"
+                    :append-text="appendText"
                     :disable-input="disableInput" />
         <q-btn dense class="bg-blue-grey-9 q-pa-md" @click="toggleRightDrawer" icon="chat" />
       </div>

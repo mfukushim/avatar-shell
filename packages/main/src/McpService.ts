@@ -25,7 +25,10 @@ import {BrowserWindow} from 'electron';
 import {GeneratorProvider} from '../../common/DefGenerators.js';
 import dayjs from 'dayjs';
 import {ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
-
+import {
+  type ClientCapabilitiesWithExtensions,
+  UI_EXTENSION_CAPABILITIES,
+} from '@mcp-ui/client'
 
 
 
@@ -48,11 +51,15 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         })
         serverInfoList = yield *Effect.validateAll(servers, a1 => {
           return Effect.gen(function* () {
+            const clientCapabilities: ClientCapabilitiesWithExtensions = {
+              roots: { listChanged: true },
+              extensions: UI_EXTENSION_CAPABILITIES,
+            };
             const client = new Client(
               {
                 name: 'avatar-shell-client',
                 version: '1.0.0',
-              },
+              },{ capabilities:clientCapabilities }
             );
             const stdio = Schema.decodeUnknownOption(McpStdioServerDef)(a1.def)
             const streamHttp = Schema.decodeUnknownOption(McpStreamHttpServerDef)(a1.def)
@@ -313,8 +320,39 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
               return new Error(`MCP error:${error}`);
             },
           });
+          //  定義に _meta.uiが含まれる場合、ここでuiリソースを取得して追加送付する
+          let html:string|undefined
+          let mediaUrl:string|undefined
+          if(toolInfo?._meta?.ui?.resourceUri) {
+            mediaUrl = toolInfo._meta.ui.resourceUri
+            const res = yield* Effect.succeed(mediaUrl!).pipe(Effect.andThen(uri =>  (serverInfo.client as Client).readResource({
+                uri: uri,
+              }, {timeout: 120 * 1000})))
+            // const res = yield* Effect.succeed(toolInfo._meta.ui.resourceUri as string).pipe(Effect.andThen(uri => Effect.tryPromise({
+            //   try: () => (serverInfo.client as Client).readResource({
+            //     uri: uri,
+            //   }, {timeout: 120 * 1000}),
+            //   catch: error => {
+            //     console.log('mcp error:', error);
+            //     return new Error(`MCP error:${error}`);
+            //   },
+            // })))
+            // const res:ReadResourceResult = yield* Effect.tryPromise({
+            //   try: () => (serverInfo.client as Client).readResource({
+            //     uri: toolInfo?._meta?.ui?.resourceUri as string,
+            //   }, {timeout: 120 * 1000}),
+            //   catch: error => {
+            //     console.log('mcp error:', error);
+            //     return new Error(`MCP error:${error}`);
+            //   },
+            // });
+            const find = res.contents.find(v => v.mimeType?.startsWith('text/html;profile=mcp-app'));
+            if(find && find.mimeType)
+              //  FIXME
+              html = (find as any).text
+          }
           return {
-            toLlm: res, call_id: params.callId, status: 'ok',
+            toLlm: res, call_id: params.callId, status: 'ok',html,mediaUrl
           };
         }
       }).pipe(Effect.andThen(a => a),

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 
-import {ref} from 'vue';
+import {ref, watch} from 'vue';
 import {doAskAi, getUserName, type McpResource, readMcpResource} from '@app/preload';
 import type {McpInfo, McpResourceInfo} from '../../../common/Def.ts';
 import {AsMessage} from '../../../common/Def.ts';
 
 const props = defineProps<{
   disableInput: boolean,
-  mcpServers: McpInfo[]
+  mcpServers: McpInfo[],
+  appendText: string,
 }>();
 
 const emit = defineEmits<{
@@ -18,6 +19,9 @@ const fileUpload = ref<File|null>(null)
 const mcpResource = ref<McpResource|null>(null)
 const talkText = ref('')
 
+watch(props, async () => {
+  talkText.value = props.appendText;
+})
 
 async function sendMessage() {
   const inText = talkText.value;

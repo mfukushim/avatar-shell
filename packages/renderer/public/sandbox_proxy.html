@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sandbox Proxy</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+<script>
+  // Sandbox proxy implementation for MCP Apps
+  // This receives HTML content from the host and renders it securely
+
+  // Listen for messages from the host
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    // Handle resource ready notification (HTML content to render)
+    if (data.method === 'ui/notifications/sandbox-resource-ready') {
+      const { html } = data.params || {};
+      if (html) {
+        // Replace the entire document with the received HTML
+        document.open();
+        document.write(html);
+        document.close();
+      }
+    }
+  });
+
+  // Signal that the sandbox proxy is ready
+  window.parent.postMessage({
+    method: 'ui/notifications/sandbox-proxy-ready',
+    params: {}
+  }, '*');
+</script>
+</body>
+</html>

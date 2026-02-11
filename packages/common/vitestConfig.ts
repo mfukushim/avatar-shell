@@ -73,7 +73,7 @@ export const vitestSysConfig: SysConfig = {
       enable: true,
       def: {
         "type": "streamable-http",
-        "url": "https://reversi-mcp-ui.daisycodes.workers.dev/mcp"
+        "url": "https://reversi-mcp-apps.daisycodes.workers.dev/mcp"
       }
     },
     // "slack": {
@@ -128,6 +128,13 @@ export const vitestAvatarConfigMi: AvatarSetting = {
         "stop_traveler_journey": {"enable": true, "allow": "ask"},
         "set_avatar_prompt": {"enable": true, "allow": "ask"},
         "reset_avatar_prompt": {"enable": true, "allow": "no"}
+      }
+    },
+    "reversi": {
+      "enable": true,
+      "useTools": {
+        "new-game": {"enable": true, "allow": "any"},
+        "select-user": {"enable": true, "allow": "any"}
       }
     },
     // "slack": {

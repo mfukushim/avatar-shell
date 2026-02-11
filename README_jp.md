@@ -10,6 +10,10 @@ Japanese / [English](./README.md)
 > 「ジェネレーター」の設定はアバター設定側に移動し、既存の「ジェネレーター」は「モデル」に変更します。  
 > アバターAIがコンテキストを中心として複数のジェネレーターの集合体で構成される関係性をより明確化する予定です。
 
+> MCP Appsを暫定的にサポートしました。  
+> 簡素なMCP Appsは動作します。それにともない従来のMCP-UIのサポートははずしています。(実装にはMCP-UI AppRendererを使用)  
+> 将来的にはMCP Appsに統一予定です。
+
 > 暫定的な対策としてLLM設定に cutoffChatLimit を追加しました。  
 > 強制的にコンテキストを切り詰めることでトークンの消費量を抑制します。    
 
@@ -117,26 +121,16 @@ AIが内蔵MCPサーバーに提出した予定を、人の入力のようにAva
 
 https://note.com/marble_walkers/n/nb7930d95c2d3
 
-### MCP-UIの実装方針  
+### MCP Apps  
 
-Avatar-ShellはMCP-UIを対応しますが、MCP-UIに規定されていない動作については次の方針で作られています。  
+MCP公式の仕様の確定に伴い、UI処理部分はMCP Appsに統一予定です。  
+MCP-UI AppRendererを使い、現時点、簡素なMCP Appsは動作可能です。  
 
-1. MCP-UIによる画面は一度に一つしか表示しません。複数回の画面表示をした場合、上書きして表示します  
-1つのアバターは1つの主画面に表示します。複数回の画面表示した場合は、上書きして表示します。  
-このためMCPの画面対話は表示ごとに進行する動きになります。  
-多くのMCPクライアントで使われているタイムラインとして各画面を残す方法よりも現在のMCPの対話状態が明確になる利点があります。  
-2. MCP-UIでMCPが生成したtool>uiリソースはLLMには送られません。代わりにtool>テキストなどでLLMに状態の指示が必要になります。  
-MCPがtool呼び出しのレスポンスでui埋め込みリソース(html+js等)はLLMには送りません。  
-複数回の画面表示で会話を進行する方式であるため、htmlの解析はLLMの負荷になると考えるためです。  
-このためtoolのレスポンスでLLMに何か起きているかを知らせるtextレスポンスが必要となります。
-3. MPC-UIでUI Actionとしてtoolを選択したとき、そのtoolのリクエスト情報はLLMには知らされません。toolのレスポンス情報はtextのみLLMにrole=userとしてLLMに知らせます  
+https://github.com/modelcontextprotocol/ext-apps のいくつかのサンプルは動作することを確認しています。  
 
-まとめると「MCPは複数個のuiリソースを1画面で対話的に表示することでユーザと対話する」「UI画面でユーザに示される画面とユーザの選択はLLMには知らされない」ことにより  
-ゲームなどのMCP-UIで行う場合に、ユーザの手筋をLLMから隠すことが出来る仕組みとなります。
-
-以下のMCPサーバーはAvatar-Shellに最適化されています。
-
-- リバーシMCP-UI https://github.com/mfukushim/reversi-mcp-ui_
+以下のMCP AppsサーバーはAvatar-Shellに最適化されています。
+                                                                                                                                  
+- リバーシMCP Apps https://github.com/mfukushim/reversi-mcp-apps  
 
 
 
