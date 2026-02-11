@@ -256,11 +256,15 @@ export const McpStdioServerDef = Schema.Struct({
   })),
 });
 
+export type McpStdioServerDef = typeof McpStdioServerDef.Type
+
 export const McpStreamHttpServerDef = Schema.Struct({
   type: Schema.NonEmptyString,
   url: Schema.NonEmptyString,
   note: Schema.optional(Schema.String),
 });
+
+export type McpStreamHttpServerDef = typeof McpStreamHttpServerDef.Type
 
 const McpServerDef = Schema.Struct({
   enable: Schema.Boolean,

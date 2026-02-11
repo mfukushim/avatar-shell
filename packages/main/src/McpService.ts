@@ -1,5 +1,5 @@
 /*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
-import {Effect, Schema, SynchronizedRef, Option} from 'effect';
+import {Effect, Schema, SynchronizedRef, Option, Match, Either, pipe} from 'effect';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -51,42 +51,35 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         })
         serverInfoList = yield *Effect.validateAll(servers, a1 => {
           return Effect.gen(function* () {
-            const clientCapabilities: ClientCapabilitiesWithExtensions = {
-              roots: { listChanged: true },
-              extensions: UI_EXTENSION_CAPABILITIES,
-            };
             const client = new Client(
               {
                 name: 'avatar-shell-client',
                 version: '1.0.0',
-              },{ capabilities:clientCapabilities }
+              },{
+                capabilities:{
+                  roots: { listChanged: true },
+                  extensions: UI_EXTENSION_CAPABILITIES,
+                } as ClientCapabilitiesWithExtensions
+              }
             );
-            const stdio = Schema.decodeUnknownOption(McpStdioServerDef)(a1.def)
-            const streamHttp = Schema.decodeUnknownOption(McpStreamHttpServerDef)(a1.def)
-            const transport = Option.isSome(stdio) ? new StdioClientTransport(stdio.value): Option.isSome(streamHttp) ? new StreamableHTTPClientTransport(new URL(streamHttp.value.url)):undefined
-            // const transport = a1[1].kind === 'stdio' ? new StdioClientTransport(a1[1]): a1[1].kind === 'streamHttp' ? new StreamableHTTPClientTransport(new URL(a1[1].url)):undefined
-            if (!transport) {
-              console.log('mcp def:',a1.def,stdio);
-              return yield *Effect.fail(new Error('MCP define error'))
-            }
-            yield* Effect.tryPromise({
+            yield *Match.value(a1.def).pipe(
+              Match.when(
+                (x) => Either.isRight(Schema.validateEither(McpStdioServerDef)(x)),
+                (y) => Effect.succeed(new StdioClientTransport(y as McpStdioServerDef))
+              ),
+              Match.when(
+                (x) => Either.isRight(Schema.decodeUnknownEither(McpStreamHttpServerDef)(x)),
+                (y) => Effect.succeed(new StreamableHTTPClientTransport(new URL((y as McpStreamHttpServerDef).url)))
+              ),
+              Match.orElse(() => Effect.fail(new Error('MCP define error')))
+            ).pipe(Effect.flatMap((transport) =>Effect.tryPromise({
               try: () => client.connect(transport),
-              catch: error => new Error(`MCP ${a1.def}.connect:\n${error}`),
-            });
+              catch: error => new Error(`MCP ${a1.name}.connect:\n${error}`),
+            })))
             const capabilities = client.getServerCapabilities();
-            const tools = (capabilities?.tools ? yield* Effect.tryPromise({
-              try: () => client.listTools(),
-              catch: error => new Error(`MCP ${a1.def}.tools: ${error}`),
-            }) : {tools: []});
-            const prompts = capabilities?.prompts ? yield* Effect.tryPromise({
-              try: () => client.listPrompts(),
-              catch: error => new Error(`MCP ${a1.def}.prompts: ${error}`),
-            }) : {prompts: []};
-            const resources = capabilities?.resources ? yield* Effect.tryPromise({
-              try: () => client.listResources(),
-              catch: error => new Error(`MCP ${a1.def}.resources: ${error}`),
-            }) : {resources: []};
-
+            const tools = (capabilities?.tools ? yield* Effect.tryPromise(() =>client.listTools()) : {tools: []});
+            const prompts = capabilities?.prompts ? yield* Effect.tryPromise(() => client.listPrompts()) : {prompts: []};
+            const resources = capabilities?.resources ? yield* Effect.tryPromise(() => client.listResources()): {resources: []};
             return {
               id: a1.name,
               client,
@@ -118,7 +111,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       return serverInfoList.find(v => v.id === name);
     }
 
-    function readMcpResource(name: string, uri: string) { //:Effect.Effect<ReadResourceResult,Error>
+    function readMcpResource(name: string, uri: string) {
       const info = getServerInfo(name)
       if (info) {
         return Effect.tryPromise({
