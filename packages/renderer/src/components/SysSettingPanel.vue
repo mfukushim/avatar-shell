@@ -647,9 +647,9 @@ const copyPath = async () => {
                       shrink
                       stretch
                       no-caps
-                      class="bg-orange text-white shadow-2"
+                      class="bg-indigo-8 text-white shadow-2"
                     >
-                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id">
+                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id" :alert="!server.enable" alert-icon="block">
                       </q-tab>
                     </q-tabs>
                     <q-separator />

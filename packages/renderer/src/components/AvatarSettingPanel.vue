@@ -212,6 +212,7 @@ onMounted(async () => {
                   </q-card>
                 </q-tab-panel>
 
+                <!-- MCP -->
                 <q-tab-panel name="mcp">
                   <div class="text-h6 q-mb-md">{{$t('mcpPermission')}}</div>
                   <div class="text-body2">{{$t('setMcpPermissions')}}</div>
@@ -224,9 +225,9 @@ onMounted(async () => {
                     shrink
                     stretch
                     no-caps
-                    class="bg-orange text-white shadow-2"
+                    class="bg-indigo-8 text-white shadow-2"
                   >
-                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]">
+                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable" :alert-icon="!mcp[1].serverEnable ? 'block' : 'flash_on'">
                     </q-tab>
                   </q-tabs>
                   <q-separator />

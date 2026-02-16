@@ -158,6 +158,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           };
         });
         mcps[value.id] = {
+          serverEnable: true,
           enable: configMcp.mcp[value.id]?.enable === undefined ? false: configMcp.mcp[value.id]?.enable,
           notice: value.notice,
           useTools: {

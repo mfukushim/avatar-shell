@@ -406,6 +406,7 @@ export type McpEnable = typeof McpEnable.Type
 export const McpEnableList = McpEnable.literals;
 
 export const AvatarMcpSetting = Schema.Struct({
+  serverEnable:Schema.optional(Schema.Boolean),
   enable: Schema.Boolean,
   notice: Schema.optional(Schema.String),
   useTools: Schema.Record({
