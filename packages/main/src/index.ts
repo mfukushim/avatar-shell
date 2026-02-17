@@ -23,15 +23,12 @@ const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServi
   MediaServiceLive,AvatarServiceLive,SocketServiceLive,FetchHttpClient.layer);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
 
-export function showAlertIfFatal(detectPos: string) {
+export function showAlertIfFatal(detectPos?: string) {
   return (e:any) => {
     if (dialog) {
-      dialog.showErrorBox(
-        'Error',
-        `${detectPos} error ${e}`
-      );
+      const mes = Array.isArray(e) ? e[0]?.message : `${e}`;
+      dialog.showErrorBox('Error',detectPos ? `${detectPos}: ${mes}`: mes);
     }
-    console.log(e);
     return Effect.succeed(e); //  復帰はさせる
   };
 }
@@ -256,7 +253,7 @@ ipcMain.handle('callMcpToolDirect', async (_,avatarId:string,params: ToolCallPar
 app.on('ready', async () => {
   console.log('start app');
   await ConfigService.getSysConfig().pipe(
-    Effect.andThen(a =>  McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal('MCP init0')))),
+    Effect.andThen(a =>  McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal()))),
     Effect.andThen(a => {
       console.log('MCP init done');
       app.emit('second-instance');
