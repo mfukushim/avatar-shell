@@ -154,6 +154,20 @@ const selectGenerator = (event:any, daemon:any) => {
   }
 }
 
+function removeKey<T extends object, K extends keyof T>(
+  obj: T,
+  key: K
+): Omit<T, K> {
+  const { [key]: _, ...rest } = obj;
+  return rest;
+}
+
+const deleteMcpDef = (id:string) => {
+  if (editingSettings.value?.mcp) {
+    editingSettings.value.mcp = removeKey(editingSettings.value.mcp, id)
+  }
+}
+
 onMounted(async () => {
   //  ここはトップ画面の生成と同時に作られる部分なので、初期処理はdoOpenに置く
 });
@@ -241,7 +255,10 @@ onMounted(async () => {
                       <q-card>
                       <q-card-section>
                         <div class="text-subtitle2">{{ mcp[0] }}</div>
-                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :data-testid="`mcp-${mcp[0]}-enable`" />
+                        <div class="row">
+                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :disable="!mcp[1].serverEnable" :data-testid="`mcp-${mcp[0]}-enable`" />
+                          <q-space/><q-btn icon="delete" @click="deleteMcpDef(mcp[0])" :disable="mcp[1].serverEnable" data-testid="mcp-delete-btn">{{ t('delete') }}</q-btn>
+                        </div>
                         <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
                       </q-card-section>
                       <div class="row q-pa-sm">
@@ -250,8 +267,8 @@ onMounted(async () => {
                              :key="inputIndex">
                           {{getMcpLabel(mcp[0],tool[0])}}
                           <div class="row">
-                            <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
-                            <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
+                            <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :disable="!mcp[1].enable" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
+                            <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" :disable="!mcp[1].enable" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
                             <div class="text-caption q-ma-sm">
                               {{getMcpInfo(mcp[0],tool[0])?.description}}
                             </div>
