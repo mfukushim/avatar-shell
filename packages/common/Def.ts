@@ -256,11 +256,15 @@ export const McpStdioServerDef = Schema.Struct({
   })),
 });
 
+export type McpStdioServerDef = typeof McpStdioServerDef.Type
+
 export const McpStreamHttpServerDef = Schema.Struct({
   type: Schema.NonEmptyString,
   url: Schema.NonEmptyString,
   note: Schema.optional(Schema.String),
 });
+
+export type McpStreamHttpServerDef = typeof McpStreamHttpServerDef.Type
 
 const McpServerDef = Schema.Struct({
   enable: Schema.Boolean,
@@ -402,6 +406,7 @@ export type McpEnable = typeof McpEnable.Type
 export const McpEnableList = McpEnable.literals;
 
 export const AvatarMcpSetting = Schema.Struct({
+  serverEnable:Schema.optional(Schema.Boolean),
   enable: Schema.Boolean,
   notice: Schema.optional(Schema.String),
   useTools: Schema.Record({
@@ -519,4 +524,17 @@ export interface ToolCallParam {
   callId: string, //  idはfunc call時のユニークcall_id
   name: string, //  nameは MCPの定義名_tool名
   input: any,
+}
+
+
+export class LabelError extends Error {
+  public label:string
+  public info?:string
+
+  constructor(label:string,message: string,info?:string) {
+    super(message);
+    this.name = 'LabelError';
+    this.label = label;
+    this.info = info;
+  }
 }

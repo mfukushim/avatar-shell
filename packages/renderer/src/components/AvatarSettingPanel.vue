@@ -17,9 +17,30 @@ import {useI18n} from 'vue-i18n';
 
 const {t} = useI18n();
 
+const emit = defineEmits<{
+  (e: 'done', templateId: string): void,
+}>();
+
+// --- Refs ---
+const show = ref(false);
+const tab = ref('general');
+const tabDaemon = ref('');
+const tabMcp = ref('');
+const splitterModel = ref(15);
+const generatorList = ref<string[]>([]);
+const editingSettings = ref<AvatarSettingMutable>();
+const editingSchedulers = ref<SchedulerListMutable>();
+const errorMes = ref('');
+const mcpServers = ref<McpInfo[]>([])
+const saving = ref(false);
 const mcpEnableList = ref<{label:string,value:string}[]>([])
 
+// --- Functions ---
 
+/**
+ * アバター設定パネルを開き、必要な情報を取得・初期化する
+ * @param templateId アバターのテンプレートID
+ */
 const doOpen = async (templateId: string) => {
   const config = await getAvatarConfigMcpUpdate(templateId)
   editingSettings.value = {
@@ -41,32 +62,12 @@ const doOpen = async (templateId: string) => {
   show.value = true;
 };
 
-defineExpose({
-  doOpen,
-});
-
-const emit = defineEmits<{
-  (e: 'done', templateId: string): void,
-}>();
-
-
-const show = ref(false);
-
-const tab = ref('general');
-const tabDaemon = ref('');
-const tabMcp = ref('');
-
-const splitterModel = ref(15);
-
-const generatorList = ref<string[]>([]);
-
-const editingSettings = ref<AvatarSettingMutable>();
-const editingSchedulers = ref<SchedulerListMutable>();
-const errorMes = ref('');
-const mcpServers = ref<McpInfo[]>([])
-
-const saving = ref(false);
-
+/**
+ * 指定されたMCP IDとツール名から、ツールの詳細情報を取得する
+ * @param id MCPサーバーID
+ * @param name ツール名
+ * @returns ツール情報、または空のオブジェクト/文字列
+ */
 const getMcpInfo = (id:string,name?:string):any => {
   const mcp = mcpServers.value.find(value => value.id === id)
   if(mcp){
@@ -75,6 +76,12 @@ const getMcpInfo = (id:string,name?:string):any => {
   return {}
 }
 
+/**
+ * MCPツールのラベルを取得する（表示用）
+ * @param id MCPサーバーID
+ * @param name ツール名
+ * @returns ラベル文字列
+ */
 const getMcpLabel = (id:string,name?:string) => {
   const mcp = getMcpInfo(id,name)
   if(mcp){
@@ -83,6 +90,9 @@ const getMcpLabel = (id:string,name?:string) => {
   return name
 }
 
+/**
+ * 設定内容を保存してパネルを閉じる
+ */
 const saveAndClose = async () => {
   saving.value = true;
   //  TODO ここで選択したLLMのsystem側apiKeyやmodelが空欄でないかどうかだけ確認する LLM未選択はエラーがわかりにくいので出来れば避けたい
@@ -108,7 +118,9 @@ const saveAndClose = async () => {
   saving.value = false;
 };
 
-
+/**
+ * 新しいスケジューラ（デーモン）を追加する
+ */
 const addScheduler = () => {
   if (editingSchedulers.value) {
     let count = 1
@@ -141,18 +153,55 @@ const addScheduler = () => {
   }
 };
 
+/**
+ * スケジューラ（デーモン）を削除する
+ * @param time 削除対象のスケジューラオブジェクト
+ */
 const deleteScheduler = (time: any) => {
   if (editingSchedulers.value) {
     editingSchedulers.value = editingSchedulers.value.filter(value => value.id !== time.id);
   }
 };
 
+/**
+ * ジェネレータが選択された際の処理
+ * @param event 選択されたジェネレータ名
+ * @param daemon 対象のデーモンオブジェクト
+ */
 const selectGenerator = (event:any, daemon:any) => {
   if(event === 'copy' || event.startsWith('empty')){
     daemon.exec.templateGeneratePrompt = ''
     return
   }
 }
+
+/**
+ * オブジェクトから指定されたキーを削除する
+ * @param obj 対象のオブジェクト
+ * @param key 削除するキー
+ * @returns キー削除後の新しいオブジェクト
+ */
+function removeKey<T extends object, K extends keyof T>(
+  obj: T,
+  key: K
+): Omit<T, K> {
+  const { [key]: _, ...rest } = obj;
+  return rest;
+}
+
+/**
+ * MCP定義を削除する
+ * @param id 削除するMCPのID
+ */
+const deleteMcpDef = (id:string) => {
+  if (editingSettings.value?.mcp) {
+    editingSettings.value.mcp = removeKey(editingSettings.value.mcp, id)
+  }
+}
+
+defineExpose({
+  doOpen,
+});
 
 onMounted(async () => {
   //  ここはトップ画面の生成と同時に作られる部分なので、初期処理はdoOpenに置く
@@ -212,6 +261,7 @@ onMounted(async () => {
                   </q-card>
                 </q-tab-panel>
 
+                <!-- MCP -->
                 <q-tab-panel name="mcp">
                   <div class="text-h6 q-mb-md">{{$t('mcpPermission')}}</div>
                   <div class="text-body2">{{$t('setMcpPermissions')}}</div>
@@ -224,9 +274,9 @@ onMounted(async () => {
                     shrink
                     stretch
                     no-caps
-                    class="bg-orange text-white shadow-2"
+                    class="bg-indigo-8 text-white shadow-2"
                   >
-                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]">
+                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable" :alert-icon="!mcp[1].serverEnable ? 'block' : 'flash_on'">
                     </q-tab>
                   </q-tabs>
                   <q-separator />
@@ -240,7 +290,10 @@ onMounted(async () => {
                       <q-card>
                       <q-card-section>
                         <div class="text-subtitle2">{{ mcp[0] }}</div>
-                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :data-testid="`mcp-${mcp[0]}-enable`" />
+                        <div class="row">
+                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :disable="!mcp[1].serverEnable" :data-testid="`mcp-${mcp[0]}-enable`" />
+                          <q-space/><q-btn icon="delete" @click="deleteMcpDef(mcp[0])" :disable="mcp[1].serverEnable" data-testid="mcp-delete-btn">{{ t('delete') }}</q-btn>
+                        </div>
                         <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
                       </q-card-section>
                       <div class="row q-pa-sm">
@@ -249,8 +302,8 @@ onMounted(async () => {
                              :key="inputIndex">
                           {{getMcpLabel(mcp[0],tool[0])}}
                           <div class="row">
-                            <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
-                            <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
+                            <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :disable="!mcp[1].enable" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
+                            <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" :disable="!mcp[1].enable" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
                             <div class="text-caption q-ma-sm">
                               {{getMcpInfo(mcp[0],tool[0])?.description}}
                             </div>

@@ -19,31 +19,41 @@ import tpl from '../assets/licenseInfo.md?raw';
 import {defaultSysSetting} from '../../../common/DefaultSetting.ts';
 import {QInput} from 'quasar';
 
+// --- Refs ---
 const show = ref(false);
-
 const tabSelect = ref('general');
 const tabGen = ref('openAi');
 const tabMcp = ref('');
-
 const splitterModel = ref(17);
-
 const avatarList = ref<{label: string, value: string}[]>([]);
-
-
 const edit = ref<SysConfigMutable>(defaultSysSetting);
 const mcpConfig = ref<{id: string,enable:boolean, body: string}[]>([]);
-// const mcpConfig = ref<{id: string, body: string}[]>([]);
-
 const websocketPort = ref<string | undefined>(undefined);
 const saving = ref(false);
-
 const exportAvatarTemplateId = ref('');
+const errorMes = ref('');
+const version = ref('');
+const disableImportSys = ref(false);
+const disableImportAvatar = ref(false);
+const disableExportAvatar = ref(false);
+const disableExportSysConfig = ref(false);
+const prefPath = ref('');
+const pathRef = ref<QInput | null>(null);
 
 const {t} = useI18n();
 
-const errorMes = ref('');
-const version = ref('');
+// --- Validation Rules ---
+const mcpRegex = /^[a-z][a-z0-9]*$/;
+const mcpNameValidate = [
+  (val:string) => (val && mcpRegex.test(val)) || 'Only lowercase alphanumeric characters are allowed',
+]
 
+// --- Functions ---
+
+/**
+ * MCPサーバーのリストを取得する
+ * @returns MCPサーバー情報の配列
+ */
 const getMcpServerList = () => {
   return (Object.entries(edit.value.mcpServers) as [string, any][])
     .map(v => {
@@ -57,7 +67,9 @@ const getMcpServerList = () => {
     );
 };
 
-
+/**
+ * システム設定パネルを開き、必要な情報を取得・初期化する
+ */
 const doOpen = async () => {
   errorMes.value = '';
   const config = await getSysConfig();
@@ -101,6 +113,9 @@ const doOpen = async () => {
   show.value = true;
 };
 
+/**
+ * 設定内容を保存してパネルを閉じる
+ */
 const saveAndClose = async () => {
   saving.value = true;
   errorMes.value = ''
@@ -251,7 +266,9 @@ const saveAndClose = async () => {
   }
 };
 
-
+/**
+ * 新しいMCP設定を追加する
+ */
 const addMcp = () => {
   let count = 1;
   let id = `mcp${mcpConfig.value.length + count}`;
@@ -262,12 +279,20 @@ const addMcp = () => {
   const items = {id: id,enable:false, body: '{}'};
   mcpConfig.value.push(items);
   tabMcp.value = id;
-  // tabMcp.value = id
 };
+
+/**
+ * 指定されたIDのMCP設定を削除する
+ * @param id 削除するMCPのID
+ */
 const deleteMcp = (id: string) => {
   mcpConfig.value = mcpConfig.value.filter(v => v.id !== id);
 };
 
+/**
+ * クリックイベントをハンドリングし、外部リンクをブラウザで開く
+ * @param event マウスイベント
+ */
 const handleClick = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
   const anchor = target.closest('a') as HTMLAnchorElement | null;
@@ -286,14 +311,9 @@ const handleClick = (event: MouseEvent) => {
   }
 };
 
-const disableImportSys = ref(false);
-const disableImportAvatar = ref(false);
-const disableExportAvatar = ref(false);
-const disableExportSysConfig = ref(false);
-
-const prefPath = ref('');
-const pathRef = ref<QInput | null>(null);
-
+/**
+ * システム設定をインポートする
+ */
 const importSys = async () => {
   disableImportSys.value = true;
   await importSysConfig()
@@ -301,44 +321,45 @@ const importSys = async () => {
   disableImportSys.value = false;
 }
 
+/**
+ * システム設定をエクスポートする
+ */
 const exportSys = async () => {
   disableExportSysConfig.value = true;
   await exportSysConfig()
   disableExportSysConfig.value = false;
 }
 
+/**
+ * アバター設定をインポートする
+ */
 const importAvatarBtn = async () => {
   disableImportAvatar.value = true
   await importAvatar()
   disableImportAvatar.value = false
 }
 
+/**
+ * 指定されたテンプレートIDのアバター設定をエクスポートする
+ * @param templateId アバターテンプレートID
+ */
 const exportAvatarBtn = async (templateId:string) => {
   disableExportAvatar.value = true
   await exportAvatar(templateId)
   disableExportAvatar.value = false
 }
 
+/**
+ * 設定の初期化を実行する
+ * @param all メディアを含めて全て初期化する場合はtrue
+ */
 const fullReset = async (all:boolean) => {
   await resetPreference(all)
 }
 
-onMounted(async () => {
-  document.addEventListener('click', handleClick);
-  prefPath.value = await getPreferencePath();
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClick);
-});
-
-const mcpRegex = /^[a-z][a-z0-9]*$/;
-
-const mcpNameValidate = [
-  // (val:string) => (val && val.length > 0) || 'Please type mcp name',
-  (val:string) => (val && mcpRegex.test(val)) || 'Only lowercase alphanumeric characters are allowed',
-]
-
+/**
+ * 設定ディレクトリのパスをクリップボードにコピーする
+ */
 const copyPath = async () => {
   try {
     await navigator.clipboard.writeText(prefPath.value);
@@ -349,6 +370,17 @@ const copyPath = async () => {
     alert("copy fail: " + err);
   }
 }
+
+// --- Lifecycle ---
+
+onMounted(async () => {
+  document.addEventListener('click', handleClick);
+  prefPath.value = await getPreferencePath();
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClick);
+});
 
 </script>
 
@@ -647,9 +679,9 @@ const copyPath = async () => {
                       shrink
                       stretch
                       no-caps
-                      class="bg-orange text-white shadow-2"
+                      class="bg-indigo-8 text-white shadow-2"
                     >
-                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id">
+                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id" :alert="!server.enable" alert-icon="block">
                       </q-tab>
                     </q-tabs>
                     <q-separator />

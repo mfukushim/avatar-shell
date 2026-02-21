@@ -17,19 +17,22 @@ const emit = defineEmits<{
   (e: 'resetAvatarList'): void
 }>()
 
-
+// --- Refs ---
 const show = ref(false);
-
 const alert = ref(false);
 const selAlert = ref(false);
-
 const message = ref('');
-
 const selectAvatar = ref();
-
 const avatarConfigList = ref<{label: string, value: string}[]>([])
 const avatars = ref<{id: string, name: string, templateId: string}[]>([])
+const settingDialog = ref()
 
+// --- Functions ---
+
+/**
+ * アバター設定選択パネルを開く
+ * 現在の設定を取得し、選択肢を初期化する
+ */
 const open = async () => {
   const templateId = currentAvatarSetting()?.templateId
   const list = await getAvatarConfigList()
@@ -44,11 +47,17 @@ const open = async () => {
   show.value = true;
 };
 
+/**
+ * 選択中のアバター設定パネルを開く
+ */
 const settingOpen = async () => {
   const selectAvatarId = selectAvatar.value.value;
   await settingDialog.value.doOpen(selectAvatarId)
 }
 
+/**
+ * 選択中のアバター設定をコピーして新規作成し、設定パネルを開く
+ */
 const copyOpen = async () => {
   const templateId = selectAvatar.value.value;
   const nextTemplateId = await copyAvatarConfig(templateId)
@@ -56,11 +65,17 @@ const copyOpen = async () => {
   emit('resetAvatarList')
 }
 
+/**
+ * アバターテンプレートの削除確認ダイアログを表示する
+ */
 const deleteAvatarTemplate = async () => {
   message.value = t('deleteAvatarConfirm', {name: selectAvatar.value.label})
   selAlert.value = true;
 }
 
+/**
+ * アバターテンプレートの削除を実行する
+ */
 const doDelete = async () => {
   selAlert.value = false;
   const templateId = selectAvatar.value.value;
@@ -68,13 +83,14 @@ const doDelete = async () => {
   alert.value = true
 }
 
+/**
+ * ダイアログを閉じ、リストを再読み込みする
+ */
 const dialogClose = async () => {
   alert.value = false;
   selAlert.value = false;
   await open()
 }
-
-const settingDialog = ref()
 
 onMounted(async () => {
 });

@@ -19,19 +19,26 @@ import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../comm
 import electronLog from 'electron-log';
 import {FetchHttpClient} from '@effect/platform';
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  // CLIでもGUIでも、2重起動は即終了
+  app.quit();
+}
+
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive,
   MediaServiceLive,AvatarServiceLive,SocketServiceLive,FetchHttpClient.layer);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
 
-export function showAlertIfFatal(detectPos: string) {
+export function showAlertIfFatal(detectPos?: string) {
   return (e:any) => {
     if (dialog) {
-      dialog.showErrorBox(
-        'Error',
-        `${detectPos} error ${e}`
-      );
+      const m = (ex:any) => {
+        return [ex?.label || 'ERROR',`${ex?.message}`,ex?.info];
+      };
+      const mes = Array.isArray(e) ? m(e[0]): m(e);
+      const content: string = detectPos ? `${detectPos}: ${mes[1]}`: `${mes[1]}`;
+      dialog.showErrorBox(mes[0],mes[2] ? `${mes[2]}\n${content}`: content);
     }
-    console.log(e);
     return Effect.succeed(e); //  復帰はさせる
   };
 }
@@ -256,7 +263,7 @@ ipcMain.handle('callMcpToolDirect', async (_,avatarId:string,params: ToolCallPar
 app.on('ready', async () => {
   console.log('start app');
   await ConfigService.getSysConfig().pipe(
-    Effect.andThen(a =>  McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal('MCP init0')))),
+    Effect.andThen(a =>  McpService.reset(a).pipe(Effect.catchAll(showAlertIfFatal()))),
     Effect.andThen(a => {
       console.log('MCP init done');
       app.emit('second-instance');

@@ -1,5 +1,5 @@
 /*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
-import {Effect, Schema, SynchronizedRef, Option} from 'effect';
+import {Effect, Schema, SynchronizedRef, Option, Match, Either} from 'effect';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -7,7 +7,7 @@ import {
   AlertTask, AvatarMcpSetting,
   AvatarMcpSettingList,
   AvatarSetting,
-  DaemonTrigger,
+  DaemonTrigger, LabelError,
   McpConfigList,
   type McpEnable,
   McpInfo, McpStdioServerDef, McpStreamHttpServerDef,
@@ -51,42 +51,35 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
         })
         serverInfoList = yield *Effect.validateAll(servers, a1 => {
           return Effect.gen(function* () {
-            const clientCapabilities: ClientCapabilitiesWithExtensions = {
-              roots: { listChanged: true },
-              extensions: UI_EXTENSION_CAPABILITIES,
-            };
             const client = new Client(
               {
                 name: 'avatar-shell-client',
                 version: '1.0.0',
-              },{ capabilities:clientCapabilities }
+              },{
+                capabilities:{
+                  roots: { listChanged: true },
+                  extensions: UI_EXTENSION_CAPABILITIES,
+                } as ClientCapabilitiesWithExtensions
+              }
             );
-            const stdio = Schema.decodeUnknownOption(McpStdioServerDef)(a1.def)
-            const streamHttp = Schema.decodeUnknownOption(McpStreamHttpServerDef)(a1.def)
-            const transport = Option.isSome(stdio) ? new StdioClientTransport(stdio.value): Option.isSome(streamHttp) ? new StreamableHTTPClientTransport(new URL(streamHttp.value.url)):undefined
-            // const transport = a1[1].kind === 'stdio' ? new StdioClientTransport(a1[1]): a1[1].kind === 'streamHttp' ? new StreamableHTTPClientTransport(new URL(a1[1].url)):undefined
-            if (!transport) {
-              console.log('mcp def:',a1.def,stdio);
-              return yield *Effect.fail(new Error('MCP define error'))
-            }
-            yield* Effect.tryPromise({
+            yield *Match.value(a1.def).pipe(
+              Match.when(
+                (x) => Either.isRight(Schema.validateEither(McpStdioServerDef)(x)),
+                (y) => Effect.succeed(new StdioClientTransport(y as McpStdioServerDef))
+              ),
+              Match.when(
+                (x) => Either.isRight(Schema.decodeUnknownEither(McpStreamHttpServerDef)(x)),
+                (y) => Effect.succeed(new StreamableHTTPClientTransport(new URL((y as McpStreamHttpServerDef).url)))
+              ),
+              Match.orElse(() => Effect.fail(new Error('MCP define error')))
+            ).pipe(Effect.flatMap((transport) =>Effect.tryPromise({
               try: () => client.connect(transport),
-              catch: error => new Error(`MCP ${a1.def}.connect:\n${error}`),
-            });
+              catch: error => new LabelError(`${a1.name} MCP server Connect Error`,`${error}`,'Please,check MCP System Config.'),
+            })))
             const capabilities = client.getServerCapabilities();
-            const tools = (capabilities?.tools ? yield* Effect.tryPromise({
-              try: () => client.listTools(),
-              catch: error => new Error(`MCP ${a1.def}.tools: ${error}`),
-            }) : {tools: []});
-            const prompts = capabilities?.prompts ? yield* Effect.tryPromise({
-              try: () => client.listPrompts(),
-              catch: error => new Error(`MCP ${a1.def}.prompts: ${error}`),
-            }) : {prompts: []};
-            const resources = capabilities?.resources ? yield* Effect.tryPromise({
-              try: () => client.listResources(),
-              catch: error => new Error(`MCP ${a1.def}.resources: ${error}`),
-            }) : {resources: []};
-
+            const tools = (capabilities?.tools ? yield* Effect.tryPromise(() =>client.listTools()) : {tools: []});
+            const prompts = capabilities?.prompts ? yield* Effect.tryPromise(() => client.listPrompts()) : {prompts: []};
+            const resources = capabilities?.resources ? yield* Effect.tryPromise(() => client.listResources()): {resources: []};
             return {
               id: a1.name,
               client,
@@ -118,101 +111,39 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       return serverInfoList.find(v => v.id === name);
     }
 
-    function readMcpResource(name: string, uri: string) { //:Effect.Effect<ReadResourceResult,Error>
-      const info = getServerInfo(name)
-      if (info) {
-        return Effect.tryPromise({
-          try: () => info.client.readResource({uri}),
-          catch: error => new Error(`MCP resource read error:${error}`),
-        }).pipe(Effect.andThen(a => a as ReadResourceResult)); //  TODO ReadResourceResult {contents: {uri:string,mimeType:string,text:string}[]})
-      }
-      return Effect.fail(new Error(`MCP resource not found ${name} ${uri}`));
+    function readMcpResource(name: string, uri: string) {
+      return Option.fromNullable(getServerInfo(name)).pipe(
+        Option.andThen(info => info.client.readResource({uri}) as Promise<ReadResourceResult>),
+        Effect.andThen(a => a),
+        Effect.catchAll(error => Effect.fail(new Error(`MCP resource read error:${error}`)))
+      )
     }
-
-    /*
-    {
-  contents: [
-    {
-      uri: 'file:///roleWithSns.txt',
-      mimeType: 'text/plain',
-      text: 'Please speak to the user frankly in 2 lines or fewer. Since you are close, please omit honorifics.\n' +
-
-     */
 
     function getToolDefs(mcpList: AvatarMcpSettingList) {
       const definedServers = serverInfoList.filter(v => Object.keys(mcpList).includes(v.id))
       const undefinedServers = serverInfoList.filter(v => !Object.keys(mcpList).includes(v.id))
-      const updateDefServers = Object.entries(mcpList).flatMap(a => {
-        const find = definedServers.find(v => v.id === a[0]);
-        if (find) {
-          if (!a[1].enable) {
-            return [];
-          }
-          const defTools = Object.entries(a[1].useTools).flatMap(d => {
-            if (d[1].enable) {
-              const f = find.tools.find(e => e.name === d[0]);
-              if (f) {
-                //  ツールの個別関数が使えることが確定
-                //  プラグインの定義名を足す必要がある
-                return [
-                  {
-                    ...f,
-                    name: `${find.id}_${f.name}`,
-                  },
-                ];
-              }
-            }
-            return [];
-          });
-          const newTools = find.tools.filter(v => !Object.keys(a[1].useTools).includes(v.name))
-          const addTools = newTools.map(v => {
-            return {
+      const updateDefServers = Object.entries(mcpList).flatMap(useMcp => {
+        const useToolNames = Object.entries(useMcp[1].useTools).filter(value => value[1].enable).map(tool => tool[0])
+        return definedServers.filter(v => v.id === useMcp[0] && useMcp[1].enable).flatMap(serverTool => {
+            const defTools = serverTool.tools.filter(tool => useToolNames.includes(tool.name)).flatMap(v => [{
               ...v,
-              name: `${find.id}_${v.name}`
-            }
-          })
-          return defTools.concat(addTools)
-        }
-        return [];
-      });
-      const undefFunctions = undefinedServers.flatMap(s => {
-        return s.tools.map(t => {
+              name: `${serverTool.id}_${v.name}`,
+            },])
+            const addTools = serverTool.tools.filter(tool => !useToolNames.includes(tool.name)).flatMap(v => [{
+              ...v,
+              name: `${serverTool.id}_${v.name}`,
+            },])
+            return defTools.concat(addTools)
+          })})
+      const undefFunctions = undefinedServers.flatMap(serverTool => {
+        return serverTool.tools.map(t => {
           return {
             ...t,
-            name: `${s.id}_${t.name}`
+            name: `${serverTool.id}_${t.name}`
           }
         })
       })
       return updateDefServers.concat(undefFunctions)
-      //  このあたりはopenAiもanthropicも同様書式のはず
-/*
-      return Object.entries(mcpList).flatMap(a => {
-        const find = getServerInfo(a[0]);
-        if (find) {
-          if (!a[1].enable) {
-            return [];
-          }
-          return Object.entries(a[1].useTools).flatMap(d => {
-            if (d[1].enable) {
-              const f = find.tools.find(e => e.name === d[0]);
-              if (f) {
-                //  ツールの個別関数が使えることが確定
-                //  プラグインの定義名を足す必要がある
-                return [
-                  {
-                    ...f,
-                    name: `${find.id}_${f.name}`,
-                  },
-                ];
-              }
-            }
-            return [];
-          });
-        }
-        return [];
-      });
-*/
-
     }
 
     function updateAvatarMcpSetting(configMcp: AvatarSetting) {
@@ -227,6 +158,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           };
         });
         mcps[value.id] = {
+          serverEnable: true,
           enable: configMcp.mcp[value.id]?.enable === undefined ? false: configMcp.mcp[value.id]?.enable,
           notice: value.notice,
           useTools: {
@@ -328,24 +260,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             const res = yield* Effect.succeed(mediaUrl!).pipe(Effect.andThen(uri =>  (serverInfo.client as Client).readResource({
                 uri: uri,
               }, {timeout: 120 * 1000})))
-            // const res = yield* Effect.succeed(toolInfo._meta.ui.resourceUri as string).pipe(Effect.andThen(uri => Effect.tryPromise({
-            //   try: () => (serverInfo.client as Client).readResource({
-            //     uri: uri,
-            //   }, {timeout: 120 * 1000}),
-            //   catch: error => {
-            //     console.log('mcp error:', error);
-            //     return new Error(`MCP error:${error}`);
-            //   },
-            // })))
-            // const res:ReadResourceResult = yield* Effect.tryPromise({
-            //   try: () => (serverInfo.client as Client).readResource({
-            //     uri: toolInfo?._meta?.ui?.resourceUri as string,
-            //   }, {timeout: 120 * 1000}),
-            //   catch: error => {
-            //     console.log('mcp error:', error);
-            //     return new Error(`MCP error:${error}`);
-            //   },
-            // });
             const find = res.contents.find(v => v.mimeType?.startsWith('text/html;profile=mcp-app'));
             if(find && find.mimeType)
               //  FIXME
@@ -394,7 +308,6 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
       arguments: any
     }, callGenerator: GeneratorProvider) {
       switch (params.name) {
-
         case setTaskWhenIdling.def.name:
           return buildInCall(params.state, params.arguments, callGenerator, 'TalkAfterMin');
         case setTaskAfterMinutes.def.name:
@@ -434,7 +347,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           },
         },
       }).pipe(
-        Effect.andThen(a => Effect.succeed({content: [{type: 'text', text: 'set the instruction'}]})),
+        Effect.andThen(_ => Effect.succeed({content: [{type: 'text', text: 'set the instruction'}]})),
         Effect.catchAll(e => Effect.succeed({
           content: [{
             type: 'text',
