@@ -19,6 +19,12 @@ import {AlertReply, AsMessage, MutableSysConfig, ToolCallParam} from '../../comm
 import electronLog from 'electron-log';
 import {FetchHttpClient} from '@effect/platform';
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  // CLIでもGUIでも、2重起動は即終了
+  app.quit();
+}
+
 const AppConfigLive = Layer.mergeAll(ConfigServiceLive, DocServiceLive, McpServiceLive, BuildInMcpServiceLive,
   MediaServiceLive,AvatarServiceLive,SocketServiceLive,FetchHttpClient.layer);
 const aiRuntime = ManagedRuntime.make(AppConfigLive);
@@ -26,8 +32,12 @@ const aiRuntime = ManagedRuntime.make(AppConfigLive);
 export function showAlertIfFatal(detectPos?: string) {
   return (e:any) => {
     if (dialog) {
-      const mes = Array.isArray(e) ? e[0]?.message : `${e}`;
-      dialog.showErrorBox('Error',detectPos ? `${detectPos}: ${mes}`: mes);
+      const m = (ex:any) => {
+        return [ex?.label || 'ERROR',`${ex?.message}`,ex?.info];
+      };
+      const mes = Array.isArray(e) ? m(e[0]): m(e);
+      const content: string = detectPos ? `${detectPos}: ${mes[1]}`: `${mes[1]}`;
+      dialog.showErrorBox(mes[0],mes[2] ? `${mes[2]}\n${content}`: content);
     }
     return Effect.succeed(e); //  復帰はさせる
   };

@@ -7,7 +7,7 @@ import {
   AlertTask, AvatarMcpSetting,
   AvatarMcpSettingList,
   AvatarSetting,
-  DaemonTrigger,
+  DaemonTrigger, LabelError,
   McpConfigList,
   type McpEnable,
   McpInfo, McpStdioServerDef, McpStreamHttpServerDef,
@@ -74,7 +74,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
               Match.orElse(() => Effect.fail(new Error('MCP define error')))
             ).pipe(Effect.flatMap((transport) =>Effect.tryPromise({
               try: () => client.connect(transport),
-              catch: error => new Error(`MCP ${a1.name} connect error:\n${error}`),
+              catch: error => new LabelError(`${a1.name} MCP server Connect Error`,`${error}`,'Please,check MCP System Config.'),
             })))
             const capabilities = client.getServerCapabilities();
             const tools = (capabilities?.tools ? yield* Effect.tryPromise(() =>client.listTools()) : {tools: []});

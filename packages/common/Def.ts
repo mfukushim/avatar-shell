@@ -525,3 +525,16 @@ export interface ToolCallParam {
   name: string, //  nameは MCPの定義名_tool名
   input: any,
 }
+
+
+export class LabelError extends Error {
+  public label:string
+  public info?:string
+
+  constructor(label:string,message: string,info?:string) {
+    super(message);
+    this.name = 'LabelError';
+    this.label = label;
+    this.info = info;
+  }
+}
