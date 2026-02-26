@@ -11,7 +11,7 @@ import {
 } from '../../../common/Def.ts';
 import {Either, ParseResult, Schema} from 'effect';
 import short from 'short-uuid';
-import {getAvatarConfigMcpUpdate, setAvatarConfig, getGeneratorList, getMcpServerInfos} from '@app/preload';
+import {getAvatarConfigMcpUpdate, setAvatarConfig, getGeneratorList, getMcpServerInfos, sysConfig} from '@app/preload';
 import {AsClassList, AsContextLinesList, AsRoleList} from '../../../common/DefGenerators.ts';
 import {useI18n} from 'vue-i18n';
 
@@ -68,13 +68,20 @@ const doOpen = async (templateId: string) => {
  * @param name ツール名
  * @returns ツール情報、または空のオブジェクト/文字列
  */
-const getMcpInfo = (id:string,name?:string):any => {
+const getMcpToolInfo = (id:string,name?:string):any => {
   const mcp = mcpServers.value.find(value => value.id === id)
   if(mcp){
     return mcp.tools.find(v => v.name === name) || ''
   }
   return {}
 }
+
+const isDisableMcp(id:string) {
+  const mcp = mcpServers.value.find(value => value.id === id)
+  if(!mcp)  return false
+  sysConfig.
+}
+
 
 /**
  * MCPツールのラベルを取得する（表示用）
@@ -83,7 +90,7 @@ const getMcpInfo = (id:string,name?:string):any => {
  * @returns ラベル文字列
  */
 const getMcpLabel = (id:string,name?:string) => {
-  const mcp = getMcpInfo(id,name)
+  const mcp = getMcpToolInfo(id,name)
   if(mcp){
     return mcp.title ? `${mcp.title} (${name})` : name
   }
@@ -276,7 +283,7 @@ onMounted(async () => {
                     no-caps
                     class="bg-indigo-8 text-white shadow-2"
                   >
-                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable" :alert-icon="!mcp[1].serverEnable ? 'block' : 'flash_on'">
+                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable " :alert-icon="mcp[1].serverEnable  ? 'block' : 'flash_on'">
                     </q-tab>
                   </q-tabs>
                   <q-separator />
@@ -305,7 +312,7 @@ onMounted(async () => {
                             <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :disable="!mcp[1].enable" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
                             <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" :disable="!mcp[1].enable" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
                             <div class="text-caption q-ma-sm">
-                              {{getMcpInfo(mcp[0],tool[0])?.description}}
+                              {{getMcpToolInfo(mcp[0],tool[0])?.description}}
                             </div>
                           </div>
                         </div>

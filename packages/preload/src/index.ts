@@ -7,7 +7,7 @@ import {
   AsMessage,
   AvatarSetting, type DaemonTriggerSchema, type McpInfo,
   type MutableSysConfig,
-  type SysConfig, type ToolCallParam,
+  type SysConfig, SysConfigMutable, type ToolCallParam,
 } from '../../common/Def.js';
 import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
@@ -28,7 +28,7 @@ export interface McpResource {
 }
 
 // region --- Variables ---
-export let sysConfig: any = {};
+export let sysConfig: SysConfig | undefined = undefined;
 export let avatarId = '';
 export let userName: string | undefined;
 export let avatarName: string | undefined;
@@ -233,10 +233,13 @@ export async function setSysConfig(conf: SysConfig) {
  */
 export async function getSysConfig(): Promise<SysConfig> {
   try {
-    if (sysConfig && sysConfig?.version) {
+    if (sysConfig) {  //   && sysConfig?.version
       return sysConfig;
     }
     sysConfig = await ipcRenderer.invoke('getSysConfig') as any | undefined;
+    if (!sysConfig) {
+      sysConfig = defaultSysSetting;
+    }
   } catch (_) {
     sysConfig = defaultSysSetting;
   }
@@ -263,6 +266,7 @@ export async function updateMutableSetting(conf: MutableSysConfig) {
  * 変更可能なシステム設定を取得する
  * @returns 設定項目
  */
+/*
 export async function getMutableSetting() {
   try {
     sysConfig = await ipcRenderer.invoke('getMutableSetting') as MutableSysConfig | undefined;
@@ -271,6 +275,7 @@ export async function getMutableSetting() {
   }
   return sysConfig;
 }
+*/
 
 /**
  * 現在のユーザー名を取得する
@@ -343,7 +348,7 @@ export async function readMcpResource(name: string, url: string) {
 function makeSocket() {
   if (avatarSetting?.general.remoteServer) {
     socket = io(avatarSetting?.general.remoteServer);
-  } else if (sysConfig.websocket.useServer) {
+  } else if (sysConfig?.websocket.useServer) {
     socket = io(`http://127.0.0.1:${sysConfig.websocket.serverPort || 3010}`);
   }
 }
