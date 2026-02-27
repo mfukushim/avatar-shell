@@ -8,7 +8,6 @@ import {MediaService} from '../MediaService.js';
 import {ContextGenerator} from './ContextGenerator.js';
 import short from 'short-uuid';
 import {SysConfig} from '../../../common/Def.js';
-import {sysConfig} from '@app/preload';
 
 
 /**

@@ -1,9 +1,8 @@
 /*! avatar-shell | Apache-2.0 License | https://github.com/mfukushim/avatar-shell */
 import {Effect} from 'effect';
-import {McpConfig, McpToolInfo} from '../../common/Def.js';
+import {EchoSchedulerId, McpConfig, McpToolInfo} from '../../common/Def.js';
 import {app} from 'electron';
 
-export const EchoSchedulerId = 'echoDaemon';  //  TODO 他のMCPと重ならないユニーク名
 
 export const setTaskWhenIdling = {
   def: {

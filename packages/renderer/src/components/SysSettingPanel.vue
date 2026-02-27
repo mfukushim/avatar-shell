@@ -681,7 +681,7 @@ onBeforeUnmount(() => {
                       no-caps
                       class="bg-indigo-8 text-white shadow-2"
                     >
-                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id" :alert="!server.enable" alert-icon="block">
+                      <q-tab v-for="(server) in mcpConfig" :key="server.id" :label="server.id" :name="server.id" :alert="!server.enable" alert-icon="horizontal_rule">
                       </q-tab>
                     </q-tabs>
                     <q-separator />

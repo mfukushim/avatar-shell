@@ -28,7 +28,7 @@ export interface McpResource {
 }
 
 // region --- Variables ---
-export let sysConfig: SysConfig | undefined = undefined;
+let sysConfig: SysConfig | undefined = undefined;
 export let avatarId = '';
 export let userName: string | undefined;
 export let avatarName: string | undefined;
