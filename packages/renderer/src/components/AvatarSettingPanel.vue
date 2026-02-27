@@ -7,11 +7,17 @@ import {
   AvatarSettingMutable,
   type SchedulerListMutable,
   DaemonTriggerList,
-  type McpInfo,
+  type McpInfo, type SysConfig, EchoSchedulerId,
 } from '../../../common/Def.ts';
 import {Either, ParseResult, Schema} from 'effect';
 import short from 'short-uuid';
-import {getAvatarConfigMcpUpdate, setAvatarConfig, getGeneratorList, getMcpServerInfos} from '@app/preload';
+import {
+  getAvatarConfigMcpUpdate,
+  setAvatarConfig,
+  getGeneratorList,
+  getMcpServerInfos,
+  getSysConfig,
+} from '@app/preload';
 import {AsClassList, AsContextLinesList, AsRoleList} from '../../../common/DefGenerators.ts';
 import {useI18n} from 'vue-i18n';
 
@@ -34,6 +40,7 @@ const errorMes = ref('');
 const mcpServers = ref<McpInfo[]>([])
 const saving = ref(false);
 const mcpEnableList = ref<{label:string,value:string}[]>([])
+const sysConfig = ref<SysConfig>()
 
 // --- Functions ---
 
@@ -58,6 +65,7 @@ const doOpen = async (templateId: string) => {
   mcpServers.value = await getMcpServerInfos()
   //  TODO ちょっとreadonlyをごまかしているがどうするか
   mcpEnableList.value = McpEnableList.map(value => ({value,label:t(`mcpPermissionSet.${value}`)}))
+  sysConfig.value = await getSysConfig()
 
   show.value = true;
 };
@@ -68,13 +76,26 @@ const doOpen = async (templateId: string) => {
  * @param name ツール名
  * @returns ツール情報、または空のオブジェクト/文字列
  */
-const getMcpInfo = (id:string,name?:string):any => {
+const getMcpToolInfo = (id:string,name?:string):any => {
   const mcp = mcpServers.value.find(value => value.id === id)
   if(mcp){
     return mcp.tools.find(v => v.name === name) || ''
   }
   return {}
 }
+
+const isSysEnableMcp = (id:string) => {
+  // const mcp = mcpServers.value.find(value => value.id === id)
+  // if(!mcp)  return true
+  if (id === EchoSchedulerId) {
+    return true;
+  }
+  if(sysConfig.value) {
+    if(sysConfig.value.mcpServers[id]?.enable)  return true;
+  }
+  return false
+}
+
 
 /**
  * MCPツールのラベルを取得する（表示用）
@@ -83,7 +104,7 @@ const getMcpInfo = (id:string,name?:string):any => {
  * @returns ラベル文字列
  */
 const getMcpLabel = (id:string,name?:string) => {
-  const mcp = getMcpInfo(id,name)
+  const mcp = getMcpToolInfo(id,name)
   if(mcp){
     return mcp.title ? `${mcp.title} (${name})` : name
   }
@@ -276,7 +297,7 @@ onMounted(async () => {
                     no-caps
                     class="bg-indigo-8 text-white shadow-2"
                   >
-                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable" :alert-icon="!mcp[1].serverEnable ? 'block' : 'flash_on'">
+                    <q-tab v-for="(mcp) in Object.entries(editingSettings!!.mcp!!)" :key="mcp[0]" :label="mcp[0]" :name="mcp[0]" :alert="!mcp[1].serverEnable || mcp[1].enable || !isSysEnableMcp(mcp[0])" :alert-icon="!isSysEnableMcp(mcp[0]) ? 'delete_outline' :!mcp[1].serverEnable  ? 'block':'flash_on'">
                     </q-tab>
                   </q-tabs>
                   <q-separator />
@@ -291,8 +312,8 @@ onMounted(async () => {
                       <q-card-section>
                         <div class="text-subtitle2">{{ mcp[0] }}</div>
                         <div class="row">
-                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :disable="!mcp[1].serverEnable" :data-testid="`mcp-${mcp[0]}-enable`" />
-                          <q-space/><q-btn icon="delete" @click="deleteMcpDef(mcp[0])" :disable="mcp[1].serverEnable" data-testid="mcp-delete-btn">{{ t('delete') }}</q-btn>
+                        <q-toggle v-model="mcp[1].enable" :label="t('enableHide')" :disable="!mcp[1].serverEnable || !isSysEnableMcp(mcp[0])" :data-testid="`mcp-${mcp[0]}-enable`" />
+                          <q-space/><q-btn icon="delete" @click="deleteMcpDef(mcp[0])" :disable="isSysEnableMcp(mcp[0])" data-testid="mcp-delete-btn">{{ t('delete') }}</q-btn>
                         </div>
                         <div v-if="mcp[1].notice" class="text-red">{{ mcp[1].notice }}</div>
                       </q-card-section>
@@ -305,7 +326,7 @@ onMounted(async () => {
                             <q-toggle class="col-6" v-model="tool[1].enable" :label="t('enableHide')" :disable="!mcp[1].enable" :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-enable`" />
                             <q-select class="col-6" v-model="tool[1].allow" :options="mcpEnableList" :disable="!mcp[1].enable" label="Permission" emit-value map-options :data-testid="`mcp-${mcp[0]}-tool-${tool[0]}-allow`"/>
                             <div class="text-caption q-ma-sm">
-                              {{getMcpInfo(mcp[0],tool[0])?.description}}
+                              {{getMcpToolInfo(mcp[0],tool[0])?.description}}
                             </div>
                           </div>
                         </div>

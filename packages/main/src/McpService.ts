@@ -5,10 +5,11 @@ import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
   AlertTask, AvatarMcpSetting,
-  AvatarMcpSettingList,
+  AvatarMcpSettingList, AvatarMcpSettingMutable,
   AvatarSetting,
-  DaemonTrigger, LabelError,
-  McpConfigList,
+  AvatarSettingMutable,
+  DaemonTrigger, LabelError, McpConfig,
+  McpConfigList, McpConfigMutable,
   type McpEnable,
   McpInfo, McpStdioServerDef, McpStreamHttpServerDef,
   SysConfig, ToolCallParam,
@@ -49,7 +50,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
             def: value[1].def
           }
         })
-        serverInfoList = yield *Effect.validateAll(servers, a1 => {
+        const res = yield* Effect.forEach(servers, a1 => {
           return Effect.gen(function* () {
             const client = new Client(
               {
@@ -71,10 +72,10 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
                 (x) => Either.isRight(Schema.decodeUnknownEither(McpStreamHttpServerDef)(x)),
                 (y) => Effect.succeed(new StreamableHTTPClientTransport(new URL((y as McpStreamHttpServerDef).url)))
               ),
-              Match.orElse(() => Effect.fail(new Error('MCP define error')))
+              Match.orElse(() => Effect.fail(new Error(`${a1.name} define error`)))
             ).pipe(Effect.flatMap((transport) =>Effect.tryPromise({
               try: () => client.connect(transport),
-              catch: error => new LabelError(`${a1.name} MCP server Connect Error`,`${error}`,'Please,check MCP System Config.'),
+              catch: error => new Error(`${a1.name} Connect Error`),
             })))
             const capabilities = client.getServerCapabilities();
             const tools = (capabilities?.tools ? yield* Effect.tryPromise(() =>client.listTools()) : {tools: []});
@@ -88,10 +89,18 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
               resources: resources.resources,
               buildIn: false,
             };
-          });
+          }).pipe(Effect.catchAll(e => Effect.succeed(e)))
         })
+        const isError = (v: unknown): v is Error => v instanceof Error
+        const errors  = res.filter((r):r is Error => r instanceof Error)
+        serverInfoList = res.filter((r): r is Exclude<typeof r, Error> => !isError(r))
+
         const buildInList = yield* BuildInMcpService.getDefines();
         serverInfoList.push(...buildInList);
+        const errorMes = errors.map(e => e.message).join(',');
+        if (errorMes) {
+          return yield *Effect.fail(new LabelError(`${errorMes}\nMCP server Error`,'Please,check MCP System Config.'))
+        }
       });
     }
 
@@ -147,6 +156,7 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
     }
 
     function updateAvatarMcpSetting(configMcp: AvatarSetting) {
+      Object.keys(configMcp.mcp).forEach(k =>(configMcp.mcp[k] as unknown as AvatarMcpSettingMutable).serverEnable = undefined)
       const mcpServers = getMcpServerInfos();
       const mcps: Record<string, AvatarMcpSetting> = {};
       mcpServers.forEach(value => {
@@ -167,9 +177,11 @@ export class McpService extends Effect.Service<McpService>()('avatar-shell/McpSe
           },
         };
       });
+      const deepMerge1: Record<string, AvatarMcpSetting> = deepMerge(mcps, configMcp.mcp) as Record<string, AvatarMcpSetting>;
+      Object.keys(deepMerge1).forEach(k =>(deepMerge1[k] as unknown as AvatarMcpSettingMutable).serverEnable = mcps[k]?.serverEnable)
       return Effect.succeed({
         ...configMcp,
-        mcp: deepMerge(mcps, configMcp.mcp) as Record<string, AvatarMcpSetting>,
+        mcp: deepMerge1,
       } as AvatarSetting);
     }
 

@@ -98,6 +98,7 @@ export type DaemonTrigger = typeof DaemonTrigger.Type
 export type ContextTrigger = typeof ContextTrigger.Type
 export type TimerTrigger = typeof TimerTrigger.Type
 
+export const EchoSchedulerId = 'echoDaemon';  //  TODO 他のMCPと重ならないユニーク名
 
 /*
   AsMessage ====================================
@@ -309,6 +310,7 @@ const McpConfig = Schema.Struct({
   buildIn: Schema.mutable(Schema.Boolean),
 });
 
+const McpConfigMutable = Schema.mutable(McpConfig);
 const McpConfigList = Schema.mutable(Schema.Array(McpConfig));
 
 export type McpInfo = typeof McpInfo.Type
@@ -316,6 +318,7 @@ export type McpToolInfo = typeof McpToolInfo.Type
 export type McpPromptInfo = typeof McpPromptInfo.Type
 export type McpResourceInfo = typeof McpResourceInfo.Type
 export type McpConfig = typeof McpConfig.Type
+export type McpConfigMutable = typeof McpConfigMutable.Type
 export type McpConfigList = typeof McpConfigList.Type
 
 export type McpServerDef = typeof McpServerDef.Type
@@ -421,7 +424,7 @@ export const AvatarMcpSetting = Schema.Struct({
 export type AvatarMcpSetting = typeof AvatarMcpSetting.Type
 
 export const AvatarMcpSettingMutable = Schema.mutable(AvatarMcpSetting);
-// export type AvatarMcpSettingMutable = typeof AvatarMcpSettingMutable.Type
+export type AvatarMcpSettingMutable = typeof AvatarMcpSettingMutable.Type
 
 export const AvatarMcpSettingList = Schema.Record({
   key: Schema.String,
