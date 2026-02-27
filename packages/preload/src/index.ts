@@ -7,7 +7,7 @@ import {
   AsMessage,
   AvatarSetting, type DaemonTriggerSchema, type McpInfo,
   type MutableSysConfig,
-  type SysConfig, SysConfigMutable, type ToolCallParam,
+  type SysConfig, type ToolCallParam,
 } from '../../common/Def.js';
 import {io, Socket} from 'socket.io-client';
 import {defaultAvatarSetting, defaultSysSetting} from '../../common/DefaultSetting.js';
